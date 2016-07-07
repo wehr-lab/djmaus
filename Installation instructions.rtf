@@ -1,0 +1,48 @@
+djmaus installation notes
+
+Should work on mac, linux, windows.
+
+1. Install matlab.
+2. Install psych toolbox. Download from www.psychtoolbox.org 
+3. Download djmaus from github.com/wehr-lab and put anywhere. Add folder to matlab path.
+3. Install Open Ephys GUI. Download from http://www.open-ephys.org/gui/
+4. Install zeroMQ. Download from http://zeromq.org/intro:get-the-software
+	alternatively on linux, 
+		sudo add-apt-repository ppa:chris-lea/zeromq
+		sudo apt-get update
+		sudo apt-get install libzmq3-dbg libzmq3-dev libzmq3
+	alternatively on mac, (using brew, available from brew.sh)
+		brew install zeromq
+		sudo mkdir /opt/local
+		sudo mkdir /opt/local/lib
+		sudo ln -s /usr/local/lib/libzmq.dylib  /opt/local/lib/libzmq.dylib 
+		sudo ln -s /usr/local/lib/libzmq.a  /opt/local/lib/libzmq.a
+		sudo ln -s /usr/local/lib/libzmq.la  /opt/local/lib/libzmq.la
+		sudo ln -s /usr/local/lib/libzmq.5.dylib  /opt/local/lib/libzmq.3.dylib 
+
+https://guide.macports.org/#installing.macports
+sudo port install zmq3
+
+5. If the zeroMQ mex file doesn’t work (check with matlab_zeroMQ_wrapper_example.m), you might need to compile the source code. 
+	Make sure g++ 4.7 is installed:
+		sudo apt-get install g++-4.7
+		sudo ln -s /usr/bin/g++-4.7 /usr/bin/g++ 
+	Download the open-ephys source code from https://github.com/open-ephys/GUI
+	Edit GUI/Resources/matlab/compile_matlab_wrapper.m to have the right paths to your OE install, and then run it. Test by running matlab_wrapper
+
+launch GUI
+network events source doesn't show? do this:
+sudo add-apt-repository ppa:chris-lea/zeromq
+sudo apt-get update
+sudo apt-get install libzmq3-dbg libzmq3-dev libzmq3
+(from https://open-ephys.atlassian.net/wiki/display/OEW/Linux)
+
+Network Events documentation: https://open-ephys.atlassian.net/wiki/display/OEW/Network+Events
+
+the python network console might be helpful for development
+it requires 
+apt-get install python-zmq
+
+installing zeroMQ on mac:
+brew install zeromq
+this puts it into /usr/local/lib

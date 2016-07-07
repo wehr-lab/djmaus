@@ -25,7 +25,7 @@ if isempty(action)
     action='Init';
 end
 
-fprintf('\naction: %s', action)
+%fprintf('\naction: %s', action)
 
 switch action
     case 'Init'
@@ -145,6 +145,8 @@ switch action
     case 'mouseID'
         SP.mouseID=get(SP.mouseIDh, 'string');
         mouseIDs=get(SP.mouseIDMenuh, 'string');
+        if ~iscell(mouseIDs) mouseIDs={mouseIDs};end
+
         if isempty(mouseIDs)
             mouseIDs=SP.mouseID;
         elseif iscell(mouseIDs) & length(mouseIDs)>1 %more than one menu item
@@ -183,13 +185,23 @@ switch action
         eval(str)
         save('mouseDB.mat', SP.mouseID, '-append')
         
-    case 'mouseAge'
-        SP.mouseAge=get(SP.mouseAgeh, 'string');
+    case 'mouseDOB'
+        SP.mouseDOB=get(SP.mouseDOBh, 'string');
         cd (SP.datapath)
         load mouseDB
-        str=sprintf('%s.mouseAge=''%s''', SP.mouseID, SP.mouseAge);
+        str=sprintf('%s.mouseDOB=''%s''', SP.mouseID, SP.mouseDOB);
         eval(str)
         save('mouseDB.mat', SP.mouseID, '-append')
+        SP.Age=(datenum(date)-datenum(SP.mouseDOB))/30; %in months
+        pos1=get(SP.mouseSexh, 'pos'); 
+        pos=get(SP.mouseDOBh, 'pos'); 
+        pos(3)=.6*pos1(3);
+        set(SP.mouseDOBh, 'pos',pos);
+        pos(1)=pos(1)+pos(3);
+        SP.Ageh=uicontrol(gcf,'tag','mouseAgelabel','style','text','units','pixels',...
+            'string', sprintf('age\n%.1f mo', SP.Age), 'fontsize', 10,...
+            'enable','inact','horiz','left','pos', pos);
+
         
     case 'Reinforcement'
         SP.Reinforcement=get(SP.Reinforcementh, 'string');
@@ -212,17 +224,17 @@ cd (SP.datapath)
 mouseDB=load('mouseDB.mat');
 if isfield(mouseDB, SP.mouseID)
     try
-        str=sprintf('SP.mouseGenotype=mouseDB.%s.mouseGenotype', SP.mouseID);
+        str=sprintf('SP.mouseGenotype=mouseDB.%s.mouseGenotype;', SP.mouseID);
         eval(str);
         set(SP.mouseGenotypeh, 'string', SP.mouseGenotype);
     end
     try
-        str=sprintf('SP.mouseAge=mouseDB.%s.mouseAge', SP.mouseID);
+        str=sprintf('SP.mouseDOB=mouseDB.%s.mouseDOB;', SP.mouseID);
         eval(str);
-        set(SP.mouseAgeh, 'string', SP.mouseAge);
+        set(SP.mouseDOBh, 'string', SP.mouseDOB);
     end
     try
-        str=sprintf('SP.mouseSex=mouseDB.%s.mouseSex', SP.mouseID);
+        str=sprintf('SP.mouseSex=mouseDB.%s.mouseSex;', SP.mouseID);
         eval(str);
         set(SP.mouseSexh, 'string', SP.mouseSex);
     end
@@ -231,8 +243,8 @@ else
     set(SP.mouseGenotypeh, 'string', SP.mouseGenotype);
     SP.mouseSex='sex unknown';
     set(SP.mouseSexh, 'string', SP.mouseSex);
-    SP.mouseAge='age unknown';
-    set(SP.mouseAgeh, 'string', SP.mouseAge);
+    SP.mouseDOB='age unknown';
+    set(SP.mouseDOBh, 'string', SP.mouseDOB);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -240,6 +252,7 @@ function WriteMouseIDtoPrefs
 global SP pref
 cd (pref.root)
 fid=fopen('Prefs.m', 'a+');
+if ~ iscell(SP.allmouseIDs) SP.allmouseIDs={SP.allmouseIDs};end
 allmouseIDstr='{';
 for i=1:length(SP.allmouseIDs)
     allmouseIDstr=[allmouseIDstr, '''', SP.allmouseIDs{i}, ''','];
@@ -466,7 +479,7 @@ if SP.Record
     end
 else
     %we want to start recording;
-    startstr=sprintf('StartRecord')
+    startstr=sprintf('StartRecord');
     if ~isfield(SP, 'mouseID')
         SP.mouseID='none';
     end
@@ -510,7 +523,7 @@ try
     nb.datapath=SP.datapath ;
     nb.activedir=SP.activedir;
     nb.LaserPower=SP.LaserPower;
-    nb.mouseAge=SP.mouseAge;
+    nb.mouseDOB=SP.mouseDOB;
     nb.mouseSex=SP.mouseSex;
     nb.mouseGenotype=SP.mouseGenotype;
     
@@ -524,14 +537,18 @@ function UpdateNotebookFile(stimulus)
 global SP
 
 if SP.Record
-    SP.stimcounter=SP.stimcounter+1;
-    timestamp=datestr(now,'mmmm-dd-yyyy HH:MM:SS.FFF');
-    stimulus.timestamp=timestamp;
-    cd(SP.datapath)
-    cd(SP.activedir)
-    SP.stimlog(SP.stimcounter)=stimulus;
-    stimlog=SP.stimlog;
-    save('notebook.mat', '-append', 'stimlog')
+    try
+        SP.stimcounter=SP.stimcounter+1;
+        timestamp=datestr(now,'mmmm-dd-yyyy HH:MM:SS.FFF');
+        stimulus.timestamp=timestamp;
+        cd(SP.datapath)
+        cd(SP.activedir)
+        SP.stimlog(SP.stimcounter)=stimulus;
+        stimlog=SP.stimlog;
+        save('notebook.mat', '-append', 'stimlog')
+    catch
+        fprintf('\nCould not update notebook file in active data directory')
+    end
 end
 
 
@@ -693,11 +710,11 @@ SP.Reinforcement='none';
 SP.Drugs='none';
 
 %mouse details
-SP.mouseAgeh=uicontrol(fig,'tag','mouseAge','style','edit','units','pixels',...
+SP.mouseDOBh=uicontrol(fig,'tag','mouseDOB','style','edit','units','pixels',...
     'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[2*e+3*w  H w h ]);
 H=H+h;
-SP.mouseAgelabel=uicontrol(fig,'tag','mouseAgelabel','style','text','units','pixels',...
-    'string', 'mouseAge:', 'fontsize', 10,...
+SP.mouseDOBlabel=uicontrol(fig,'tag','mouseDOBlabel','style','text','units','pixels',...
+    'string', 'mouseDOB:', 'fontsize', 10,...
     'enable','inact','horiz','left','pos', [2*e+3*w  H w h/2]);
 H=H+h/2+e;
 
@@ -716,7 +733,7 @@ SP.mouseGenotypelabel=uicontrol(fig,'tag','mouseGenotypelabel','style','text','u
     'enable','inact','horiz','left','pos', [2*e+3*w  H w h/2]);
 H=H+h/2+e;
 SP.mouseSex='unknown';
-SP.mouseAge='unknown';
+SP.mouseDOB='unknown';
 SP.mouseGenotype='unknown';
 
 %Depth edit box

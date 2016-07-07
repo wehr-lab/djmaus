@@ -15,7 +15,8 @@ Should work on mac, linux, windows.
 		sudo apt-get update
 		sudo apt-get install libzmq3-dbg libzmq3-dev libzmq3
 	mac: 
-		install macports from https://guide.macports.org/#installing.macports and relaunch terminal
+		install macports from www.macports.org/install.php
+		relaunch your terminal
 		sudo port install zmq3
 
 6. If the zeroMQ mex file doesn’t work (check with matlab_zeroMQ_wrapper_example.m), you might need to compile the mex from source code. 

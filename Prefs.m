@@ -7,13 +7,13 @@ global pref SP
 % machine-wide default prefs:
 
 pref.users={'lab', 'mike-home', 'mike-kombi', 'mike-linux'};
-pref.soundcarddeviceID=1;
+pref.soundcarddeviceID=3;
 pref.num_soundcard_outputchannels=2;
 pref.reqlatencyclass=2;
 pref.SoundFs=44100;
 pref.maxSPL=80;
 pref.allmouseIDs='';
-pref.root=fileparts(which(mfilename))
+pref.root=fileparts(which(mfilename));
 pref.stimuli=fullfile(pref.root, 'stimuli');
 pref.stimuli=fullfile(pref.root, 'stimuli');
 pref.datapath=fullfile(pref.root, 'Data');
@@ -29,10 +29,9 @@ switch SP.user
         pref.stimuli='/home/mike/djmaus/stimuli/mike';
         pref.datapath='/home/Data';
     case 'mike-kombi'
-        pref.stimuli='/Users/mikewehr/Dropbox/Wehrlab/djmaus/stimuli/mike';
+        pref.stimuli='/Users/mikewehr/Documents/Analysis/djmaus-master/stimuli/mike';
         pref.datapath='/Users/mikewehr/Documents/Data2';
         pref.soundcarddeviceID=3;
-        pref.allmouseIDs={'1','2','3'};
 end
 
 

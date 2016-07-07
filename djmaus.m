@@ -135,7 +135,8 @@ switch action
         
     case 'mouseIDMenu'
         mouseIDs=get(SP.mouseIDMenuh, 'string');
-        if iscell(mouseIDs) %skip if only one menu item
+        if ~iscell(mouseIDs) %skip if only one menu item
+        else
             mouseID=mouseIDs{get(SP.mouseIDMenuh, 'value')};
             set(SP.mouseIDh, 'string', mouseID)
         end
@@ -672,6 +673,7 @@ SP.Noteslabel=uicontrol(fig,'tag','Noteslabel','style','text','units','pixels',.
 H=H+h+e;
 
 %mouseID menu
+warning('off', 'MATLAB:hg:uicontrol:StringMustBeNonEmpty');
 if isfield(pref, 'allmouseIDs') SP.allmouseIDs=pref.allmouseIDs; else SP.allmouseIDs='';end
 SP.mouseIDMenuh=uicontrol(fig,'tag','mouseIDMenu','style','popupmenu','units','pixels','fontweight','bold',...
     'string', SP.allmouseIDs,'enable','on','horiz','left','callback',[me ';'], 'pos',[e+2*w H w h]);
@@ -769,7 +771,7 @@ SP.LaserPower='unknown';
 %open tcp/ip connection using zeroMQ  to communicate with open ephys
 switch computer
     case 'MACI64'
-        url='localhost:5556'; %seems to work for mac
+        url='tcp://localhost:5556'; %seems to work for mac
     case 'GLNXA64'
         url='tcp://127.0.0.1:5556'; %seems to work for linux
 end

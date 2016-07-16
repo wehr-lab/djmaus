@@ -469,6 +469,7 @@ end
 function Record
 %toggle Open Ephys recording state, increment datafile
 global SP
+fprintf('\n')
 
 if SP.Record
     %we want to stop recording
@@ -498,19 +499,28 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function InitNotebookFile
-global SP pref
+global SP 
 
 % find active OE data directory and cd into it
 try
+    zeroMQwrapper('Send',SP.zhandle ,sprintf('ChangeDirectory %s', SP.datapath))
+    pause(.1)
+    zeroMQwrapper('Send',SP.zhandle ,'GetRecordingPath');
+    pause(.2)
     cd(SP.datapath)
-    d=dir;
-    [x,y]=sort(datenum(char({d.date})));
-    i=1;
-    today=datestr(now, 'yyyy-mm-dd');
-    while isempty(strfind(d(y(i)).name, today))
-        i=i+1;
-    end
-    SP.activedir=d(y(i)).name;
+    fid=fopen('RecordingPath.txt', 'r');
+    RecordingPath=fgetl(fid);
+    fclose(fid);
+    fprintf('\nread this Recording Path from file:%s', RecordingPath)
+% %     cd(SP.datapath)
+% %     d=dir;
+% %     [x,y]=sort(datenum(char({d.date})));
+% %     i=1;
+% %     today=datestr(now, 'yyyy-mm-dd');
+% %     while isempty(strfind(d(y(i)).name, today))
+% %         i=i+1;
+% %     end
+    SP.activedir=RecordingPath;
     cd(SP.activedir)
     set(SP.pathh, 'string', {SP.datapath, [SP.activedir, ' recording...']})
     

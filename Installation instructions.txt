@@ -21,8 +21,10 @@ Should work on mac, linux, windows.
 
 6. If the zeroMQ mex file doesn’t work (check with matlab_zeroMQ_wrapper_example.m), you might need to compile the mex from source code. 
 	Make sure g++ 4.7 is installed:
-		sudo apt-get install g++-4.7
-		sudo ln -s /usr/bin/g++-4.7 /usr/bin/g++ 
+		linux:
+			sudo apt-get install g++-4.7
+			sudo ln -s /usr/bin/g++-4.7 /usr/bin/g++ 
+		mac:
 	Download the open-ephys source code from https://github.com/open-ephys/GUI
 	Edit GUI/Resources/matlab/compile_matlab_wrapper.m to have the right paths to your OE install, and then run it. Test by running matlab_wrapper
 

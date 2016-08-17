@@ -30,7 +30,7 @@ end
 switch action
     case 'Init'
         SP.user='lab';
-        Prefs;
+        djPrefs;
         InitializeGUI;
         PPAdj('init');
         % set the timer
@@ -60,7 +60,7 @@ switch action
         end
         
     case 'Reset'
-        Message('Reset');
+        djMessage('Reset');
         prot=SP.ProtocolIndex;
         if prot>0
             cstim=SP.CurrentStimulus;
@@ -70,7 +70,7 @@ switch action
         end
         
     case 'Reset All'
-        Message('Reset All');
+        djMessage('Reset All');
         cstim=SP.CurrentStimulus;
         cstim(:)=0;
         SP.CurrentStimulus=cstim;
@@ -119,16 +119,16 @@ switch action
         outstring=textwrap(pnh(1),{name{protocol_choice}});
         set(pnh,'String',outstring);
         SP.NRepeats=0;
-        Message(['0/' num2str(SP.NStimuli(protocol_choice)) ' stimuli, ' num2str(SP.NRepeats), ' repeats' ]);
+        djMessage(['0/' num2str(SP.NStimuli(protocol_choice)) ' stimuli, ' num2str(SP.NRepeats), ' repeats' ]);
         
         
     case 'User'
         users=get(SP.userh, 'string');
         user_index=get(SP.userh, 'value');
         user=users{user_index};
-        Message(sprintf('Hi %s', user))
+        djMessage(sprintf('Hi %s', user))
         SP.user=user;
-        Prefs;
+        djPrefs;
         SP.datapath=pref.datapath;
         set(SP.pathh, 'string', SP.datapath)
         set(SP.mouseIDMenuh, 'string', pref.allmouseIDs)
@@ -252,7 +252,7 @@ end
 function WriteMouseIDtoPrefs
 global SP pref
 cd (pref.root)
-fid=fopen('Prefs.m', 'a+');
+fid=fopen('djPrefs.m', 'a+');
 if ~ iscell(SP.allmouseIDs) SP.allmouseIDs={SP.allmouseIDs};end
 allmouseIDstr='{';
 for i=1:length(SP.allmouseIDs)
@@ -262,13 +262,13 @@ allmouseIDstr=allmouseIDstr(1:end-1);
 allmouseIDstr=[allmouseIDstr, '}'];
 key=sprintf('%%saved mouseIDs for %s', SP.user);
 
-Preftext = regexp( fileread('Prefs.m'), '\n', 'split');
+Preftext = regexp( fileread('djPrefs.m'), '\n', 'split');
 I=strmatch(key, Preftext);
 if ~isempty(I) %found key, overwrite with revised entry
     I=I(1);
     newstr=sprintf('\tpref.allmouseIDs=%s;', allmouseIDstr);
     Preftext{I+3}=newstr; %change entry;
-    fid = fopen('Prefs.m', 'w');
+    fid = fopen('djPrefs.m', 'w');
     fprintf(fid, '%s\n', Preftext{:});
     fclose(fid);
 else
@@ -339,7 +339,7 @@ else
         
         allprot=SP.AllProtocols;
         if isequal(allprot,{''})    % this is the first protocol added
-            Message('load first stim')
+            djMessage('load first stim')
             allprot={newname};
             set(SP.Runh,'enable','on');
             pdh=SP.protocol_descriptionh;
@@ -363,18 +363,18 @@ else
         djmaus('ProtocolMenu')
         
         SP.Stimulus=[];
-        Message('Stimuli loaded', 'append');
-        Message([ num2str(nstim(nprot)), ' stimuli'], 'append');
+        djMessage('Stimuli loaded', 'append');
+        djMessage([ num2str(nstim(nprot)), ' stimuli'], 'append');
         
         SP.NRepeats=0;
         set(SP.Runh, 'enable', 'on')
         
         
     else
-        Message('Not a valid protocol file');
+        djMessage('Not a valid protocol file');
     end
     %catch
-    %    Message('Can''t load the protocol file');
+    %    djMessage('Can''t load the protocol file');
     %end
 end
 
@@ -393,7 +393,7 @@ if ~isempty(SP.zhandle)
 end
 PPAdj('playsound')
 UpdateNotebookFile(stimulus)
-Message(stimulus.stimulus_description, 'append')
+djMessage(stimulus.stimulus_description, 'append')
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -429,7 +429,7 @@ if ~isfield(stimulus.param, 'duration')
 end
 djTimerDelay=stimulus.param.duration/1000+iti;
 
-Message([num2str(current(protocol)) '/' num2str(nstimuli(protocol)) ', ' num2str(SP.NRepeats), ' repeats' ]);
+djMessage([num2str(current(protocol)) '/' num2str(nstimuli(protocol)) ', ' num2str(SP.NRepeats), ' repeats' ]);
 SendStimulus(stimulus);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -788,10 +788,10 @@ end
 try
     SP.zhandle=zeroMQwrapper('StartConnectThread', url);
     zeroMQwrapper('Send',SP.zhandle ,'StartAcquisition');
-    Message('successful zeroMQ connection')
+    djMessage('successful zeroMQ connection')
     set(SP.Recordh, 'enable', 'on');
 catch
-    Message('could not open zeroMQ connection', 'error')
+    djMessage('could not open zeroMQ connection', 'error')
     pause(.5)
     SP.zhandle=[];
 end
@@ -807,7 +807,7 @@ SP.NProtocols=0;
 SP.NRepeats=0;
 SP.PPALaseron=0;
 set(fig,'visible','on');
-Message('djmaus initialized', 'append')
+djMessage('djmaus initialized', 'append')
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%InitializeGui%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

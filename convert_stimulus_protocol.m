@@ -9,7 +9,7 @@ function varargout=convert_stimulus_protocol(varargin)
 % stimuli=convert_stimulus_protocol(stimuli)
 %    converts the input stimuli and returns it as output variable
 
-Prefs
+djPrefs
 global pref
 
 if nargin==1

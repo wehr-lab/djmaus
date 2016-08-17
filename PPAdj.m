@@ -11,10 +11,10 @@ action = varargin{1};
 
 restart_timer
 
-% Message(action)
+% djMessage(action)
 switch action
     case 'init'
-        %InitializeGUI;                  % show the gui = Message box:-)
+        %InitializeGUI;                  % show the gui = djMessage box:-)
         InitPPA;                        % Initialize soundmachine
         SP.PPATimer=timer('tag', 'PPATimer', 'TimerFcn',[me '(''PPATimer'');'],'ExecutionMode','fixedDelay', 'Period', .5);
         start(SP.PPATimer)
@@ -48,7 +48,7 @@ switch action
                 LoadPPA(varargin{2},varargin{3},param); % first channel is the default channel
             end
         catch
-            Message('Cannot load sound', 'append');
+            djMessage('Cannot load sound', 'append');
         end
         
         
@@ -60,15 +60,15 @@ switch action
             %             status.Active
             h=SP.PPAactive;
             if status.Active==0; %device not running
-                %                  Message('not running', 'append')
+                %                  djMessage('not running', 'append')
                 set(h, 'string', 'PPA not running', 'backgroundcolor', [.5 .5 .5])
             elseif status.Active==1; %device running
-                %                  Message(' running', 'append')
+                %                  djMessage(' running', 'append')
                 set(h, 'string', 'PPA running', 'backgroundcolor', [1 0 0])
                 
             end
         catch
-            Message('ppatimer could not check status', 'append')
+            djMessage('ppatimer could not check status', 'append')
         end
         
         
@@ -85,7 +85,7 @@ switch action
             PsychPortAudio('Stop',SP.PPAhandle);
             PsychPortAudio('Close');
         catch
-            Message('failed to close device')
+            djMessage('failed to close device')
             pause(.2)
         end
 end
@@ -103,10 +103,15 @@ if isfield(SP, 'PPAhandle')
         Priority(0);
         PsychPortAudio('Close');
     catch
-        Message( 'InitPPA: failed to close device')
+        djMessage( 'InitPPA: failed to close device')
         pause(.2)
     end
 end
+% Verbosity:  0 = Shut up. 1 = Print errors, 2 = Print also warnings, 
+% 3 = Print also some info, 4 = Print more useful info (default), >5 = Be very
+% verbose (mostly for debugging the driver itself).
+PsychPortAudio('Verbosity', 0); 
+
 % Initialize driver, request low-latency preinit:
 %InitializePsychSound(1); %  InitializePsychSound([reallyneedlowlatency=0])
 InitializePsychSound(0); %  InitializePsychSound([reallyneedlowlatency=0])
@@ -119,15 +124,15 @@ InitializePsychSound(0); %  InitializePsychSound([reallyneedlowlatency=0])
 %ASIO-enabled PPA driver
 %(http://psychtoolbox.org/wikka.php?wakka=PsychPortAudio) and copy the
 %enclosed portaudio_x86.dll into C:\toolbox\Psychtoolbox
-PsychPortAudio('Verbosity', 5); %nm 09.09.08 turn off all text feedback from PPA
 
-%because it is machine dependent, we now set deviceid in Prefs.m
+
+%because it is machine dependent, we now set deviceid in djPrefs.m
 %use printdevices.m to figure out which device id to use for your soundcard
 deviceid = pref.soundcarddeviceID; %32; %11;
 
-numChan = pref.num_soundcard_outputchannels; %set in Prefs.m
+numChan = pref.num_soundcard_outputchannels; %set in djPrefs.m
 reqlatencyclass = pref.reqlatencyclass;
-%because it is machine dependent, we now set reqlatencyclass in Prefs.m
+%because it is machine dependent, we now set reqlatencyclass in djPrefs.m
 %on rig1 use 4; %on rig2, set to 1 (the default) to avoid dropouts mw 051809
 %on rig1, 1 seems to cause dropouts but 2/3/4 seem better
 % class 2 empirically the best, 3 & 4 == 2
@@ -161,7 +166,7 @@ buffPos = 0;
 
 try PPAhandle = PsychPortAudio('Open', deviceid, [], reqlatencyclass, SoundFs, numChan, buffSize);
 catch
-    error(sprintf('Could not open soundcard device id %d. Call PrintDevices and confirm that the soundcard DeviceIndex matches pref.soundcarddeviceID (in Prefs)\n', deviceid));
+    error(sprintf('Could not open soundcard device id %d. Call PrintDevices and confirm that the soundcard DeviceIndex matches pref.soundcarddeviceID (in djPrefs)\n', deviceid));
 end
 %runMode = 0; %default, turns off soundcard after playback
 runMode = 1; %leaves soundcard on (hot), uses more resources but may solve dropouts? mw 08.25.09: so far so good.
@@ -177,7 +182,7 @@ PsychPortAudio('RunMode', PPAhandle, runMode);
 %postlat = PsychPortAudio('LatencyBias', PPAhandle);
 
 if isempty(PPAhandle)
-    Message(me,'Can''t create PsychPortAudio object...');
+    djMessage(me,'Can''t create PsychPortAudio object...');
     return;
 end
 SP.PPAhandle=PPAhandle; % hold the PsychPortAudio object
@@ -187,7 +192,7 @@ SP.Samples=[]; %param to hold the samples, used only for looping
 SP.loop_flg=0; %param to store loop flag
 SP.seamless=0; %param to store whether transition should be seamless or not
 SP.buffers=[]; %param to store pointers to buffers for later deletion
-Message( sprintf('Initialized PsychPortAudio with device %d, reqlatencyclass %d, Fs %d, numChan %d, buffersize %d\n\n', deviceid, reqlatencyclass, SoundFs, numChan, buffSize), 'append');
+djMessage( sprintf('Initialized PsychPortAudio with device %d, reqlatencyclass %d, Fs %d, numChan %d, buffersize %d\n\n', deviceid, reqlatencyclass, SoundFs, numChan, buffSize), 'append');
 
 %trying to workaround dropout on first sound after initialization by
 %playing dummy tone here
@@ -207,7 +212,7 @@ switch type
             load(where,'samples');
             str=[where ' loaded'];  % string to be displayed in the Message box
         catch
-            Message(sprintf('Cannot load %s', where));
+            djMessage(sprintf('Cannot load %s', where));
             return;
         end
     case 'var'
@@ -216,7 +221,7 @@ switch type
     otherwise
         return;
 end
-%Message(str, 'append')
+%djMessage(str, 'append')
 
 % if isfield(param,'channel')
 %     channel=param.channel(1);
@@ -274,10 +279,10 @@ if on
             isi=SP.PPALaserisi; %ms
             if length(pulsewidth)>1
                 if length(pulsewidth)~=numpulses;
-                    Message('PPALaser: numpulses must match number of widths', 'append')
+                    djMessage('PPALaser: numpulses must match number of widths', 'append')
                 end
                 if length(isi)~=numpulses-1;
-                    Message('PPALaser: numpulses must be 1 more than number of isis', 'append')
+                    djMessage('PPALaser: numpulses must be 1 more than number of isis', 'append')
                 end
             end
             if length(pulsewidth)==1
@@ -347,7 +352,7 @@ if on
                 samples(numChan,:)=laserpulse;
             end
             
-            Message(str, 'append')
+            djMessage(str, 'append')
             
             if isfield(param, 'PulseTrace') % AKH 6/29/14
                 samples(numChan,:)=param.PulseTrace;
@@ -367,7 +372,7 @@ if isfield(param, 'seamless')
         seamless=param.seamless;
         status = PsychPortAudio('GetStatus', PPAhandle);
         str=sprintf('PositionSecs=%g\ndur:%g', status.PositionSecs, param.duration);
-        %         Message(str, 'append');
+        %         djMessage(str, 'append');
         
         if status.Active==0; %device not running, need to start it
             str=sprintf('%s\nhad to start it !!!', str);
@@ -405,17 +410,17 @@ if isfield(param, 'seamless')
             % % %            gotime=.1; %mw 06.13.2014 last known goo dvlaue 07.03.2014
             % %             if status.PositionSecs<gotime*param.duration/1000 %less than halfway from start of stimulus (aldis you could try lowering this to, say, .25)
             % %                 str=sprintf('%s\npausing', str);
-            % %                 %Message(str, 'append');
+            % %                 %djMessage(str, 'append');
             % %                 while status.PositionSecs<(gotime*param.duration/1000) %let's pause until halfway from start of stimulus
             % %                     status = PsychPortAudio('GetStatus', PPAhandle);
             % %                     pause(.01)
             % %                     str=sprintf('%s\nActive=%d,pausing at %g', str,status.Active, status.PositionSecs);
-            % %                 Message(str, 'append');
+            % %                 djMessage(str, 'append');
             % %                 end
             % %             end
             
             str=sprintf('%s\nalready started', str);
-            %  Message(str, 'append');
+            %  djMessage(str, 'append');
             buf = PsychPortAudio('CreateBuffer', [], samples);
             
             [success, freeslots] = PsychPortAudio('AddToSchedule', PPAhandle, buf, 1, 0.0, [], []);
@@ -437,7 +442,7 @@ if isfield(param, 'seamless')
             %buffer to finish playing, which blocks seamless play
             %             result=PsychPortAudio('DeleteBuffer',buf, 0); %this doesn't delete it if it's still playing
             %                         str=sprintf('%s\nresult:%d', str, result);
-            %                                     Message(str);
+            %                                     djMessage(str);
             
         end
         %delete any unused buffers still hanging around
@@ -469,7 +474,7 @@ else %this stimulus is not seamless
 end
 SP.loop_flg=loop_flg; %store loop flag
 SP.seamless=seamless; %store whether transition should be seamless or not
-Message(str, 'append');
+djMessage(str, 'append');
 
 % write diagnostic logfile -mw 07.07.2014
 %??? 9-3-2015 mw
@@ -496,7 +501,7 @@ Message(str, 'append');
 %     fprintf(fid,'\nGetSecs %.6f', GetSecs);
 %     fclose(fid);
 % catch
-%     Message('failed to write logfile', 'append')
+%     djMessage('failed to write logfile', 'append')
 % end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -562,7 +567,7 @@ end
 %
 % set(fig,'pos', [screensize(3)-128 screensize(4)-n*vs-100 158 150] ,'visible','on');
 %
-% Message('Initialized GUI');
+% djMessage('Initialized GUI');
 % pause(.2)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -571,10 +576,10 @@ function restart_timer
 PPATimer=timerfind('tag', 'PPATimer');
 if strcmp(get(PPATimer, 'running'), 'off')
     start(PPATimer)
-    Message('restarted timer', 'append')
+    djMessage('restarted timer', 'append')
 else
     %    start(PPATimer)
-    %    Message('timer already running', 'append')
+    %    djMessage('timer already running', 'append')
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

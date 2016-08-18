@@ -13,6 +13,7 @@
 #include <string>
 #include <queue>
 #include <list>
+#include <direct.h>
 
 typedef struct {
     const char *connect_url;
@@ -89,9 +90,10 @@ DWORD WINAPI MyThreadFunction( LPVOID lpParam )
                 std::string mystr;
                 mystr=command.c_str();
                 char buffer[mystr.length()];               
+                //char buffer[100];               //WRONG
                 std::size_t length = mystr.copy(buffer, mystr.length(), 16);
                     buffer[length]='\0';
-                if (chdir(buffer)== 0) {
+                if (_chdir(buffer)== 0) {
                     printf("\nzmq wrapper: changed dir to %s", buffer);
                 }
                 else mexErrMsgIdAndTxt( "MATLAB:Could not change directory",

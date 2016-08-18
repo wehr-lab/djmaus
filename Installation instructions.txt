@@ -5,7 +5,10 @@ Should work on mac, linux, windows.
 1. Install matlab.
 2. Install psych toolbox. Download from www.psychtoolbox.org 
 3. Download djmaus from https://github.com/wehr-lab/djmaus and put anywhere. Add that folder to matlab path.
-	-if you expect to do any code development, clone it instead (using the github desktop or command-line). Then you can commit changes
+	-Pro tip: if you expect to do any code development, clone it instead (using the github desktop or command-line). Then you can commit changes.
+	-desktop: click "changes" tab at top, review which checked files you want to commit, 
+		add summary (required) and details (optional), click "commit to master", and then click sync in upper right corner.
+
 4. Install Open Ephys GUI. Download from http://www.open-ephys.org/gui/
 	to use Network Events on Mac you need to build from source code, 
 	which is described here: https://open-ephys.atlassian.net/wiki/display/OEW/Mac+OS+X 

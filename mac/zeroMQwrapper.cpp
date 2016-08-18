@@ -88,6 +88,7 @@ void* MyThreadFunction( void* lpParam )
 		    zmq_msg_init (&reply);
 		    zmq_msg_recv (&reply, requester, 0);
             
+            //djmaus stuff:
             if   (strncmp(command.c_str(), "ChangeDirectory", 15) == 0)  {
                 //if the message is "ChangeDirectory pathname"
                 //this allows calling function to tell us to cd to pathname

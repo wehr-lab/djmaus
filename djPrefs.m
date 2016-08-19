@@ -7,7 +7,11 @@ global pref SP
 % machine-wide default prefs:
 
 pref.users={'lab', 'mike-home', 'mike-kombi', 'mike-linux'};
-pref.soundcarddeviceID=3;
+try
+    pref.soundcarddeviceID=GetAsioLynxDevice;
+catch
+    pref.soundcarddeviceID=3;
+end
 pref.num_soundcard_outputchannels=2;
 pref.reqlatencyclass=2;
 pref.SoundFs=44100;
@@ -23,19 +27,20 @@ pref.home='/Users/mikewehr/Documents/Analysis/';
 
 % individual user prefs:
 
-switch SP.user
-    case 'mike-home'
-        %pref.stimuli='/home/mike/djmaus/stimuli/mike';
-        pref.datapath='/Users/mikewehr/Documents/Data';
-    case 'mike-linux'
-        pref.stimuli='/home/mike/djmaus/stimuli/mike';
-        pref.datapath='/home/Data';
-    case 'mike-kombi'
-        pref.stimuli='/Users/mikewehr/Documents/Analysis/djmaus-master/stimuli/mike';
-        pref.datapath='/Users/mikewehr/Documents/Data2';
-        pref.soundcarddeviceID=3;
+try
+    switch SP.user
+        case 'mike-home'
+            %pref.stimuli='/home/mike/djmaus/stimuli/mike';
+            pref.datapath='/Users/mikewehr/Documents/Data';
+        case 'mike-linux'
+            pref.stimuli='/home/mike/djmaus/stimuli/mike';
+            pref.datapath='/home/Data';
+        case 'mike-kombi'
+            pref.stimuli='/Users/mikewehr/Documents/Analysis/djmaus-master/stimuli/mike';
+            pref.datapath='/Users/mikewehr/Documents/Data2';
+            pref.soundcarddeviceID=3;
+    end
 end
-
 
 
 

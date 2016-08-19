@@ -1,12 +1,13 @@
-﻿djmaus installation notes
+djmaus installation notes
 
 Should work on mac, linux, windows.
 
 1. Install matlab.
 2. Install psych toolbox. Download from www.psychtoolbox.org 
-3. Download djmaus from https://github.com/wehr-lab/djmaus and put anywhere. Add that folder to matlab path.
+    -if psychtoolbox is already downloaded, you can just run SetupPsychtoolbox
+3. Download djmaus from https://github.com/wehr-lab/djmaus and put anywhere. Add that folder to matlab path (with subfolders).
 	-Pro tip: if you expect to do any code development, clone it instead (using the github desktop or command-line). Then you can commit changes.
-	-desktop: click "changes" tab at top, review which checked files you want to commit, 
+	-to commit with github desktop: click "changes" tab at top, review which checked files you want to commit, 
 		add summary (required) and details (optional), click "commit to master", and then click sync in upper right corner.
 
 4. Install Open Ephys GUI. Download from http://www.open-ephys.org/gui/
@@ -22,6 +23,7 @@ Should work on mac, linux, windows.
 		install macports from www.macports.org/install.php
 		relaunch your terminal
 		sudo port install zmq3
+    win: http://miru.hk/archive/ZeroMQ-4.0.4~miru1.0-x64.exe
 
 6. If the zeroMQ mex file doesn’t work (check with matlab_zeroMQ_wrapper_example.m), you might need to compile the mex from source code. 
 	Make sure g++ 4.7 is installed:
@@ -47,5 +49,15 @@ Network Events documentation: https://open-ephys.atlassian.net/wiki/display/OEW/
 the python network console might be helpful for development
 it requires 
 apt-get install python-zmq
+
+more notes:
+network events breaks open-ephys data acquisition on mac. Recording works fine until the network events source is added. Stuck there.
+trying to get it running on windows
+Network events already works in the downloadable binary, so no need to recompile the plugin-gui just yet.
+Need to compile the zmq wrapper, though, and the code I added to the cpp file (for changing directory and writing it to file to cmmunicate with djmaus) doesn't work with the visual studio compiler (even though it works with xcode and g++). So, g++...
+trying a windows version of g++, MinGW-w64 version 4.9.2 compiler from TDM-GCC, tdm64-gcc-4.9.2.exe from: https://sourceforge.net/projects/tdm-gcc/files/TDM-GCC%20Installer/Previous/1.1309.0/
+instructions at http://www.mathworks.com/help/matlab/matlab_external/install-mingw-support-package.html say to install directly in c:\ and to uncheck "check for updates." Use the add-ons menu in matlab
+
+
 
 

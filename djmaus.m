@@ -578,7 +578,7 @@ set(fig,'visible','off','numbertitle','off','name','djmaus',...
     'doublebuffer','on','menubar','none','closerequestfcn','djmaus(''Close'')')
 height=450; width=420; e=2; H=e;
 w=100; h=25;
-set(fig,'pos',[1200 900         width         height],'visible','on');
+set(fig,'pos',[1200 600 width height],'visible','on');
 
 %Reset button
 uicontrol('parent',fig,'string','Reset','tag','Reset','units','pixels',...
@@ -783,6 +783,8 @@ switch computer
     case 'MACI64'
         url='tcp://localhost:5556'; %seems to work for mac
     case 'GLNXA64'
+        url='tcp://127.0.0.1:5556'; %seems to work for linux
+    case 'PCWIN64'
         url='tcp://127.0.0.1:5556'; %seems to work for linux
 end
 try

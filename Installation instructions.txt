@@ -25,7 +25,7 @@ Should work on mac, linux, windows.
 		sudo port install zmq3
     win: http://miru.hk/archive/ZeroMQ-4.0.4~miru1.0-x64.exe
 
-6. If the zeroMQ mex file doesn’t work (check with matlab_zeroMQ_wrapper_example.m), you might need to compile the mex from source code. 
+6. If the zeroMQ mex file doesn't work (check with matlab_zeroMQ_wrapper_example.m), you might need to compile the mex from source code. 
 	Make sure g++ 4.7 is installed:
 		linux:
 			sudo apt-get install g++-4.7
@@ -57,7 +57,12 @@ Network events already works in the downloadable binary, so no need to recompile
 Need to compile the zmq wrapper, though, and the code I added to the cpp file (for changing directory and writing it to file to cmmunicate with djmaus) doesn't work with the visual studio compiler (even though it works with xcode and g++). So, g++...
 trying a windows version of g++, MinGW-w64 version 4.9.2 compiler from TDM-GCC, tdm64-gcc-4.9.2.exe from: https://sourceforge.net/projects/tdm-gcc/files/TDM-GCC%20Installer/Previous/1.1309.0/
 instructions at http://www.mathworks.com/help/matlab/matlab_external/install-mingw-support-package.html say to install directly in c:\ and to uncheck "check for updates." Use the add-ons menu in matlab
+-actually, we do need to recompile the plugins even in windows. And as of Aug2016, you need to do the following
+workarounds: (1) make sure the 2 channels in Network Events are set to not record, and (2) right-click the merger
+and deselect both check marks for NE but leave both checked for RhythmFPGA. I also have param turned off for both NE chans.
 
-
-
+troubleshooting: 
+-If you launch OE and get "audio device initialization error," try plugging in some speakers or headphones into the audio out jack on your computer.
+-If you stop acquisition (the "play" button), you need to start it again before clicking record, otherwise OE will not save data files. Relaunch OE to fix.
+-Works with both x64 Release and 32bit Debug versions of OE.
 

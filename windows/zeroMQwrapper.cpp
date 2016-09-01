@@ -109,7 +109,10 @@ DWORD WINAPI MyThreadFunction( LPVOID lpParam )
 
                 FILE *fp;
                 fp=fopen("RecordingPath.txt", "w");
-                fprintf (fp, "%s\n", mymsg);
+                //fprintf (fp, "%s\n", mymsg);
+                fprintf (fp, "%s", mymsg);
+                fprintf (fp, "\n%d", mymsgsize);
+                
                 fclose(fp);
 
                 printf ("\nzmq wrapper:wrote %s to RecordingPath.txt", mymsg);
@@ -183,12 +186,17 @@ void mexFunction( int nlhs, mxArray *plhs[],
 		if (!sd->thread_running) {
 			// Thread was killed and now we try to send things again?
 			mexPrintf("Connection was closed. Cannot send.\n");
-			return;
+			//plhs[0] = 0; //return value = failure
+            //mexErrMsgIdAndTxt( "MATLAB:zeroMQwrapper:thread_not_running", "Thread not running. Could not send.\n");
+
+            return;
 		}
 
 		char *s= mxArrayToString(prhs[2]);
 		std::string std_s(s);
 		MyQueue.push(std_s);
+
+        //plhs[0] = 1; //return value = success
 
 	}
 			

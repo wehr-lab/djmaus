@@ -252,8 +252,19 @@ triglength=round(SoundFs/1000); %1 ms trigger
 %for example, if you're using the soundcard trigger to drive an LED pulse
 % triglength=length(samples);
 
+%trigsamples(1:triglength)=ones(size(1:triglength));
+%(this produces max output for trig amplitude, which is +10V on the Lynx,
+%which is the way we used to do it for TTL triggers)
 
-trigsamples(1:triglength)=ones(size(1:triglength));
+trigsamples(1:triglength)=.25*ones(size(1:triglength));
+%now, since djmaus is designed for open-ephys which wants 3.3V triggers, we
+%use .33 = 3.3/10
+%Reid says the digital lines can take 5V, but the ADCs cannot. Neither
+%like negative voltages but can tolerate up to -0.5V before blowing
+%anything. The soundcard puts some ringing on the edges but it's less than
+%+/- 0.2V so I think we're totally safe for both digital lines and an ADC
+%line if we want to use that as a monitor.
+
 %trigsamples(end-triglength+1:end)=-.5*ones(size(1:triglength));
 if loop_flg
     trigsamples=0*trigsamples;

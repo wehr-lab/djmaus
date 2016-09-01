@@ -16,7 +16,7 @@ cd('D:\lab\djmaus\')
 %GUIfolder = 'C:\Users\Shay\Documents\GitHub\GUI';
 %GUIfolder = '/home/jsiegle/Programming/GUI/';
 %GUIfolder = '/Users/mikewehr/Documents/Analysis/plugin GUI';
-GUIfolder = 'D:\plugin-GUI-master';
+GUIfolder = 'D:\lab\plugin-GUI';
 
 
 %headerFolder = [GUIfolder, '/Resources/windows-libs/ZeroMQ/include'];

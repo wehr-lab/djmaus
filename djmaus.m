@@ -32,9 +32,12 @@ switch action
         SP.user='lab';
         djPrefs;
         InitializeGUI;
+        InitZMQ %initialize zeroMQ connection to open-ephys
+        InitParams %initialize some default params in SP structure
         PPAdj('init');
         % set the timer
         djTimer=timer('TimerFcn',[me '(''next_stimulus'');'],'StopFcn',[me '(''restart_timer'');'],'ExecutionMode','singleShot');
+        djMessage('djmaus initialized', 'append')
         
     case 'Close'
         try stop(djTimer); end
@@ -46,7 +49,7 @@ switch action
         clear global SP
         fprintf('\nbye\n')
         
-    case 'Run'
+    case 'Run' %which is the Play button
         if SP.Run
             %we want to stop
             set(SP.Runh,'backgroundcolor',[0 0.9 0],'String','Play');
@@ -58,6 +61,17 @@ switch action
             start(djTimer);
             SP.Run=1;
         end
+        
+    case 'Stop'
+        %stop acquisition, i.e. like clicking the > button on the
+        %open-ephys GUI
+        zeroMQwrapper('Send',SP.zhandle ,'StopAcquisition'); %shouldn't need to do this unless user stopped acquisition, doesn't hurt anyway
+
+    case 'launchOE'
+        djMessage('launching OE', 'append')
+        OEpath=pref.OEpath;
+        system(OEpath)
+        djMessage('launched', 'append')
         
     case 'Reset'
         djMessage('Reset');
@@ -173,8 +187,8 @@ switch action
         SP.mouseGenotype=get(SP.mouseGenotypeh, 'string');
         cd (SP.datapath)
         load mouseDB
-        str=sprintf('%s.mouseGenotype=''%s''', SP.mouseID, SP.mouseGenotype);
-        eval(str)
+        str=sprintf('%s.mouseGenotype=''%s'';', SP.mouseID, SP.mouseGenotype);
+        eval(str);
         save('mouseDB.mat', SP.mouseID, '-append')
         
     case 'mouseSex'
@@ -182,7 +196,7 @@ switch action
         set(SP.mouseSexh, 'string', SP.mouseSex)
         cd (SP.datapath)
         load mouseDB
-        str=sprintf('%s.mouseSex=''%s''', SP.mouseID, SP.mouseSex);
+        str=sprintf('%s.mouseSex=''%s'';', SP.mouseID, SP.mouseSex);
         eval(str)
         save('mouseDB.mat', SP.mouseID, '-append')
         
@@ -190,7 +204,7 @@ switch action
         SP.mouseDOB=get(SP.mouseDOBh, 'string');
         cd (SP.datapath)
         load mouseDB
-        str=sprintf('%s.mouseDOB=''%s''', SP.mouseID, SP.mouseDOB);
+        str=sprintf('%s.mouseDOB=''%s'';', SP.mouseID, SP.mouseDOB);
         eval(str)
         save('mouseDB.mat', SP.mouseID, '-append')
         SP.Age=(datenum(date)-datenum(SP.mouseDOB))/30; %in months
@@ -215,6 +229,12 @@ switch action
         
     case 'Depth'
         SP.Depth=get(SP.Depthh, 'string');
+        
+    case 'Notes'
+        SP.Notes=get(SP.Notesh, 'string');
+
+    case 'ResetZMQ'
+        InitZMQ;
         
 end
 
@@ -367,7 +387,7 @@ else
         djMessage([ num2str(nstim(nprot)), ' stimuli'], 'append');
         
         SP.NRepeats=0;
-        set(SP.Runh, 'enable', 'on')
+        set(SP.Runh, 'enable', 'on','backgroundcolor',[0 0.9 0])
         
         
     else
@@ -392,7 +412,7 @@ if ~isempty(SP.zhandle)
     zeroMQwrapper('Send', SP.zhandle, str)
 end
 PPAdj('playsound')
-UpdateNotebookFile(stimulus)
+UpdateStimlog(stimulus)
 djMessage(stimulus.stimulus_description, 'append')
 
 
@@ -438,22 +458,22 @@ function out = me
 out = mfilename;
 % me
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function DisableParamChange
-fig=findobj('type','figure','tag',me);
-h=findobj(fig,'type','uicontrol','style','edit');
-for cnt=1:length(h)
-    set(h(cnt),'enable','off')
-end
-% DisableParamChange
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function EnableParamChange
-fig=findobj('type','figure','tag',me);
-h=findobj(fig,'type','uicontrol','style','edit');
-for cnt=1:length(h)
-    set(h(cnt),'enable','on')
-end
+% 
+% function DisableParamChange
+% fig=findobj('type','figure','tag',me);
+% h=findobj(fig,'type','uicontrol','style','edit');
+% for cnt=1:length(h)
+%     set(h(cnt),'enable','off')
+% end
+% % DisableParamChange
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 
+% function EnableParamChange
+% fig=findobj('type','figure','tag',me);
+% h=findobj(fig,'type','uicontrol','style','edit');
+% for cnt=1:length(h)
+%     set(h(cnt),'enable','on')
+% end
 %EnableParamChange
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -476,6 +496,7 @@ if SP.Record
     zeroMQwrapper('Send',SP.zhandle ,'StopRecord');
     set(SP.Recordh,'backgroundcolor',[0 0.9 0],'String','Record');
     SP.Record=0;
+    UpdateNotebookFile
     try
         set(SP.pathh, 'string', {SP.datapath, [SP.activedir, ' finished']})
     end
@@ -499,27 +520,23 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function InitNotebookFile
-global SP 
+global SP nb
 
 % find active OE data directory and cd into it
 try
     zeroMQwrapper('Send',SP.zhandle ,sprintf('ChangeDirectory %s', SP.datapath))
-    pause(.1)
+    pause(.2)
     zeroMQwrapper('Send',SP.zhandle ,'GetRecordingPath');
     pause(.2)
     cd(SP.datapath)
     fid=fopen('RecordingPath.txt', 'r');
     RecordingPath=fgetl(fid);
+    RecordingPathSize=str2num(fgetl(fid));
     fclose(fid);
-    fprintf('\nread this Recording Path from file:%s', RecordingPath)
-% %     cd(SP.datapath)
-% %     d=dir;
-% %     [x,y]=sort(datenum(char({d.date})));
-% %     i=1;
-% %     today=datestr(now, 'yyyy-mm-dd');
-% %     while isempty(strfind(d(y(i)).name, today))
-% %         i=i+1;
-% %     end
+    %hack: on windows I am still getting extra characters -> trim to size
+    RecordingPath=RecordingPath(1:RecordingPathSize);
+    fprintf('\ndjmaus: read this Recording Path from file:%s', RecordingPath)
+
     SP.activedir=RecordingPath;
     cd(SP.activedir)
     set(SP.pathh, 'string', {SP.datapath, [SP.activedir, ' recording...']})
@@ -537,6 +554,7 @@ try
     nb.mouseDOB=SP.mouseDOB;
     nb.mouseSex=SP.mouseSex;
     nb.mouseGenotype=SP.mouseGenotype;
+    nb.notes=SP.Notes;
     
     save('notebook.mat', 'nb')
     fprintf('\ncreated notebook file in %s', nb.activedir)
@@ -544,7 +562,7 @@ catch
     fprintf('\nCould not create notebook file in active data directory')
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function UpdateNotebookFile(stimulus)
+function UpdateStimlog(stimulus)
 global SP
 
 if SP.Record
@@ -558,12 +576,76 @@ if SP.Record
         stimlog=SP.stimlog;
         save('notebook.mat', '-append', 'stimlog')
     catch
-        fprintf('\nCould not update notebook file in active data directory')
+        fprintf('\nCould not update stimlog in notebook file in active data directory')
     end
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function UpdateNotebookFile
+global SP nb
+nb.user=SP.user;
+nb.mouseID=SP.mouseID;
+nb.Depth=SP.Depth;
+nb.datapath=SP.datapath ;
+nb.activedir=SP.activedir;
+nb.LaserPower=SP.LaserPower;
+nb.mouseDOB=SP.mouseDOB;
+nb.mouseSex=SP.mouseSex;
+nb.mouseGenotype=SP.mouseGenotype;
+nb.notes=SP.Notes;
+
+save('notebook.mat', '-append', 'nb')
+fprintf('\nupdated notebook file in %s', nb.activedir)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function InitZMQ
+global SP pref
+
+%open tcp/ip connection using zeroMQ  to communicate with open ephys
+switch computer
+    case 'MACI64'
+        url='tcp://localhost:5556'; %seems to work for mac
+        mexpath='mac';
+    case 'GLNXA64'
+        url='tcp://127.0.0.1:5556'; %seems to work for linux
+        mexpath='unix';
+    case 'PCWIN64'
+        url='tcp://127.0.0.1:5556'; %seems to work for windows
+        mexpath='windows';
+end
+cd (pref.root)
+cd(mexpath)
+try
+    %zeroMQwrapper('CloseThread', url); %crashes matlab
+    SP.zhandle=zeroMQwrapper('StartConnectThread', url);
+    zeroMQwrapper('Send',SP.zhandle ,'StartAcquisition');
+    djMessage(sprintf('successful zeroMQ connection %d', SP.zhandle))
+    fprintf('successful zeroMQ connection %d', SP.zhandle)
+    set(SP.Recordh, 'enable', 'on');
+catch
+    djMessage('could not open zeroMQ connection', 'error')
+    fprintf('could not open zeroMQ connection')
+    pause(.5)
+    SP.zhandle=[];
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function InitParams
+global SP pref
+
+SP.datapath=pref.datapath;
+SP.CurrentStimulus=[];
+SP.stimcounter=0;
+SP.NStimuli=[];
+SP.Name={};
+SP.Description={};
+SP.NProtocols=0;
+SP.NRepeats=0;
+SP.PPALaseron=0;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 function InitializeGUI
 global SP pref
 if isfield(SP, 'fig')
@@ -579,6 +661,8 @@ set(fig,'visible','off','numbertitle','off','name','djmaus',...
 height=450; width=420; e=2; H=e;
 w=100; h=25;
 set(fig,'pos',[1200 600 width height],'visible','on');
+
+labelfs=8; %fontsize for labels
 
 %Reset button
 uicontrol('parent',fig,'string','Reset','tag','Reset','units','pixels',...
@@ -642,20 +726,25 @@ H=H+3*h+e;
 %Run button
 SP.Run=0;
 SP.Runh=uicontrol(fig,'tag','Run','style','togglebutton','units','pixels','fontweight','bold',...
-    'fontsize',12,'fontname','Arial', ...
+    'fontsize',12,'fontname','Arial','backgroundcolor',[0.75 0.75 0.75], ...
     'string', 'Play','callback', [me ';'],'enable','off','horiz','left','pos',[e H w 2*h ]);
 
 %Record button
 SP.Record=0;
 SP.Recordh=uicontrol(fig,'tag','Record','style','togglebutton','units','pixels','fontweight','bold',...
-    'fontsize',12,'fontname','Arial', ...
+    'fontsize',12,'fontname','Arial','backgroundcolor',[0 0.9 0],...
     'string', 'Record','callback', [me ';'],'enable','off','horiz','left','pos',[e+w H w 2*h ]);
 
-% %New Session button
-% SP.NewSessionh=uicontrol(fig,'tag','NewSession','style','pushbutton','units','pixels',...
-%     'fontsize',10,'fontname','Arial', ...
-%     'string', 'New Session','callback', [me ';'],'enable','on','horiz','left','pos',[e+2*w H w 1*h ]);
+%Stop Acquisition button - still buggy, not ready for release
+SP.Stoph=uicontrol(fig,'tag','Stop','style','pushbutton','units','pixels',...
+    'fontsize',10,'fontname','Arial', 'enable', 'off',...
+    'string', 'Stop OE',  'callback', [me ';'],'horiz','left','pos',[2*e+2*w H w h ]);
+H=H+h+e;
 
+%launch open-ephys button - - still buggy, not ready for release
+SP.LaunchOEh=uicontrol(fig,'tag','launchOE','style','pushbutton','units','pixels',...
+    'fontsize',10,'fontname','Arial', 'enable', 'off',...
+    'string', 'launch OE',  'callback', [me ';'],'horiz','left','pos',[2*e+2*w H w h ]);
 H=H+2*h+e;
 
 %User menu
@@ -678,7 +767,7 @@ SP.Notesh=uicontrol(fig,'tag','Notes','style','edit','fontweight','bold','units'
     'string', '','horiz','left', 'Max', Inf, 'callback',[me ';'],'pos',[2*e+2*w  H 2*w 3*h ]);
 H=H+3*h+e;
 SP.Noteslabel=uicontrol(fig,'tag','Noteslabel','style','text','units','pixels',...
-    'string', 'Notes', 'fontsize', 10,...
+    'string', 'Notes', 'fontsize', labelfs,...
     'enable','inact','horiz','left','pos', [2*e+2*w  H w h/2]);
 H=H+h+e;
 
@@ -694,28 +783,34 @@ SP.mouseIDh=uicontrol(fig,'tag','mouseID','style','edit','fontweight','bold','un
     'string', '','horiz','left', 'callback',[me ';'],'pos',[2*e+2*w  H w h ]);
 H=H+h+e;
 SP.mouseIDlabel=uicontrol(fig,'tag','mouseIDlabel','style','text','units','pixels',...
-    'string', 'mouseID', 'fontsize', 10,...
+    'string', 'mouseID', 'fontsize', labelfs,...
     'enable','inact','horiz','left','pos', [2*e+2*w  H w h/2]);
-H=H+h/2+e;
+H=H+h;
+
+%reset zeroMQ button
+SP.ResetZMQh=uicontrol(fig,'tag','ResetZMQ','style','pushbutton','units','pixels',...
+    'fontsize',10,'fontname','Arial', ...
+    'string', 'ResetZMQ','callback', [me ';'],'enable','on','horiz','left','pos',[3*e+2*w H w h ]);
+H=H+h+e;
 
 H=H-3.5*h;
 % Manipulation/conditions details (anesthesia, Any other drugs, Shock, Reward, etc)
 %Drugs edit box
 SP.Drugsh=uicontrol(fig,'tag','Drugs','style','edit','units','pixels',...
-    'string', 'none','horiz','left', 'callback',[me ';'],'pos',[2*e+3*w  H w h ]);
+    'string', 'none','horiz','left', 'callback',[me ';'],'pos',[3*e+3*w  H w h ]);
 H=H+h;
 SP.Drugslabel=uicontrol(fig,'tag','Drugslabel','style','text','units','pixels',...
-    'string', 'Drugs:', 'fontsize', 10,...
-    'enable','inact','horiz','left','pos', [2*e+3*w  H w h/2]);
+    'string', 'Drugs:', 'fontsize', labelfs,...
+    'enable','inact','horiz','left','pos', [3*e+3*w  H w h/2]);
 H=H+h/2+e;
 
 %Reinforcement edit box (shock, reward, etc)
 SP.Reinforcementh=uicontrol(fig,'tag','Reinforcement','style','edit','units','pixels',...
-    'string', 'none','horiz','left', 'callback',[me ';'],'pos',[2*e+3*w  H w h ]);
+    'string', 'none','horiz','left', 'callback',[me ';'],'pos',[3*e+3*w  H w h ]);
 H=H+h;
 SP.Reinforcementlabel=uicontrol(fig,'tag','Reinforcementlabel','style','text','units','pixels',...
-    'string', 'Reinforcement:', 'fontsize', 10,...
-    'enable','inact','horiz','left','pos', [2*e+3*w  H w h/2]);
+    'string', 'Reinforcement:', 'fontsize', labelfs,...
+    'enable','inact','horiz','left','pos', [3*e+3*w  H w h/2]);
 H=H+h/2+e;
 
 SP.Reinforcement='none';
@@ -723,93 +818,54 @@ SP.Drugs='none';
 
 %mouse details
 SP.mouseDOBh=uicontrol(fig,'tag','mouseDOB','style','edit','units','pixels',...
-    'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[2*e+3*w  H w h ]);
+    'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[3*e+3*w  H w h ]);
 H=H+h;
 SP.mouseDOBlabel=uicontrol(fig,'tag','mouseDOBlabel','style','text','units','pixels',...
-    'string', 'mouseDOB:', 'fontsize', 10,...
-    'enable','inact','horiz','left','pos', [2*e+3*w  H w h/2]);
+    'string', 'mouseDOB:', 'fontsize', labelfs,...
+    'enable','inact','horiz','left','pos', [3*e+3*w  H w h/2]);
 H=H+h/2+e;
 
 SP.mouseSexh=uicontrol(fig,'tag','mouseSex','style','edit','units','pixels',...
-    'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[2*e+3*w  H w h ]);
+    'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[3*e+3*w  H w h ]);
 H=H+h;
 SP.mouseSexlabel=uicontrol(fig,'tag','mouseSexlabel','style','text','units','pixels',...
-    'string', 'mouseSex:', 'fontsize', 10,...
-    'enable','inact','horiz','left','pos', [2*e+3*w  H w h/2]);
+    'string', 'mouseSex:', 'fontsize', labelfs,...
+    'enable','inact','horiz','left','pos', [3*e+3*w  H w h/2]);
 H=H+h/2+e;
 SP.mouseGenotypeh=uicontrol(fig,'tag','mouseGenotype','style','edit','units','pixels',...
-    'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[2*e+3*w  H w h ]);
+    'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[3*e+3*w  H w h ]);
 H=H+h;
 SP.mouseGenotypelabel=uicontrol(fig,'tag','mouseGenotypelabel','style','text','units','pixels',...
-    'string', 'mouseGenotype:', 'fontsize', 10,...
-    'enable','inact','horiz','left','pos', [2*e+3*w  H w h/2]);
+    'string', 'mouseGenotype:', 'fontsize', labelfs,...
+    'enable','inact','horiz','left','pos', [3*e+3*w  H w h/2]);
 H=H+h/2+e;
 SP.mouseSex='unknown';
 SP.mouseDOB='unknown';
 SP.mouseGenotype='unknown';
+SP.Notes='';
 
 %Depth edit box
 SP.Depthh=uicontrol(fig,'tag','Depth','style','edit','fontweight','bold','units','pixels',...
-    'string', '','horiz','left', 'callback',[me ';'],'pos',[2*e+3*w  H w h ]);
+    'string', '','horiz','left', 'callback',[me ';'],'pos',[3*e+3*w  H w h ]);
 H=H+h+e;
 SP.Depthlabel=uicontrol(fig,'tag','Depthlabel','style','text','units','pixels',...
-    'string', 'Depth', 'fontsize', 10,...
-    'enable','inact','horiz','left','pos', [2*e+3*w  H w h/2]);
+    'string', 'Depth', 'fontsize', labelfs,...
+    'enable','inact','horiz','left','pos', [3*e+3*w  H w h/2]);
 H=H+h/2+e;
 
 %laser power edit box
 SP.LaserPowerh=uicontrol(fig,'tag','LaserPower','style','edit','fontweight','bold','units','pixels',...
-    'string', '','horiz','left', 'callback',[me ';'],'pos',[2*e+3*w  H w h ]);
+    'string', '','horiz','left', 'callback',[me ';'],'pos',[3*e+3*w  H w h ]);
 H=H+h+e;
 SP.LaserPowerlabel=uicontrol(fig,'tag','LaserPowerlabel','style','text','units','pixels',...
-    'string', 'LaserPower', 'fontsize', 10,...
-    'enable','inact','horiz','left','pos', [2*e+3*w  H w h/2]);
+    'string', 'LaserPower', 'fontsize', labelfs,...
+    'enable','inact','horiz','left','pos', [3*e+3*w  H w h/2]);
 H=H+h/2+e;
 SP.Depth='unknown';
 SP.LaserPower='unknown';
 
 
-
-
-
-
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%open tcp/ip connection using zeroMQ  to communicate with open ephys
-switch computer
-    case 'MACI64'
-        url='tcp://localhost:5556'; %seems to work for mac
-    case 'GLNXA64'
-        url='tcp://127.0.0.1:5556'; %seems to work for linux
-    case 'PCWIN64'
-        url='tcp://127.0.0.1:5556'; %seems to work for linux
-end
-try
-    SP.zhandle=zeroMQwrapper('StartConnectThread', url);
-    zeroMQwrapper('Send',SP.zhandle ,'StartAcquisition');
-    djMessage('successful zeroMQ connection')
-    set(SP.Recordh, 'enable', 'on');
-catch
-    djMessage('could not open zeroMQ connection', 'error')
-    pause(.5)
-    SP.zhandle=[];
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%
-SP.datapath=pref.datapath;
-SP.CurrentStimulus=[];
-SP.stimcounter=0;
-SP.NStimuli=[];
-SP.Name={};
-SP.Description={};
-SP.NProtocols=0;
-SP.NRepeats=0;
-SP.PPALaseron=0;
 set(fig,'visible','on');
-djMessage('djmaus initialized', 'append')
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%InitializeGui%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

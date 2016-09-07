@@ -134,12 +134,18 @@ switch action
         set(pnh,'String',outstring);
         SP.NRepeats=0;
         djMessage(['0/' num2str(SP.NStimuli(protocol_choice)) ' stimuli, ' num2str(SP.NRepeats), ' repeats' ]);
-        
+        %this is a hack to solve the problem where after running a seamless
+        %protocol, then regular protocols don't play any sound
+        PPAdj('init');
         
     case 'User'
         users=get(SP.userh, 'string');
         user_index=get(SP.userh, 'value');
         user=users{user_index};
+        if strcmp(user, 'add new user')
+            AddUser
+            user=SP.user;
+        end
         djMessage(sprintf('Hi %s', user))
         SP.user=user;
         djPrefs;
@@ -236,6 +242,115 @@ switch action
     case 'ResetZMQ'
         InitZMQ;
         
+    case 'LaserOnOff'
+        SP.LaserOnOff=get(SP.LaserOnOffh, 'value');
+        if SP.LaserOnOff
+            set(SP.LaserNumPulsesh, 'enable', 'on')
+            set(SP.LaserWidthh, 'enable', 'on')
+            set(SP.LaserStarth, 'enable', 'on')
+            set(SP.LaserOnOffh, 'backgroundcolor',[1 0 0],'foregroundcolor',[0 0 0]);
+            set(SP.LaserOnOffh, 'string','Laser is ON');
+            djmaus('LaserNumPulses')
+        
+        else
+            set(SP.LaserStarth, 'enable', 'off')
+            set(SP.LaserNumPulsesh, 'enable', 'off')
+            set(SP.LaserISIh, 'enable', 'off')
+            set(SP.LaserWidthh, 'enable', 'off')
+            set(SP.LaserOnOffh, 'backgroundcolor',[.5 .5 .5],'foregroundcolor',[0 0 1]);
+            set(SP.LaserOnOffh, 'string','Laser is OFF');
+        end
+    
+    case 'LaserStart'
+        SP.LaserStart=str2num(get(SP.LaserStarth, 'string'));
+
+    case 'LaserWidth'
+        SP.LaserWidth=str2num(get(SP.LaserWidthh, 'string'));
+    
+    case 'LaserNumPulses'
+        SP.LaserNumPulses=str2num(get(SP.LaserNumPulsesh, 'string'));
+        if SP.LaserNumPulses<1
+            djMessage('number of laser pulses must be at least 1. Turn Laser off to get 0 pulses');
+            SP.LaserNumPulses=1;
+            set(SP.LaserNumPulsesh, 'string', '1');
+        elseif SP.LaserNumPulses==1
+            set(SP.LaserISIh, 'enable', 'off')
+        elseif SP.LaserNumPulses>1
+            set(SP.LaserISIh, 'enable', 'on')
+            if str2num(get(SP.LaserISIh, 'string'))==0
+                set(SP.LaserISIh, 'string', SP.LaserWidth)
+            end
+        end
+        
+    case 'LaserISI'
+        SP.LaserISI=str2num(get(SP.LaserISIh, 'string'));
+
+        
+end
+
+function AddUser
+global SP pref
+[username]=inputdlg('please enter new user name. It''s recommended to keep it short.', 'Add new user');
+username=username{:};
+if any(strcmp(username, pref.users))
+    errordlg(sprintf('user name %s already taken', username));
+    set(SP.userh, 'value', 1)
+else
+    SP.user=username;
+   cd(pref.root)
+   cd('Data')
+   mkdir(username)
+   pref.datapath=pwd;
+   pref.users{end+1}=username;
+
+   %write new pref.users
+   cd(pref.root)
+   fid=fopen('djPrefs.m', 'a+');
+   key=sprintf('pref.users={');
+   Preftext = regexp( fileread('djPrefs.m'), '\n', 'split');
+   fclose(fid)
+
+   I=strmatch(key, Preftext);
+   if ~isempty(I) %found key, overwrite with revised entry
+       I=I(1);
+       newstr=sprintf('''%s'',', pref.users{:});
+       newstr=newstr(1:end-1);
+       newstr2=sprintf('pref.users={%s};', newstr);
+       Preftext{I}=newstr2; %change entry;
+       fid = fopen('djPrefs.m', 'w');
+       fprintf(fid, '%s\n', Preftext{:});
+       fclose(fid);
+   else
+   end
+   
+   
+   %write new individual user prefs
+   fid=fopen('djPrefs.m', 'a+');
+   key=sprintf('switch SP.user');
+   Preftext = regexp( fileread('djPrefs.m'), '\n', 'split');
+   fclose(fid);
+      I=strmatch(key, strtrim(Preftext));
+   if ~isempty(I) %found key, overwrite with revised entry
+       I=I(1);
+       str1=sprintf('case ''%s''', username);
+       str2=sprintf('pref.datapath=''%s'';', fullfile(pref.datapath, username));
+       Preftext_copy=Preftext;
+       Preftext{I+1}=str1;
+       Preftext{I+2}=str2;
+       for i=I+3:length(Preftext_copy)+2
+           Preftext{i}=Preftext_copy{i-2};
+       end
+       fid = fopen('djPrefs.m', 'w');
+       fprintf(fid, '%s\n', Preftext{:});
+       fclose(fid);
+
+       
+   end
+   userstr=pref.users;
+userstr{end+1}='add new user';
+set(SP.userh,'string', userstr);
+
+
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -403,6 +518,7 @@ function SendStimulus(stimulus)
 global SP
 %make stimulus
 fcn=StimTypes(stimulus.type);
+stimulus.param=CalibrateSound(stimulus.param, stimulus.type);
 samples=feval(fcn,stimulus.param,SP.SoundFs);
 
 %LoadPPA(type,where,param)
@@ -483,6 +599,10 @@ switch type
         fcn='MakeTone';
     case 'whitenoise'
         fcn='MakeWhiteNoise';
+    case 'GPIAS'
+        fcn='MakeGPIAS';
+    case 'noise'
+        fcn='MakeNoise';
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -496,6 +616,9 @@ if SP.Record
     zeroMQwrapper('Send',SP.zhandle ,'StopRecord');
     set(SP.Recordh,'backgroundcolor',[0 0.9 0],'String','Record');
     SP.Record=0;
+    set(SP.mouseIDh, 'enable', 'on');
+    set(SP.mouseIDMenuh, 'enable', 'on');
+
     UpdateNotebookFile
     try
         set(SP.pathh, 'string', {SP.datapath, [SP.activedir, ' finished']})
@@ -510,6 +633,8 @@ else
     startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', SP.datapath, SP.mouseID);
     zeroMQwrapper('Send',SP.zhandle ,startstr);
     set(SP.Recordh, 'backgroundcolor',[0.9 0 0],'String','Recording...');
+    set(SP.mouseIDh, 'enable', 'off');
+    set(SP.mouseIDMenuh, 'enable', 'off');
     SP.Record=1;
     SP.stimcounter=0;
     if isfield(SP, 'stimlog')
@@ -554,12 +679,23 @@ try
     nb.mouseDOB=SP.mouseDOB;
     nb.mouseSex=SP.mouseSex;
     nb.mouseGenotype=SP.mouseGenotype;
+    nb.Drugs=SP.Drugs;
     nb.notes=SP.Notes;
     
     save('notebook.mat', 'nb')
     fprintf('\ncreated notebook file in %s', nb.activedir)
 catch
     fprintf('\nCould not create notebook file in active data directory')
+    %ask user if they want to manually save notebook file
+    ButtonName = questdlg('Could not create notebook file in active data directory. Do you want to manually save the notebook file?');
+   switch ButtonName,
+     case 'Yes'
+         targetdir = uigetdir(SP.datapath, 'Select directory in which to save notebook file.')
+         cd(targetdir)
+         save('notebook.mat', 'nb')
+     case 'No'
+     case 'Cancel'         
+   end
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function UpdateStimlog(stimulus)
@@ -570,6 +706,18 @@ if SP.Record
         SP.stimcounter=SP.stimcounter+1;
         timestamp=datestr(now,'mmmm-dd-yyyy HH:MM:SS.FFF');
         stimulus.timestamp=timestamp;
+        stimulus.LaserOnOff=SP.LaserOnOff;
+        if stimulus.LaserOnOff
+            stimulus.LaserStart=SP.LaserStart;
+            stimulus.LaserWidth=SP.LaserWidth;
+            stimulus.LaserNumPulses=SP.LaserNumPulses;
+            stimulus.LaserISI=SP.LaserISI;
+        else
+            stimulus.LaserStart=[];
+            stimulus.LaserWidth=[];
+            stimulus.LaserNumPulses=[];
+            stimulus.LaserISI=[];
+        end
         cd(SP.datapath)
         cd(SP.activedir)
         SP.stimlog(SP.stimcounter)=stimulus;
@@ -594,6 +742,7 @@ nb.mouseSex=SP.mouseSex;
 nb.mouseGenotype=SP.mouseGenotype;
 nb.notes=SP.Notes;
 
+cd(nb.activedir)
 save('notebook.mat', '-append', 'nb')
 fprintf('\nupdated notebook file in %s', nb.activedir)
 
@@ -629,6 +778,133 @@ catch
     SP.zhandle=[];
 end
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function stimparam=CalibrateSound(stimparam, stimtype);
+global SP
+cal=SP.cal;
+if ~isempty(cal) %it will be empty if Init failed to load calibration
+    if strcmp(stimtype, '2tone') %special case since 2tone has both a frequency and a probefreq
+        try
+            findex=find(cal.logspacedfreqs<=stimparam.frequency, 1, 'last');
+            atten=cal.atten(findex);
+            stimparam.amplitude=stimparam.amplitude-atten;
+           
+            findex=find(cal.logspacedfreqs<=stimparam.probefreq, 1, 'last');
+            atten=cal.atten(findex);
+            stimparam.probeamp=stimparam.probeamp-atten;
+           
+            djMessage( 'calibrated', 'append')
+        catch
+            djMessage( 'NOT calibrated', 'append')
+                                pause(.1)
+        end
+        
+        
+    elseif isfield(stimparam, 'frequency') %it has a freq and therefore is calibratable by frequency
+        try
+            findex=find(cal.logspacedfreqs<=stimparam.frequency, 1, 'last');
+            atten=cal.atten(findex);
+            switch stimtype
+                case 'bintone'
+                    Ratten=cal.Ratten(findex);
+                    Latten=cal.Latten(findex);
+                    stimparam.Ramplitude=stimparam.Ramplitude-Ratten;
+                    stimparam.Lamplitude=stimparam.Lamplitude-Latten;
+                otherwise
+                    stimparam.amplitude=stimparam.amplitude-atten;
+            end
+            djMessage( 'calibrated', 'append')
+        catch
+            djMessage( 'NOT calibrated', 'append')
+                                pause(.1)
+        end
+        
+    else
+        switch stimtype
+            case {'clicktrain', 'whitenoise', 'amnoise', 'GPIAS'} %stimuli that consist of white noise
+               %note: GPIAS technically is band-limited noise, but since we
+               %almost always use whitenoise for it these days I'm
+               %calibrating it as such here
+               try
+                    findex=find(cal.logspacedfreqs==-1); %freq of -1 indicates white noise
+                    atten=cal.atten(findex);
+                    switch stimtype
+                        case 'binwhitenoise'
+                            Ratten=cal.Ratten(findex);
+                            Latten=cal.Latten(findex);
+                            stimparam.Ramplitude=stimparam.Ramplitude-Ratten;
+                            stimparam.Lamplitude=stimparam.Lamplitude-Latten;
+                        otherwise
+                            stimparam.amplitude=stimparam.amplitude-atten;
+                    end
+                    djMessage( sprintf('calibrated'), 'append')
+                catch
+                    djMessage( 'NOT calibrated', 'append');pause(.5)
+                end
+            case {'fmtone'} %stimuli that have a carrier frequency
+                try
+                    findex=find(cal.logspacedfreqs<=stimparam.carrier_frequency, 1, 'last');
+                    atten=cal.atten(findex);
+                    stimparam.amplitude=stimparam.amplitude-atten;
+                    djMessage( 'calibrated', 'append')
+                catch
+                    djMessage( 'NOT calibrated', 'append');pause(.5)
+                end
+            case {'noise'} %narrow-band noise stimuli (use center frequency calibration)
+                try
+                    findex=find(cal.logspacedfreqs<=stimparam.center_frequency, 1, 'last');
+                    atten=cal.atten(findex);
+                    stimparam.amplitude=stimparam.amplitude-atten;
+                    djMessage( 'calibrated', 'append')
+                catch
+                    djMessage( 'NOT calibrated', 'append')
+                end
+%             case {'GPIAS'} %startle pulse (use whitenoise calibration)
+%                 %plus narrow-band noise (use center frequency calibration)
+%                 try
+%                     findex=find(cal.logspacedfreqs<=stimparam.center_frequency, 1, 'last');
+%                     atten=cal.atten(findex);
+%                     stimparam.amplitude=stimparam.amplitude-atten;
+%                     findex2=find(cal.logspacedfreqs==-1); %freq of -1 indicates white noise
+%                     atten=cal.atten(findex2);
+%                     stimparam.pulseamp=stimparam.pulseamp-atten;
+%                     
+%                     djMessage( 'calibrated', 'append')
+%                 catch
+%                     djMessage( 'NOT calibrated', 'append')
+%                 end
+            case {'ASR'} %startle pulse (use whitenoise calibration)
+                try
+                    findex=find(cal.logspacedfreqs==-1); %freq of -1 indicates white noise
+                    atten=cal.atten(findex);
+                    stimparam.prepulseamp=stimparam.prepulseamp-atten;
+                    stimparam.pulseamp=stimparam.pulseamp-atten;
+                    
+                    djMessage( 'calibrated', 'append')
+                catch
+                    djMessage( 'NOT calibrated', 'append')
+                end
+            case {'NBASR'} %startle pulse (use whitenoise calibration)
+                %plus narrow-band noise pulse (use center frequency calibration)
+                try %
+                    findex=find(cal.logspacedfreqs<=stimparam.prepulsefreq, 1, 'last');
+                    atten=cal.atten(findex);
+                    stimparam.prepulseamp=stimparam.prepulseamp-atten;
+                    findex2=find(cal.logspacedfreqs==-1); %freq of -1 indicates white noise
+                    atten=cal.atten(findex2);
+                    stimparam.pulseamp=stimparam.pulseamp-atten;
+                    djMessage( 'calibrated', 'append')
+                catch
+                    djMessage( 'NOT calibrated', 'append')
+                end
+        end
+    end
+else
+    djMessage( 'NOT calibrated', 'append')
+end
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function InitParams
@@ -643,6 +919,17 @@ SP.Description={};
 SP.NProtocols=0;
 SP.NRepeats=0;
 SP.PPALaseron=0;
+SP.cal=[];
+try 
+    cd(pref.root)
+    cal=load('calibration.mat');
+    SP.cal=cal;
+    str=sprintf('successfully loaded calibration: %.0f - %.0f Hz, with %d freqs per octave', cal.minfreq, cal.maxfreq, cal.freqsperoctave);
+    djMessage( str, 'append');
+catch        
+    djMessage('failed to load calibration', 'append')
+end    
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -658,9 +945,9 @@ SP.fig=fig;
 set(fig,'visible','off');
 set(fig,'visible','off','numbertitle','off','name','djmaus',...
     'doublebuffer','on','menubar','none','closerequestfcn','djmaus(''Close'')')
-height=450; width=420; e=2; H=e;
+height=600; width=420; e=2; H=e;
 w=100; h=25;
-set(fig,'pos',[1200 600 width height],'visible','on');
+set(fig,'pos',[1200 400 width height],'visible','on');
 
 labelfs=8; %fontsize for labels
 
@@ -679,13 +966,13 @@ H=H+h+e;
 
 %description window
 SP.protocol_descriptionh=uicontrol(fig,'tag','protocol_description','style','text','units','pixels',...
-    'enable','inact','horiz','left','backgroundcolor', [.8 .8 .8],'pos',[e H 2*w 3*h]);
-H=H+3*h+e;
+    'enable','inact','horiz','left','backgroundcolor', [.8 .8 .8],'pos',[e H 2*w 4*h]);
+H=H+4*h+e;
 
 %name window
 SP.protocol_nameh=uicontrol(fig,'tag','protocol_name','style','text','units','pixels',...
-    'enable','inact','horiz','left','backgroundcolor', [.8 .8 .8],'pos', [e H 2*w 2*h]);
-H=H+2*h+e;
+    'enable','inact','horiz','left','backgroundcolor', [.8 .8 .8],'pos', [e H 2*w 3*h]);
+H=H+3*h+e;
 
 %Protocol menu
 SP.ProtocolMenuh=uicontrol(fig,'tag','ProtocolMenu','style','popupmenu','units','pixels','fontweight','bold',...
@@ -707,6 +994,8 @@ SP.Repeath=uicontrol(fig,'tag','Repeat','style','togglebutton','units','pixels',
     'string', 'Repeat Off','enable','on','horiz','left', 'callback',[me ';'],'pos',[2*e+w H w h]);
 H=H+h+e;
 
+H=H+2*h+2*e
+
 %path display
 SP.pathh=uicontrol(fig,'tag','pathdisplay','style','text','units','pixels',...
     'string', pref.datapath, 'enable','inact','horiz','left', 'pos',[e  H 3*w 1.5*h ]);
@@ -720,8 +1009,8 @@ H=H+h+e;
 
 %Message window
 SP.Messageh=uicontrol(fig,'tag','message','style','edit','fontweight','bold','units','pixels',...
-    'enable','inact','horiz','left','Max', 6, 'pos',[e  H 3*w 3*h ]);
-H=H+3*h+e;
+    'enable','inact','horiz','left','Max', 8, 'pos',[e  H 3*w 5*h ]);
+H=H+5*h+e;
 
 %Run button
 SP.Run=0;
@@ -745,22 +1034,78 @@ H=H+h+e;
 SP.LaunchOEh=uicontrol(fig,'tag','launchOE','style','pushbutton','units','pixels',...
     'fontsize',10,'fontname','Arial', 'enable', 'off',...
     'string', 'launch OE',  'callback', [me ';'],'horiz','left','pos',[2*e+2*w H w h ]);
-H=H+2*h+e;
+H=H+1*h+e;
+
+%reset zeroMQ button
+SP.ResetZMQh=uicontrol(fig,'tag','ResetZMQ','style','pushbutton','units','pixels',...
+    'fontname','Arial', ...
+    'string', 'ResetZMQ','callback', [me ';'],'enable','on','horiz','left','pos',[3*e+2*w H w h ]);
+% H=H+h+e;
 
 %User menu
 SP.user='lab'; %default user
+userstr=pref.users;
+userstr{end+1}='add new user';
 SP.userh=uicontrol(fig,'tag','User','style','popupmenu','units','pixels','fontweight','bold',...
-    'string', pref.users,'enable','on','horiz','left','callback',[me ';'], 'pos',[e H w h ]);
-H=H+h;
+    'string', userstr,'enable','on','horiz','left','callback',[me ';'], 'pos',[e H w h ]);
+H=H+h+e;
 SP.userlabel=uicontrol(fig,'tag','userlabel','style','text','units','pixels',...
-    'string', 'user', 'fontsize', 10,...
-    'enable','inact','horiz','left','pos', [e H w h/2]);
+    'string', 'user', 'enable','inact','horiz','left','pos', [2*e H w h/2]);
 H=H+h+e;
 
+H=H+e;
+%%%%%%%%%%%%%%%%%%%%%%%%%
+% Laser controls
+laserpanel = uipanel( 'Title','Laser','units','pixels', 'Position',[4*e+2*w 3*h+3*e .9*w 7.5*h+7*e]);
+ww=.8*w;
+%laser edit boxes
+H=2*e;
+SP.LaserISIh=uicontrol('Parent',laserpanel,'tag','LaserISI','style','edit','units','pixels',...
+    'string', '0','enable','off','horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
+H=H+h;
+SP.LaserISIlabel=uicontrol('Parent', laserpanel,'tag','ISIlabel','style','text','units','pixels',...
+    'string', 'ISI:', 'fontsize', labelfs,...
+    'enable','on','horiz','left','pos', [e H ww h/2]);
+H=H+h/2+e;
+
+SP.LaserNumPulsesh=uicontrol('Parent',laserpanel,'tag','LaserNumPulses','style','edit','units','pixels',...
+    'string', '1','horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
+H=H+h;
+SP.LaserNumPulseslabel=uicontrol('Parent', laserpanel,'tag','NumPulseslabel','style','text','units','pixels',...
+    'string', 'NumPulses:', 'fontsize', labelfs,...
+    'enable','on','horiz','left','pos', [e H ww h/2]);
+H=H+h/2+e;
+
+SP.LaserWidthh=uicontrol('Parent',laserpanel,'tag','LaserWidth','style','edit','units','pixels',...
+    'string', '100','horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
+H=H+h;
+SP.LaserWidthlabel=uicontrol('Parent', laserpanel,'tag','Widthlabel','style','text','units','pixels',...
+    'string', 'Width:', 'fontsize', labelfs,...
+    'enable','on','horiz','left','pos', [e H ww h/2]);
+H=H+h/2+e;
+
+SP.LaserStarth=uicontrol('Parent',laserpanel,'tag','LaserStart','style','edit','units','pixels',...
+    'string', '0','horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
+H=H+h;
+SP.LaserStartlabel=uicontrol('Parent', laserpanel,'tag','Startlabel','style','text','units','pixels',...
+    'string', 'Start:', 'fontsize', labelfs,...
+    'enable','on','horiz','left','pos', [e H ww h/2]);
+H=H+h/2+e;
+
+SP.LaserOnOffh=uicontrol('Parent',laserpanel,'tag','LaserOnOff','style','toggle','units','pixels',...
+    'string', 'Laser is OFF','horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
+H=H+h;
+
+SP.LaserStart=0;
+SP.LaserWidth=100;
+SP.LaserNumPulses=1;
+SP.LaserISI=0;
+SP.LaserOnOff=0;
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %notebook features
+
 H=e;
 %Notes edit box
 SP.Notesh=uicontrol(fig,'tag','Notes','style','edit','fontweight','bold','units','pixels',...
@@ -768,76 +1113,57 @@ SP.Notesh=uicontrol(fig,'tag','Notes','style','edit','fontweight','bold','units'
 H=H+3*h+e;
 SP.Noteslabel=uicontrol(fig,'tag','Noteslabel','style','text','units','pixels',...
     'string', 'Notes', 'fontsize', labelfs,...
-    'enable','inact','horiz','left','pos', [2*e+2*w  H w h/2]);
-H=H+h+e;
-
-%mouseID menu
-warning('off', 'MATLAB:hg:uicontrol:StringMustBeNonEmpty');
-if isfield(pref, 'allmouseIDs') SP.allmouseIDs=pref.allmouseIDs; else SP.allmouseIDs='';end
-SP.mouseIDMenuh=uicontrol(fig,'tag','mouseIDMenu','style','popupmenu','units','pixels','fontweight','bold',...
-    'string', SP.allmouseIDs,'enable','on','horiz','left','callback',[me ';'], 'pos',[e+2*w H w h]);
-H=H+h+e;
-
-%mouseID edit box
-SP.mouseIDh=uicontrol(fig,'tag','mouseID','style','edit','fontweight','bold','units','pixels',...
-    'string', '','horiz','left', 'callback',[me ';'],'pos',[2*e+2*w  H w h ]);
-H=H+h+e;
-SP.mouseIDlabel=uicontrol(fig,'tag','mouseIDlabel','style','text','units','pixels',...
-    'string', 'mouseID', 'fontsize', labelfs,...
-    'enable','inact','horiz','left','pos', [2*e+2*w  H w h/2]);
-H=H+h;
-
-%reset zeroMQ button
-SP.ResetZMQh=uicontrol(fig,'tag','ResetZMQ','style','pushbutton','units','pixels',...
-    'fontsize',10,'fontname','Arial', ...
-    'string', 'ResetZMQ','callback', [me ';'],'enable','on','horiz','left','pos',[3*e+2*w H w h ]);
-H=H+h+e;
-
-H=H-3.5*h;
-% Manipulation/conditions details (anesthesia, Any other drugs, Shock, Reward, etc)
-%Drugs edit box
-SP.Drugsh=uicontrol(fig,'tag','Drugs','style','edit','units','pixels',...
-    'string', 'none','horiz','left', 'callback',[me ';'],'pos',[3*e+3*w  H w h ]);
-H=H+h;
-SP.Drugslabel=uicontrol(fig,'tag','Drugslabel','style','text','units','pixels',...
-    'string', 'Drugs:', 'fontsize', labelfs,...
     'enable','inact','horiz','left','pos', [3*e+3*w  H w h/2]);
+
+H=H+h/2+e;
+hp = uipanel( 'Title','Notebook','units','pixels', 'Position',[3*e+3*w H 2*w 15*h]);
+
+
+% Manipulation/conditions details (anesthesia, Any other drugs, Shock, Reward, etc)
+H=e;
+%Drugs edit box
+SP.Drugsh=uicontrol('Parent',hp,'tag','Drugs','style','edit','units','pixels',...
+    'string', 'none','horiz','left', 'callback',[me ';'],'pos',[e  H w h ]);
+H=H+h;
+SP.Drugslabel=uicontrol('Parent',hp,'tag','Drugslabel','style','text','units','pixels',...
+    'string', 'Drugs:', 'fontsize', labelfs,...
+    'enable','inact','horiz','left','pos', [e H w h/2]);
 H=H+h/2+e;
 
 %Reinforcement edit box (shock, reward, etc)
-SP.Reinforcementh=uicontrol(fig,'tag','Reinforcement','style','edit','units','pixels',...
-    'string', 'none','horiz','left', 'callback',[me ';'],'pos',[3*e+3*w  H w h ]);
+SP.Reinforcementh=uicontrol(fig,'Parent',hp,'tag','Reinforcement','style','edit','units','pixels',...
+    'string', 'none','horiz','left', 'callback',[me ';'],'pos',[e  H w h ]);
 H=H+h;
-SP.Reinforcementlabel=uicontrol(fig,'tag','Reinforcementlabel','style','text','units','pixels',...
+SP.Reinforcementlabel=uicontrol(fig,'Parent',hp,'tag','Reinforcementlabel','style','text','units','pixels',...
     'string', 'Reinforcement:', 'fontsize', labelfs,...
-    'enable','inact','horiz','left','pos', [3*e+3*w  H w h/2]);
+    'enable','inact','horiz','left','pos', [e  H w h/2]);
 H=H+h/2+e;
 
 SP.Reinforcement='none';
 SP.Drugs='none';
 
 %mouse details
-SP.mouseDOBh=uicontrol(fig,'tag','mouseDOB','style','edit','units','pixels',...
-    'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[3*e+3*w  H w h ]);
+SP.mouseDOBh=uicontrol(fig,'Parent',hp,'tag','mouseDOB','style','edit','units','pixels',...
+    'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[e  H w h ]);
 H=H+h;
-SP.mouseDOBlabel=uicontrol(fig,'tag','mouseDOBlabel','style','text','units','pixels',...
+SP.mouseDOBlabel=uicontrol(fig,'Parent',hp,'tag','mouseDOBlabel','style','text','units','pixels',...
     'string', 'mouseDOB:', 'fontsize', labelfs,...
-    'enable','inact','horiz','left','pos', [3*e+3*w  H w h/2]);
+    'enable','inact','horiz','left','pos', [e  H w h/2]);
 H=H+h/2+e;
 
-SP.mouseSexh=uicontrol(fig,'tag','mouseSex','style','edit','units','pixels',...
-    'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[3*e+3*w  H w h ]);
+SP.mouseSexh=uicontrol(fig,'Parent',hp,'tag','mouseSex','style','edit','units','pixels',...
+    'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[e  H w h ]);
 H=H+h;
-SP.mouseSexlabel=uicontrol(fig,'tag','mouseSexlabel','style','text','units','pixels',...
+SP.mouseSexlabel=uicontrol(fig,'Parent',hp,'tag','mouseSexlabel','style','text','units','pixels',...
     'string', 'mouseSex:', 'fontsize', labelfs,...
-    'enable','inact','horiz','left','pos', [3*e+3*w  H w h/2]);
+    'enable','inact','horiz','left','pos', [e  H w h/2]);
 H=H+h/2+e;
-SP.mouseGenotypeh=uicontrol(fig,'tag','mouseGenotype','style','edit','units','pixels',...
-    'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[3*e+3*w  H w h ]);
+SP.mouseGenotypeh=uicontrol(fig,'Parent',hp,'tag','mouseGenotype','style','edit','units','pixels',...
+    'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[e  H w h ]);
 H=H+h;
-SP.mouseGenotypelabel=uicontrol(fig,'tag','mouseGenotypelabel','style','text','units','pixels',...
+SP.mouseGenotypelabel=uicontrol(fig,'Parent',hp,'tag','mouseGenotypelabel','style','text','units','pixels',...
     'string', 'mouseGenotype:', 'fontsize', labelfs,...
-    'enable','inact','horiz','left','pos', [3*e+3*w  H w h/2]);
+    'enable','inact','horiz','left','pos', [e  H w h/2]);
 H=H+h/2+e;
 SP.mouseSex='unknown';
 SP.mouseDOB='unknown';
@@ -845,24 +1171,41 @@ SP.mouseGenotype='unknown';
 SP.Notes='';
 
 %Depth edit box
-SP.Depthh=uicontrol(fig,'tag','Depth','style','edit','fontweight','bold','units','pixels',...
-    'string', '','horiz','left', 'callback',[me ';'],'pos',[3*e+3*w  H w h ]);
+SP.Depthh=uicontrol(fig,'Parent',hp,'tag','Depth','style','edit','fontweight','bold','units','pixels',...
+    'string', '','horiz','left', 'callback',[me ';'],'pos',[e  H w h ]);
 H=H+h+e;
-SP.Depthlabel=uicontrol(fig,'tag','Depthlabel','style','text','units','pixels',...
+SP.Depthlabel=uicontrol(fig,'Parent',hp,'tag','Depthlabel','style','text','units','pixels',...
     'string', 'Depth', 'fontsize', labelfs,...
-    'enable','inact','horiz','left','pos', [3*e+3*w  H w h/2]);
+    'enable','inact','horiz','left','pos', [e  H w h/2]);
 H=H+h/2+e;
 
 %laser power edit box
-SP.LaserPowerh=uicontrol(fig,'tag','LaserPower','style','edit','fontweight','bold','units','pixels',...
-    'string', '','horiz','left', 'callback',[me ';'],'pos',[3*e+3*w  H w h ]);
+SP.LaserPowerh=uicontrol(fig,'Parent',hp,'tag','LaserPower','style','edit','fontweight','bold','units','pixels',...
+    'string', '','horiz','left', 'callback',[me ';'],'pos',[e  H w h ]);
 H=H+h+e;
-SP.LaserPowerlabel=uicontrol(fig,'tag','LaserPowerlabel','style','text','units','pixels',...
+SP.LaserPowerlabel=uicontrol(fig,'Parent',hp,'tag','LaserPowerlabel','style','text','units','pixels',...
     'string', 'LaserPower', 'fontsize', labelfs,...
-    'enable','inact','horiz','left','pos', [3*e+3*w  H w h/2]);
+    'enable','inact','horiz','left','pos', [e  H w h/2]);
 H=H+h/2+e;
 SP.Depth='unknown';
 SP.LaserPower='unknown';
+
+%mouseID menu
+warning('off', 'MATLAB:hg:uicontrol:StringMustBeNonEmpty');
+if isfield(pref, 'allmouseIDs') SP.allmouseIDs=pref.allmouseIDs; else SP.allmouseIDs='';end
+SP.mouseIDMenuh=uicontrol(fig,'Parent',hp,'tag','mouseIDMenu','style','popupmenu','units','pixels','fontweight','bold',...
+    'string', SP.allmouseIDs,'enable','on','horiz','left','callback',[me ';'], 'pos',[e H w h]);
+H=H+h+e;
+
+%mouseID edit box
+SP.mouseIDh=uicontrol(fig,'Parent',hp,'tag','mouseID','style','edit','fontweight','bold','units','pixels',...
+    'string', '','horiz','left', 'callback',[me ';'],'pos',[e  H w h ]);
+H=H+h+e;
+SP.mouseIDlabel=uicontrol(fig,'Parent',hp,'tag','mouseIDlabel','style','text','units','pixels',...
+    'string', 'mouseID', 'fontsize', labelfs,...
+    'enable','inact','horiz','left','pos', [e  H w h/2]);
+H=H+h;
+
 
 
 set(fig,'visible','on');

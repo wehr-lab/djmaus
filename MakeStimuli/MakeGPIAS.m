@@ -62,7 +62,7 @@ SOA_samples=SOA*samplerate/1000;
 noise_params=params;
 %noise_params.duration=params.duration+5000; %make it a second longer to cover up isi
 noise_params.duration=params.duration; %don't make it a second longer to cover up isi
-continuous_noise=MakeNoise(noise_params, samplerate);
+continuous_noise=MakeWhiteNoise(noise_params, samplerate);
 %continuous noise
 % amplitude=1*(10.^((noiseamp-pref.maxSPL)/20)); %in volts (-1<x<1), i.e. pref.maxSPL=+_1V
 % duration_s=continuous_noise_dur/1000;                     % adjust the duration to seconds

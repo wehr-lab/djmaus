@@ -4,13 +4,16 @@ function out=PPAdj(varargin)
 %note: this module requires that PsychToolbox is installed. Freely available from psychtoolbox.org
 % you also have to separately install the asio driver, use the link on
 % http://psychtoolbox.org/wikka.php?wakka=PsychPortAudio
+        
+global debugging
+debugging=0; %print out helpful info for debugging
 
 global SP
 
 action = varargin{1};
 
 restart_timer
-
+% fprintf('\naction: %s', action)
 % djMessage(action)
 switch action
     case 'init'
@@ -40,20 +43,20 @@ switch action
         if nargin<3
             return;
         end
-        try
+%         try
             if nargin==4
                 LoadPPA(varargin{2},varargin{3},varargin{4});
             else
                 param.channel=1;
                 LoadPPA(varargin{2},varargin{3},param); % first channel is the default channel
             end
-        catch
-            djMessage('Cannot load sound', 'append');
-        end
+%         catch
+%             djMessage('Cannot load sound', 'append');
+%         end
         
         
         
-    case 'ppatimer'
+    case 'PPATimer'
         PPAhandle=SP.PPAhandle;
         try        status = PsychPortAudio('GetStatus', PPAhandle);
             
@@ -204,8 +207,8 @@ PlaySound
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function LoadPPA(type,where,param)
-global SP pref %mw 081412
-% loads data to soundmachine. type can be either 'file' or 'var'
+global SP pref debugging 
+% loads data. type can be either 'file' or 'var'
 switch type
     case 'file'
         try
@@ -217,17 +220,14 @@ switch type
         end
     case 'var'
         samples=where;
-        str=sprintf('\nvector loaded %s',datestr(now, 13)); % string to be displayed in the Message box
+        if debugging
+            str=sprintf('vector loaded %s',datestr(now, 13)); % string to be displayed in the Message box
+        end
     otherwise
         return;
 end
-%djMessage(str, 'append')
 
-% if isfield(param,'channel')
-%     channel=param.channel(1);
-% else
-%     channel=1;  % default channel
-% end
+
 
 if isfield(param, 'loop_flg')
     loop_flg=param.loop_flg;
@@ -259,6 +259,7 @@ triglength=round(SoundFs/1000); %1 ms trigger
 trigsamples(1:triglength)=.25*ones(size(1:triglength));
 %now, since djmaus is designed for open-ephys which wants 3.3V triggers, we
 %use .33 = 3.3/10
+%.25 is enough to trigger a digital TTL and is safer, so we will use that
 %Reid says the digital lines can take 5V, but the ADCs cannot. Neither
 %like negative voltages but can tolerate up to -0.5V before blowing
 %anything. The soundcard puts some ringing on the edges but it's less than
@@ -279,21 +280,21 @@ else
 end
 %add in a LaserPPA pulse if requested by that module AND if sound params
 %laserON==1
-on=SP.PPALaseron;
+on=SP.LaserOnOff;
 if on
-    if isfield(param, 'AOPulseOn')
-        if param.AOPulseOn %then deliver a laser pulse
-            str='Laser pulse *';
-            start=SP.PPALaserstart; %ms
-            pulsewidth=SP.PPALaserwidth; %ms
-            numpulses=SP.PPALasernumpulses; %ms
-            isi=SP.PPALaserisi; %ms
+    if isfield(param, 'laser')
+        if param.laser %then deliver a laser pulse
+            djMessage('Laser pulse', 'append');
+            start=SP.LaserStart; %ms
+            pulsewidth=SP.LaserWidth; %ms
+            numpulses=SP.LaserNumPulses; %ms
+            isi=SP.LaserISI; %ms
             if length(pulsewidth)>1
                 if length(pulsewidth)~=numpulses;
-                    djMessage('PPALaser: numpulses must match number of widths', 'append')
+                    djMessage('djPPA: Laser numpulses must match number of widths', 'append')
                 end
                 if length(isi)~=numpulses-1;
-                    djMessage('PPALaser: numpulses must be 1 more than number of isis', 'append')
+                    djMessage('djPPA: Laser numpulses must be 1 more than number of isis', 'append')
                 end
             end
             if length(pulsewidth)==1
@@ -363,17 +364,14 @@ if on
                 samples(numChan,:)=laserpulse;
             end
             
-            djMessage(str, 'append')
             
-            if isfield(param, 'PulseTrace') % AKH 6/29/14
-                samples(numChan,:)=param.PulseTrace;
-            end
+           
             
         end
     end
 end
 
-str1=str;
+% str1=str;
 % we used to add a silent pad at the end to avoid dropouts, but that didn't really work and the problem is now solved differently anyway
 
 SP.samples= samples; %store samples for re-buffering if we're looping (used only for looping)
@@ -382,11 +380,14 @@ if isfield(param, 'seamless')
     if param.seamless==1
         seamless=param.seamless;
         status = PsychPortAudio('GetStatus', PPAhandle);
-        str=sprintf('PositionSecs=%g\ndur:%g', status.PositionSecs, param.duration);
-        %         djMessage(str, 'append');
-        
+        if debugging
+            str=sprintf('PositionSecs=%g\tdur:%g', status.PositionSecs, param.duration);
+            fprintf('\nPositionSecs=%g\ndur:%g', status.PositionSecs, param.duration);
+            fprintf('\nSchedulePosition=%g', status.PositionSecs);
+            djMessage(str, 'append');
+        end
         if status.Active==0; %device not running, need to start it
-            str=sprintf('%s\nhad to start it !!!', str);
+            str=sprintf('%shad to start it !!!');
             beep
             currstimuli=SP.CurrentStimulus;
             protocol=SP.ProtocolIndex;
@@ -430,22 +431,25 @@ if isfield(param, 'seamless')
             % %                 end
             % %             end
             
-            str=sprintf('%s\nalready started', str);
+            %str=sprintf('%s\talready started', str);
             %  djMessage(str, 'append');
             buf = PsychPortAudio('CreateBuffer', [], samples);
             
             [success, freeslots] = PsychPortAudio('AddToSchedule', PPAhandle, buf, 1, 0.0, [], []);
-            if success
-                str=sprintf('%s\nAddToSchedule success, %d free slots', str, freeslots);
-            else
-                str=sprintf('%s\nAddToSchedule FAIL', str);
+            usedslots=128-freeslots;
+            if debugging
+                if success
+                    str=sprintf('%s\tAddToSchedule success, %d used slots, %d free slots', str, usedslots, freeslots);
+                else
+                    str=sprintf('%s\tAddToSchedule FAIL', str);
+                end
             end
             %freeslots defaults to 128
             if freeslots <20 %arbitrary guess
                 %                         pause for to play back slots
                 pause(5)
-                str=sprintf('%s\nWarning: Free Slots <20 !!!', str);
-                str=sprintf('%s\nPaused 5 seconds', str);
+                str=sprintf('%s\tWarning: Free Slots <20 !!!', str);
+                str=sprintf('%s\tPaused 5 seconds', str);
                 
             end
             %troubleshooting an out-of-memory error with GPIAS 3-2010
@@ -466,7 +470,7 @@ if isfield(param, 'seamless')
                 bufs=setdiff(bufs, b);
             end
         end
-        SetParam(me,'buffers', bufs); %store buffer pointers
+        SP.buffers= bufs; %store buffer pointers
     end
 else %this stimulus is not seamless
     %commenting out on rig2 mw 02-10-2011
@@ -485,8 +489,9 @@ else %this stimulus is not seamless
 end
 SP.loop_flg=loop_flg; %store loop flag
 SP.seamless=seamless; %store whether transition should be seamless or not
-djMessage(str, 'append');
-
+try
+    djMessage(str, 'append');
+end
 % write diagnostic logfile -mw 07.07.2014
 %??? 9-3-2015 mw
 % try

@@ -994,7 +994,7 @@ SP.Repeath=uicontrol(fig,'tag','Repeat','style','togglebutton','units','pixels',
     'string', 'Repeat Off','enable','on','horiz','left', 'callback',[me ';'],'pos',[2*e+w H w h]);
 H=H+h+e;
 
-H=H+2*h+2*e
+H=H+2*h+2*e;
 
 %path display
 SP.pathh=uicontrol(fig,'tag','pathdisplay','style','text','units','pixels',...

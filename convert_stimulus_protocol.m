@@ -3,6 +3,7 @@ function varargout=convert_stimulus_protocol(varargin)
 %the difference in formats is that exper2 protocols have a stimulus(1) that has name
 %and description, with the stimuli starting at 2. The new format is that
 %all stimuli have a copy of name and description, and stimuli start at 1.
+%Each stimulus also has its own description string
 %usage:
 % convert_stimulus_protocol
 %    select exper2 protocol with dialog box, writes converted file
@@ -38,7 +39,7 @@ if strcmpi(stimuli(1).type,'exper2 stimulus protocol')
         paramstring=sprintf('%s',a.type);
         fns=fieldnames(a.param);
         for fn=1:length(fns)
-            paramstring=[paramstring sprintf(' %s:%d',fns{fn},getfield(a.param, fns{fn}))];
+            paramstring=[paramstring sprintf(' %s:%g',fns{fn},getfield(a.param, fns{fn}))];
         end
         stimuli(i).type=a.type;
         stimuli(i).param=a.param;

@@ -2,22 +2,19 @@ function out=PPAdj(varargin)
 
 % djmaus module that initializes, loads, and plays sounds using PsychToolbox PortAudio (PPA) routines
 %note: this module requires that PsychToolbox is installed. Freely available from psychtoolbox.org
-% you also have to separately install the asio driver, use the link on
-% http://psychtoolbox.org/wikka.php?wakka=PsychPortAudio
         
-global debugging
+global SP debugging
 debugging=0; %print out helpful info for debugging
-
-global SP
 
 action = varargin{1};
 
 restart_timer
-% fprintf('\naction: %s', action)
-% djMessage(action)
+if debugging
+    fprintf('\naction: %s', action)
+end
+
 switch action
     case 'init'
-        %InitializeGUI;                  % show the gui = djMessage box:-)
         InitPPA;                        % Initialize soundmachine
         SP.PPATimer=timer('tag', 'PPATimer', 'TimerFcn',[me '(''PPATimer'');'],'ExecutionMode','fixedDelay', 'Period', .5);
         start(SP.PPATimer)
@@ -43,16 +40,13 @@ switch action
         if nargin<3
             return;
         end
-%         try
             if nargin==4
                 LoadPPA(varargin{2},varargin{3},varargin{4});
             else
                 param.channel=1;
                 LoadPPA(varargin{2},varargin{3},param); % first channel is the default channel
             end
-%         catch
-%             djMessage('Cannot load sound', 'append');
-%         end
+
         
         
         
@@ -60,13 +54,10 @@ switch action
         PPAhandle=SP.PPAhandle;
         try        status = PsychPortAudio('GetStatus', PPAhandle);
             
-            %             status.Active
             h=SP.PPAactive;
             if status.Active==0; %device not running
-                %                  djMessage('not running', 'append')
                 set(h, 'string', 'PPA not running', 'backgroundcolor', [.5 .5 .5])
             elseif status.Active==1; %device running
-                %                  djMessage(' running', 'append')
                 set(h, 'string', 'PPA running', 'backgroundcolor', [1 0 0])
                 
             end
@@ -116,21 +107,18 @@ end
 PsychPortAudio('Verbosity', 0); 
 
 % Initialize driver, request low-latency preinit:
-%InitializePsychSound(1); %  InitializePsychSound([reallyneedlowlatency=0])
+%InitializePsychSound(1); %  InitializePsychSound([reallyneedlowlatency=1])
 InitializePsychSound(0); %  InitializePsychSound([reallyneedlowlatency=0])
 
 %note: this module requires that PsychToolbox is installed. Freely
 %available from psychtoolbox.org
 %You might need to reinstall PsychToolbox after a fresh matlab
-%install/upgrade
-%also, after a fresh PsychToolbox install, you need to download the
-%ASIO-enabled PPA driver
-%(http://psychtoolbox.org/wikka.php?wakka=PsychPortAudio) and copy the
-%enclosed portaudio_x86.dll into C:\toolbox\Psychtoolbox
+%install/upgrade. In this case you don't need to re-download, just update.
 
 
 %because it is machine dependent, we now set deviceid in djPrefs.m
-%use printdevices.m to figure out which device id to use for your soundcard
+%you can use printdevices.m to figure out which device id to use for your soundcard
+%The default is to let GetASIOLynxDevice to take care of that for you
 deviceid = pref.soundcarddeviceID; %32; %11;
 
 numChan = pref.num_soundcard_outputchannels; %set in djPrefs.m
@@ -175,14 +163,6 @@ end
 runMode = 1; %leaves soundcard on (hot), uses more resources but may solve dropouts? mw 08.25.09: so far so good.
 PsychPortAudio('RunMode', PPAhandle, runMode);
 
-% Unknown system: Assume zero bias. User can override with measured
-% values:
-%latbias = 0.0013;
-
-% Tell driver about hardwares inherent latency, determined via calibration
-% once:
-%prelat = PsychPortAudio('LatencyBias', PPAhandle, latbias);
-%postlat = PsychPortAudio('LatencyBias', PPAhandle);
 
 if isempty(PPAhandle)
     djMessage(me,'Can''t create PsychPortAudio object...');
@@ -278,17 +258,64 @@ else
     %>2 channels on card, we can leave a channel for PPALaser
     samples(numChan-1,:)=trigsamples; %mw 081412
 end
-%add in a LaserPPA pulse if requested by that module AND if sound params
-%laserON==1
+
+if isfield(param, 'VarLaser') %will use variable Laser params set in protocol, so turn LaserOnOff on and disable djmaus GUI
+    SP.LaserOnOff = 1;
+    set(SP.LaserStarth, 'enable', 'off')
+    set(SP.LaserNumPulsesh, 'enable', 'off')
+    set(SP.LaserISIh, 'enable', 'off')
+    set(SP.LaserWidthh, 'enable', 'off')
+    set(SP.LaserOnOffh, 'enable', 'off', 'backgroundcolor',[.9 .5 .5],'foregroundcolor',[0 0 0]);
+    set(SP.LaserOnOffh, 'string','Var Laser ON');
+else
+    set(SP.LaserStarth, 'enable', 'on')
+    set(SP.LaserNumPulsesh, 'enable', 'on')
+    set(SP.LaserISIh, 'enable', 'on')
+    set(SP.LaserWidthh, 'enable', 'on')
+    set(SP.LaserOnOffh, 'enable', 'on')
+    djmaus('LaserOnOff')
+
+end
+
+
+%add in a Laser pulse if djmaus laser button is turned on AND if sound param.laser==1
 on=SP.LaserOnOff;
-if on
+if on  
     if isfield(param, 'laser')
         if param.laser %then deliver a laser pulse
             djMessage('Laser pulse', 'append');
-            start=SP.LaserStart; %ms
-            pulsewidth=SP.LaserWidth; %ms
-            numpulses=SP.LaserNumPulses; %ms
-            isi=SP.LaserISI; %ms
+            
+            if isfield(param, 'VarLaser') %use variable Laser params set in protocol, and ignore djmaus GUI
+                if param.VarLaser %if Laser params say this stimulus has laser turned on
+                    start=param.VarLaserstart; %ms
+                    pulsewidth=param.VarLaserpulsewidth; %ms
+                    numpulses=param.VarLasernumpulses; %ms
+                    isi=param.VarLaserisi; %ms
+                    
+                    SP.LaserOnOff = 1;
+                    set(SP.LaserStarth, 'enable', 'off', 'string', start)
+                    set(SP.LaserNumPulsesh, 'enable', 'off', 'string',numpulses)
+                    set(SP.LaserISIh, 'enable', 'off', 'string',isi)
+                    set(SP.LaserWidthh, 'enable', 'off', 'string',pulsewidth)
+                    set(SP.LaserOnOffh, 'enable', 'off', 'backgroundcolor',[.5 .5 .5],'foregroundcolor',[0 0 1]);
+                    set(SP.LaserOnOffh, 'string','Laser is ON');
+                else
+                    %Laser params say this stimulus has laser turned OFF
+                end
+            else %VarLaser does not exist, so get laser pulse params from djmaus GUI
+                set(SP.LaserStarth, 'enable', 'on')
+                set(SP.LaserNumPulsesh, 'enable', 'on')
+                set(SP.LaserISIh, 'enable', 'on')
+                set(SP.LaserWidthh, 'enable', 'on')
+                set(SP.LaserOnOffh, 'enable', 'on');
+                
+                start=SP.LaserStart; %ms
+                pulsewidth=SP.LaserWidth; %ms
+                numpulses=SP.LaserNumPulses; %ms
+                isi=SP.LaserISI; %ms
+            end
+            
+            %insert laser pulse with specified parameters into samples
             if length(pulsewidth)>1
                 if length(pulsewidth)~=numpulses;
                     djMessage('djPPA: Laser numpulses must match number of widths', 'append')
@@ -303,13 +330,6 @@ if on
             if length(isi)==1
                 isi=repmat(isi, 1, numpulses-1);
             end
-            % width=pulsewidth*numpulses+isi*(numpulses-1); %width of entire pulse train
-            %                 elseif length(pulsewidth)>1
-            %                     if length(isi)==1
-            %                         isi=repmat(isi, 1, numpulses-1);
-            %                     end
-            %                     %   width=sum(pulsewidth)+sum(isi); %width of entire pulse train
-            %                 end
             width=sum(pulsewidth)+sum(isi); %width of entire pulse train
             
             if start<0 %need to prepend some silence before sound
@@ -353,13 +373,6 @@ if on
                     pstopsamp=pstartsamp+pulsewidth(n)*SoundFs/1000-1;
                     laserpulse(pstartsamp:pstopsamp)=1;
                 end
-                %                      for n=1:numpulses
-                %                          pstartsamp=start*SoundFs/1000+1+(n-1)*(pulsewidth+isi)*SoundFs/1000;
-                %                          pstopsamp=pstartsamp+pulsewidth*SoundFs/1000-1;
-                %                          laserpulse(pstartsamp:pstopsamp)=1;
-                %
-                %                      end
-                %                     laserpulse(start*SoundFs/1000+1:(start+width)*SoundFs/1000)=1;
                 laserpulse(end)=0; %make sure to turn off pulse at end
                 samples(numChan,:)=laserpulse;
             end

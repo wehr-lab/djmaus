@@ -92,11 +92,11 @@ switch action
         
     case 'Repeat'
         if SP.Repeat %it's on, so turn it off
-            set(SP.Repeath, 'backgroundcolor',[0 0 1],'foregroundcolor',[0 0 0]);
+            set(SP.Repeath, 'backgroundcolor',[.5 .5 1],'foregroundcolor',[0 0 0]);
             set(SP.Repeath, 'string','Repeat Off');
             SP.Repeat=0;
         else
-            set(SP.Repeath, 'backgroundcolor',[1 0 0],'foregroundcolor',[0 0 1]);
+            set(SP.Repeath, 'backgroundcolor',[1 .5 .5],'foregroundcolor',[0 0 1]);
             set(SP.Repeath, 'string','Repeat On');
             SP.Repeat=1;
         end
@@ -524,6 +524,8 @@ samples=feval(fcn,stimulus.param,SP.SoundFs);
 %LoadPPA(type,where,param)
 PPAdj('load', 'var', samples, stimulus.param)
 str=sprintf('TrialType %s', stimulus.stimulus_description);
+%append a field saying whether the LaserON/OFF button is clicked or not:
+str=sprintf('%s %s:%g', str, 'LaserOnOff', SP.LaserOnOff);
 if ~isempty(SP.zhandle)
     zeroMQwrapper('Send', SP.zhandle, str)
 end
@@ -574,24 +576,6 @@ function out = me
 out = mfilename;
 % me
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 
-% function DisableParamChange
-% fig=findobj('type','figure','tag',me);
-% h=findobj(fig,'type','uicontrol','style','edit');
-% for cnt=1:length(h)
-%     set(h(cnt),'enable','off')
-% end
-% % DisableParamChange
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 
-% function EnableParamChange
-% fig=findobj('type','figure','tag',me);
-% h=findobj(fig,'type','uicontrol','style','edit');
-% for cnt=1:length(h)
-%     set(h(cnt),'enable','on')
-% end
-%EnableParamChange
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function fcn=StimTypes(type)
 switch type
@@ -603,6 +587,8 @@ switch type
         fcn='MakeGPIAS';
     case 'noise'
         fcn='MakeNoise';
+    case 'silentsound'
+        fcn='MakeSilentSound';
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -692,7 +678,10 @@ catch
      case 'Yes'
          targetdir = uigetdir(SP.datapath, 'Select directory in which to save notebook file.')
          cd(targetdir)
+         SP.activedir=pwd;
+         nb.activedir=pwd;
          save('notebook.mat', 'nb')
+         set(SP.pathh, 'string', {SP.datapath, [SP.activedir, ' recording...']})
      case 'No'
      case 'Cancel'         
    end
@@ -742,31 +731,25 @@ nb.mouseSex=SP.mouseSex;
 nb.mouseGenotype=SP.mouseGenotype;
 nb.notes=SP.Notes;
 
-cd(nb.activedir)
+try
+    cd(nb.activedir)
 save('notebook.mat', '-append', 'nb')
 fprintf('\nupdated notebook file in %s', nb.activedir)
+catch
+    fprintf('\nCould not update notebook file.')
 
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function InitZMQ
 global SP pref
 
 %open tcp/ip connection using zeroMQ  to communicate with open ephys
-switch computer
-    case 'MACI64'
-        url='tcp://localhost:5556'; %seems to work for mac
-        mexpath='mac';
-    case 'GLNXA64'
-        url='tcp://127.0.0.1:5556'; %seems to work for linux
-        mexpath='unix';
-    case 'PCWIN64'
-        url='tcp://127.0.0.1:5556'; %seems to work for windows
-        mexpath='windows';
-end
 cd (pref.root)
-cd(mexpath)
+cd(pref.mexpath)
 try
     %zeroMQwrapper('CloseThread', url); %crashes matlab
-    SP.zhandle=zeroMQwrapper('StartConnectThread', url);
+    SP.zhandle=zeroMQwrapper('StartConnectThread', pref.zmqurl);
+    pause(.2)
     zeroMQwrapper('Send',SP.zhandle ,'StartAcquisition');
     djMessage(sprintf('successful zeroMQ connection %d', SP.zhandle))
     fprintf('successful zeroMQ connection %d', SP.zhandle)
@@ -994,11 +977,11 @@ SP.Repeath=uicontrol(fig,'tag','Repeat','style','togglebutton','units','pixels',
     'string', 'Repeat Off','enable','on','horiz','left', 'callback',[me ';'],'pos',[2*e+w H w h]);
 H=H+h+e;
 
-H=H+2*h+2*e;
+H=H+1*h+1*e;
 
 %path display
-SP.pathh=uicontrol(fig,'tag','pathdisplay','style','text','units','pixels',...
-    'string', pref.datapath, 'enable','inact','horiz','left', 'pos',[e  H 3*w 1.5*h ]);
+SP.pathh=uicontrol(fig,'tag','pathdisplay','style','text','units','pixels','backgroundcolor', [.8 .8 .8],...
+    'string', pref.datapath, 'enable','inact','horiz','left', 'pos',[e  H 3*w 2*h ]);
 H=H+1.5*h+e;
 
 %PPAactive message window

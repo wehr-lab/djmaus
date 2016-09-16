@@ -69,6 +69,7 @@ if interleave_laser==1
 else
     [Amplitudes,Freqs, Durations]=meshgrid( linspacedamplitudes , logspacedfreqs, durations );
     numlasers=1;
+    Lasers=zeros(size(Amplitudes));
 end
 
 neworder=randperm( numfreqs * numamplitudes * numdurations * numlasers);
@@ -134,13 +135,10 @@ for rep=1:nrepeats
             stimuli(nn).param.amplitude=amplitudes(n);
             stimuli(nn).param.duration=durs(n);
             stimuli(nn).param.laser=lasers(n);
-            if lasers(n) laserstr='laser ON'; else laserstr='laser OFF';end
             stimuli(nn).param.ramp=ramp;
             stimuli(nn).param.next=isi;
-            paramstring=sprintf('whitenoise %d dB, %.4f ms ramp, %d ms dur, %d ms isi, %s',...
-                amplitudes(n), ramp, durs(n), isi, laserstr);
+            stimuli(nn).stimulus_description=GetParamStr(stimuli(nn));
             stimuli(nn).protocol_name=name;
-            stimuli(nn).stimulus_description=paramstring;
             stimuli(nn).protocol_description=description;
             stimuli(nn).version='djmaus';
             
@@ -150,13 +148,10 @@ for rep=1:nrepeats
             stimuli(nn).param.amplitude=amplitudes(n);
             stimuli(nn).param.duration=durs(n);
             stimuli(nn).param.laser=lasers(n);
-            if lasers(n) laserstr='laser ON'; else laserstr='laser OFF';end
             stimuli(nn).param.ramp=ramp;
             stimuli(nn).param.next=isi;
-            paramstring=sprintf('tone %.1fkHz, %d dB, %.4f ms ramp, %g ms dur, %d ms isi, %s',...
-                round(freqs(n)/100)/10, amplitudes(n), ramp, durs(n), isi, laserstr);
+            stimuli(nn).stimulus_description=GetParamStr(stimuli(nn));
             stimuli(nn).protocol_name=name;
-            stimuli(nn).stimulus_description=paramstring;
             stimuli(nn).protocol_description=description;
             stimuli(nn).version='djmaus';
             
@@ -168,14 +163,12 @@ for rep=1:nrepeats
     if include_silent_sound==1
         nn=nn+1;
         stimuli(nn).param.laser=0;
-        paramstring='silent sound Laser OFF';
-        stimuli(nn).type='whitenoise';
-        stimuli(nn).param.amplitude=-1000;
-        stimuli(nn).param.duration=25;
+        stimuli(nn).type='silentsound';
+        stimuli(nn).param.duration=durs(1);
         stimuli(nn).param.ramp=3;
         stimuli(nn).param.next=isi;
+        stimuli(nn).stimulus_description=GetParamStr(stimuli(nn));
         stimuli(nn).protocol_name=name;
-        stimuli(nn).stimulus_description=paramstring;
         stimuli(nn).protocol_description=description;
         stimuli(nn).version='djmaus';
         
@@ -183,13 +176,12 @@ for rep=1:nrepeats
             nn=nn+1;
             stimuli(nn).param.laser=1;
             paramstring='silent sound Laser ON';
-            stimuli(nn).type='whitenoise';
-            stimuli(nn).param.amplitude=-1000;
-            stimuli(nn).param.duration=25;
+            stimuli(nn).type='silentsound';
+            stimuli(nn).param.duration=durs(1);
             stimuli(nn).param.ramp=3;
             stimuli(nn).param.next=isi;
+            stimuli(nn).stimulus_description=GetParamStr(stimuli(nn));
             stimuli(nn).protocol_name=name;
-            stimuli(nn).stimulus_description=paramstring;
             stimuli(nn).protocol_description=description;
             stimuli(nn).version='djmaus';
         end
@@ -208,4 +200,3 @@ path=pwd;
 save(filename, 'stimuli')
 fprintf('\ncreated file %s \nin directory %s\n\n', filename, path);
 
-% keyboard

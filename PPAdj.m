@@ -29,11 +29,23 @@ switch action
         
     case 'close'
         try 
+            %delete timer
             stop(SP.PPATimer);
             delete(SP.PPATimer);
+            
+            %no really, delete timer. I mean it.
+            s=timerfind('TimerFcn', 'PPAdj(''PPATimer'');');
+            stop(s)
+            delete(s)
+            
+            % Stop playback:
             PPAhandle=SP.PPAhandle;
             PsychPortAudio('Stop', PPAhandle);
             PsychPortAudio('Close', PPAhandle);
+       
+        catch
+            djMessage('PPAdj: failed to close device or stop timer')
+            pause(.2)
         end
 
     case 'load'
@@ -51,14 +63,20 @@ switch action
         
         
     case 'PPATimer'
-        PPAhandle=SP.PPAhandle;
-        try        status = PsychPortAudio('GetStatus', PPAhandle);
+        try
+            PPAhandle=SP.PPAhandle;
+            status = PsychPortAudio('GetStatus', PPAhandle);
+            
             
             h=SP.PPAactive;
             if status.Active==0; %device not running
-                set(h, 'string', 'PPA not running', 'backgroundcolor', [.5 .5 .5])
+                set(h, 'string', sprintf('PPA not running, XRuns=%g, CPUload=%.3f', status.XRuns, status.CPULoad), 'backgroundcolor', [.5 .5 .5])
             elseif status.Active==1; %device running
-                set(h, 'string', 'PPA running', 'backgroundcolor', [1 0 0])
+                set(h, 'string', sprintf('PPA running, XRuns=%g, CPUload=%.3f', status.XRuns, status.CPULoad), 'backgroundcolor', [1 .5 .5])
+                if status.XRuns>0
+                    %fprintf('\nXRun')
+                    set(h,'backgroundcolor', [1 0 0])
+                end
                 
             end
         catch
@@ -73,15 +91,7 @@ switch action
         % Stop playback:
         PsychPortAudio('Stop',SP.PPAhandle,0);
         
-    case 'close'
-        try
-            % Stop playback:
-            PsychPortAudio('Stop',SP.PPAhandle);
-            PsychPortAudio('Close');
-        catch
-            djMessage('failed to close device')
-            pause(.2)
-        end
+
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -142,7 +152,7 @@ reqlatencyclass = pref.reqlatencyclass;
 % strictest requirements.
 
 SoundFs = pref.SoundFs;        % Must set this. 96khz, 48khz, 44.1khz.
-buffSize = 1024;           % Low latency: 32, 64 or 128. High latency: 512>=
+buffSize = 256;           % Low latency: 32, 64 or 128. High latency: 512>=
 % nm 05.07.09 changed to 32, should fix dropouts.  If not, open LynxMixer.exe
 % (in C:\lynx) and Settings->Buffer Size->32
 % If Lynx seems not to change buffer size then type "CloseAllSoundDevices" into Matlab.
@@ -390,7 +400,7 @@ end
 SP.samples= samples; %store samples for re-buffering if we're looping (used only for looping)
 
 if isfield(param, 'seamless')
-    if param.seamless==1
+    if param.seamless==1;
         seamless=param.seamless;
         status = PsychPortAudio('GetStatus', PPAhandle);
         if debugging

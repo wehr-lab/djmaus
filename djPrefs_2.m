@@ -5,33 +5,18 @@ function djPrefs
 global pref SP
 
 % machine-wide default prefs:
-pref.users={'lab','mike-home','mike-kombi','mike-linux'};
+pref.users={'lab', 'mike-home', 'mike-kombi', 'mike-linux'};
 try
     pref.soundcarddeviceID=GetAsioLynxDevice; %note: using the asio device for both input and output
 catch
     pref.soundcarddeviceID=42;
 end
 pref.num_soundcard_outputchannels=4;
-pref.reqlatencyclass=0; %Rig1: saw dropouts with 0, fewer 1, fewer with 2, still some with 3
+pref.reqlatencyclass=2;
 pref.SoundFs=192000;
 pref.maxSPL=80;
 pref.allmouseIDs='';
 pref.root=fileparts(which(mfilename));
-%use these urls for local communication (djmaus and open-ephys on same
-%computer):
-switch computer
-    case 'MACI64'
-        pref.zmqurl='tcp://localhost:5556'; %seems to work for mac
-        pref.mexpath='mac';
-    case 'GLNXA64'
-        pref.zmqurl='tcp://127.0.0.1:5556'; %seems to work for linux
-        pref.mexpath='unix';
-    case 'PCWIN64'
-        pref.zmqurl='tcp://127.0.0.1:5556'; %seems to work for windows
-        pref.mexpath='windows';
-end
-%use a specific url for open-ephys on a different computer
-%pref.zmqurl='tcp://184.171.85.38:5556'; 
 pref.stimuli=fullfile(pref.root, 'stimuli');
 pref.stimuli=fullfile(pref.root, 'stimuli');
 pref.datapath=fullfile(pref.root, 'Data');
@@ -44,7 +29,6 @@ end
 
 try
     switch SP.user
-
         case 'mike-home'
             %pref.stimuli='/home/mike/djmaus/stimuli/mike';
             pref.datapath='/Users/mikewehr/Documents/Data';
@@ -74,21 +58,6 @@ switch SP.user
 case  'lab'
 	pref.allmouseIDs={'','Fred','PV3','pv3','test'};
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

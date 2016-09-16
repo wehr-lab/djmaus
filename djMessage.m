@@ -7,7 +7,7 @@ if isempty(text)
     return %don't bother displaying nothing
 end
 %useful for debugging:
-fprintf('\n%s', text)
+%fprintf('\n%s', text)
 
 if nargin < 2 type = ''; end
 switch type

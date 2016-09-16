@@ -66,3 +66,7 @@ troubleshooting:
 -If you stop acquisition (the "play" button), you need to start it again before clicking record, otherwise OE will not save data files. Relaunch OE to fix.
 -Works with both x64 Release and 32bit Debug versions of OE.
 
+Here's a wierd issue that I will contact open-ephys about. I was getting info.ts that were spaced less than info.nsamples apart. 
+This made the interpolated timestamps double back on themselves (sawtooth pattern). As a result all the timing (TTLs, stimuli) 
+were completely messed up. Changing the recording node from bandpass filter to rhythmFPGA fixed it (now unique(info.ts)==1024),
+ but the timestamps for AUX and ADC channels are still messed up. FOrtunately we can use the data timestamps for now.

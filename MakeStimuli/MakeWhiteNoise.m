@@ -1,18 +1,18 @@
 function noise=MakeWhiteNoise(varargin)
 
 
-% Note: now we use absolute SPL instead of attenuation!!!
 % 
-% NOTE: this was the original header
-% function noise=MakeWhiteNoise(duration,attenuation,samplerate,ramp)
-% 
-% creates a gaussian white-noise sample with the given parameters
-% Input:
+% Creates a gaussian white-noise sample with the given parameters
+%
+%Usage: noise=MakeWhiteNoise(param, samplerate)
+%
+% Inputs: 
+% param should have the following fields:
 %  duration           -   duration of the stimulus (ms)
-% % % % % % % % % % % %  attenuation        -   attenuation (dB)
 %  amplitude          -   sound pressure level of the sound (dB)
-%  samplerate         -   required sampling rate (Hz)
-%  ramp               -   length of an ascending/descending edge MS???
+%  ramp               -   length of an ascending/descending edge in ms
+%
+% samplerate         -   required sampling rate (Hz)
 %  
 %  Output:
 %  noise              -   the requested sample; empty if unsuccessful

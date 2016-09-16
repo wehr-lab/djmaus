@@ -23,9 +23,10 @@ Should work on mac, linux, windows.
 		install macports from www.macports.org/install.php
 		relaunch your terminal
 		sudo port install zmq3
-    win: http://miru.hk/archive/ZeroMQ-4.0.4~miru1.0-x64.exe
+    	win: 	Seems to work without explicitly installing zeromq, but if you need to, here is the link:
+		http://miru.hk/archive/ZeroMQ-4.0.4~miru1.0-x64.exe
 
-6. If the zeroMQ mex file doesn't work (check with matlab_zeroMQ_wrapper_example.m), you might need to compile the mex from source code. 
+6. If the zeroMQwrapper mex file doesn't work (check with test_zeroMQ_wrapper.m), you might need to compile the mex from source code. 
 	Make sure g++ 4.7 is installed:
 		linux:
 			sudo apt-get install g++-4.7

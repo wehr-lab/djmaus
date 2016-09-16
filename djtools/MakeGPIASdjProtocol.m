@@ -116,12 +116,12 @@ for n=1:nrepeats
 end
 
 if interleave_laser
-    interleave_laserstr='IL-';
+    interleave_laserstr='IL';
 else
     interleave_laserstr='';
 end
 
-name= sprintf('GPIAS-na%ddB-gd%sms-pd%dms-pa%sdb-soa%dms(%s)-r%d-iti%d-itivar%d-%s%dreps.mat',...
+name= sprintf('GPIAS-na%ddB-gd%sms-pd%dms-pa%sdb-soa%dms(%s)-r%d-iti%d-itivar%d-%s-%dreps.mat',...
     noiseamp, gapdursstring, round(pulsedur), pulseampsstring, soa,soaflag, round(ramp), isi,round(100*isi_var),interleave_laserstr, nrepeats);
 
 description=sprintf('Gap Induced Pre-Pulse Inhibition of Startle Response stimulus protocol noise amplitude:%ddB, gap duration: %sms, gapdelay: %dms, pulse duration%dms pulse amplitude:%sdb SOA:%dms (%s) ramp:%dms iti:%dms iti-var: %.1f %s %drepeats',...

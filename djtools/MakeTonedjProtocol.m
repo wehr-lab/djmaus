@@ -93,12 +93,12 @@ TotalDurationSecs=DurationPerRepeatSecs*nrepeats;
 durstring=sprintf('%d-', durations);durstring=durstring(1:end-1);
 %put into stimuli structure
 if interleave_laser
-    interleave_laserstr='IL-';
+    interleave_laserstr='IL';
 else
     interleave_laserstr='';
 end
 if include_silent_sound
-    include_silent_soundstr='ISS-';
+    include_silent_soundstr='ISS';
 else
     include_silent_soundstr='';
 end
@@ -109,13 +109,13 @@ else
 end
 
 
-name= sprintf('Tuning curve %s, %dfpo(%d-%dHz)/%da(%d-%ddB)/%dd(%sms)/%s%s%dmsisi/%d reps', ...
+name= sprintf('Tuning curve %s, %dfpo(%d-%dHz)/%da(%d-%ddB)/%dd(%sms)/%s-%s-%dmsisi/%d reps', ...
     include_whitenoisestr, freqsperoctave,minfreq, round(maxfreq), numamplitudes,minamplitude,...
     maxamplitude, numdurations, durstring,interleave_laserstr,include_silent_soundstr, isi,nrepeats);
-description=sprintf('tuning curve, tones%s, %d freqs/oct (%d-%dkHz), %d ampl. (%d-%d dB SPL), %d durations (%sms),%s%s, %d ms isi,%d stim per rep, %d repeats, %d total stimuli, %ds per rep, %d s total dur',...
+description=sprintf('tuning curve, tones%s, %d freqs/oct (%d-%dkHz), %d ampl. (%d-%d dB SPL), %d durations (%sms),%s, %s, %d ms isi,%d stim per rep, %d repeats, %d total stimuli, %ds per rep, %d s total dur',...
     include_whitenoisestr,freqsperoctave, minfreq, round(maxfreq), numamplitudes,minamplitude, maxamplitude, numdurations, durstring, ...
     interleave_laserstr,include_silent_soundstr, isi, StimPerRepeat, nrepeats,TotalNumStim, round(DurationPerRepeatSecs), round(TotalDurationSecs));
-filename=sprintf('tuning-curve-tones%s-%dfpo_%d-%dHz-%da_%d-%ddB-%dd_%sms-%s%sisi%dms-%dreps',...
+filename=sprintf('tuning-curve-tones%s-%dfpo_%d-%dHz-%da_%d-%ddB-%dd_%sms-%s-%s-isi%dms-%dreps',...
     include_whitenoisestr, freqsperoctave,minfreq, round(maxfreq), numamplitudes,minamplitude, maxamplitude, numdurations, durstring,...
     interleave_laserstr,include_silent_soundstr, isi, nrepeats);
 

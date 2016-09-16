@@ -191,7 +191,7 @@ switch action
         
     case 'mouseGenotype'
         SP.mouseGenotype=get(SP.mouseGenotypeh, 'string');
-        cd (SP.datapath)
+        cd (pref.root)
         load mouseDB
         str=sprintf('%s.mouseGenotype=''%s'';', SP.mouseID, SP.mouseGenotype);
         eval(str);
@@ -200,7 +200,7 @@ switch action
     case 'mouseSex'
         SP.mouseSex=lower(get(SP.mouseSexh, 'string'));
         set(SP.mouseSexh, 'string', SP.mouseSex)
-        cd (SP.datapath)
+        cd (pref.root)
         load mouseDB
         str=sprintf('%s.mouseSex=''%s'';', SP.mouseID, SP.mouseSex);
         eval(str)
@@ -208,7 +208,7 @@ switch action
         
     case 'mouseDOB'
         SP.mouseDOB=get(SP.mouseDOBh, 'string');
-        cd (SP.datapath)
+        cd (pref.root)
         load mouseDB
         str=sprintf('%s.mouseDOB=''%s'';', SP.mouseID, SP.mouseDOB);
         eval(str)
@@ -297,7 +297,7 @@ if any(strcmp(username, pref.users))
     set(SP.userh, 'value', 1)
 else
     SP.user=username;
-   cd(pref.root)
+   cd(pref.datapath)
    cd('Data')
    mkdir(username)
    pref.datapath=pwd;
@@ -594,7 +594,7 @@ end
 
 function Record
 %toggle Open Ephys recording state, increment datafile
-global SP
+global SP pref
 fprintf('\n')
 
 if SP.Record
@@ -616,7 +616,7 @@ else
         SP.mouseID='none';
     end
     zeroMQwrapper('Send',SP.zhandle ,'StartAcquisition'); %shouldn't need to do this unless user stopped acquisition, doesn't hurt anyway
-    startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', SP.datapath, SP.mouseID);
+    startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', pref.remotedatapath, SP.mouseID);
     zeroMQwrapper('Send',SP.zhandle ,startstr);
     set(SP.Recordh, 'backgroundcolor',[0.9 0 0],'String','Recording...');
     set(SP.mouseIDh, 'enable', 'off');
@@ -631,15 +631,15 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function InitNotebookFile
-global SP nb
+global SP nb pref
 
 % find active OE data directory and cd into it
 try
-    zeroMQwrapper('Send',SP.zhandle ,sprintf('ChangeDirectory %s', SP.datapath))
+    zeroMQwrapper('Send',SP.zhandle ,sprintf('ChangeDirectory %s', pref.root))
     pause(.2)
     zeroMQwrapper('Send',SP.zhandle ,'GetRecordingPath');
     pause(.2)
-    cd(SP.datapath)
+    cd(pref.root)
     fid=fopen('RecordingPath.txt', 'r');
     RecordingPath=fgetl(fid);
     RecordingPathSize=str2num(fgetl(fid));
@@ -647,8 +647,10 @@ try
     %hack: on windows I am still getting extra characters -> trim to size
     RecordingPath=RecordingPath(1:RecordingPathSize);
     fprintf('\ndjmaus: read this Recording Path from file:%s', RecordingPath)
-
-    SP.activedir=RecordingPath;
+    
+    %     SP.activedir=RecordingPath;
+    SP.activedir=fullfile(pref.datahost, RecordingPath);
+    SP.activedir=strrep(SP.activedir, ':', '');
     cd(SP.activedir)
     set(SP.pathh, 'string', {SP.datapath, [SP.activedir, ' recording...']})
     
@@ -751,7 +753,7 @@ try
     SP.zhandle=zeroMQwrapper('StartConnectThread', pref.zmqurl);
     pause(.2)
     zeroMQwrapper('Send',SP.zhandle ,'StartAcquisition');
-    djMessage(sprintf('successful zeroMQ connection %d', SP.zhandle))
+    djMessage(sprintf('successful zeroMQ connection to %s, handle %d', pref.zmqurl, SP.zhandle))
     fprintf('successful zeroMQ connection %d', SP.zhandle)
     set(SP.Recordh, 'enable', 'on');
 catch
@@ -982,7 +984,7 @@ H=H+1*h+1*e;
 %path display
 SP.pathh=uicontrol(fig,'tag','pathdisplay','style','text','units','pixels','backgroundcolor', [.8 .8 .8],...
     'string', pref.datapath, 'enable','inact','horiz','left', 'pos',[e  H 3*w 2*h ]);
-H=H+1.5*h+e;
+H=H+2*h+e;
 
 %PPAactive message window
 SP.PPAactive=uicontrol(fig,'tag','PPAactive','style','text','units','pixels',...

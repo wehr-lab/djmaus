@@ -71,3 +71,6 @@ Here's a wierd issue that I will contact open-ephys about. I was getting info.ts
 This made the interpolated timestamps double back on themselves (sawtooth pattern). As a result all the timing (TTLs, stimuli) 
 were completely messed up. Changing the recording node from bandpass filter to rhythmFPGA fixed it (now unique(info.ts)==1024),
  but the timestamps for AUX and ADC channels are still messed up. FOrtunately we can use the data timestamps for now.
+
+if you're using open-ephys and djmaus on different computers, be sure to turn sharing on for the data drive on 
+the open-ephys computer, and change the permissions to full. Right click on D:, properties, sharing.

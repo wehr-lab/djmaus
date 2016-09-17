@@ -74,7 +74,7 @@ switch action
             elseif status.Active==1; %device running
                 set(h, 'string', sprintf('PPA running, XRuns=%g, CPUload=%.3f', status.XRuns, status.CPULoad), 'backgroundcolor', [1 .5 .5])
                 if status.XRuns>0
-                    %fprintf('\nXRun')
+                    fprintf('\nXRun')
                     set(h,'backgroundcolor', [1 0 0])
                 end
                 
@@ -133,6 +133,7 @@ deviceid = pref.soundcarddeviceID; %32; %11;
 
 numChan = pref.num_soundcard_outputchannels; %set in djPrefs.m
 reqlatencyclass = pref.reqlatencyclass;
+suggestedLatency=pref.suggestedLatency; %see post from Mario at https://beta.groups.yahoo.com/neo/groups/PSYCHTOOLBOX/conversations/topics/7131
 %because it is machine dependent, we now set reqlatencyclass in djPrefs.m
 %on rig1 use 4; %on rig2, set to 1 (the default) to avoid dropouts mw 051809
 %on rig1, 1 seems to cause dropouts but 2/3/4 seem better
@@ -152,7 +153,8 @@ reqlatencyclass = pref.reqlatencyclass;
 % strictest requirements.
 
 SoundFs = pref.SoundFs;        % Must set this. 96khz, 48khz, 44.1khz.
-buffSize = 256;           % Low latency: 32, 64 or 128. High latency: 512>=
+buffSize = 1024;           %this seems to be ignored, you can try setting it in Lynx Mixer
+% Low latency: 32, 64 or 128. High latency: 512>=
 % nm 05.07.09 changed to 32, should fix dropouts.  If not, open LynxMixer.exe
 % (in C:\lynx) and Settings->Buffer Size->32
 % If Lynx seems not to change buffer size then type "CloseAllSoundDevices" into Matlab.
@@ -164,8 +166,8 @@ buffPos = 0;
 
 % Open audio device for low-latency output:
 
-
-try PPAhandle = PsychPortAudio('Open', deviceid, [], reqlatencyclass, SoundFs, numChan, buffSize);
+playbackonly=1;
+try PPAhandle = PsychPortAudio('Open', deviceid, playbackonly, reqlatencyclass, SoundFs, numChan, buffSize, suggestedLatency);
 catch
     error(sprintf('Could not open soundcard device id %d. Call PrintDevices and confirm that the soundcard DeviceIndex matches pref.soundcarddeviceID (in djPrefs)\n', deviceid));
 end
@@ -185,7 +187,7 @@ SP.Samples=[]; %param to hold the samples, used only for looping
 SP.loop_flg=0; %param to store loop flag
 SP.seamless=0; %param to store whether transition should be seamless or not
 SP.buffers=[]; %param to store pointers to buffers for later deletion
-djMessage( sprintf('Initialized PsychPortAudio with device %d, reqlatencyclass %d, Fs %d, numChan %d, buffersize %d\n\n', deviceid, reqlatencyclass, SoundFs, numChan, buffSize), 'append');
+djMessage( sprintf('Initialized PsychPortAudio with device %d, reqlatencyclass %d, Fs %d, numChan %d, buffersize %d suggestedLatency %g\n', deviceid, reqlatencyclass, SoundFs, numChan, buffSize, suggestedLatency), 'append');
 
 %trying to workaround dropout on first sound after initialization by
 %playing dummy tone here

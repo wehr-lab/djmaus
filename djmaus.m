@@ -546,7 +546,7 @@ if current(protocol)==nstimuli(protocol) % we played everything
     if ~SP.Repeat           % if we don't want to repeat,
         djTimerDelay=-1;          % this will cause the timer to stop
         SP.Run=0;
-        set(SP.Runh,'backgroundcolor',[0 0.9 0],'String','Play');
+        set(SP.Runh,'backgroundcolor',[0 0.9 0],'String','Play', 'value', 0);
         SP.CurrentStimulus=current;
         return;
     end

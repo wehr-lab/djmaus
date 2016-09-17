@@ -33,7 +33,7 @@ Should work on mac, linux, windows.
 			sudo ln -s /usr/bin/g++-4.7 /usr/bin/g++ 
 		mac:
 	Download the open-ephys source code from https://github.com/open-ephys/GUI
-	Edit GUI/Resources/matlab/compile_matlab_wrapper.m to have the right paths to your OE install, and then run it. Test by running matlab_wrapper
+	Edit GUI/Resources/matlab/compile_matlab_wrapper.m to have the right paths to your OE install, and then run it. Test by running test_zeroMQ_wrapper
 
 That's it. 
 

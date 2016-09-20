@@ -1,8 +1,8 @@
-function ProcessTC_PSTH(varargin)
+function ProcessGPIAS_PSTH(varargin)
 
 %processes clustered spiking tuning curve data from djmaus
 %
-% usage: ProcessTC_PSTH(datadir, channel, [xlimits],[ylimits])
+% usage: ProcessGPIAS_PSTH(datadir, channel, [xlimits],[ylimits])
 % (xlimits, ylimits are optional)
 % xlimits default to [0 200]
 % channel (tetrode) number should be an integer, if omitted you will be prompted for it
@@ -133,7 +133,7 @@ end
 fprintf('\nNumber of sound events (from network messages): %d', length(Events));
 fprintf('\nNumber of hardware triggers (soundcardtrig TTLs): %d', length(all_SCTs));
 if length(Events) ~=  length(all_SCTs)
-    error('ProcessTC_PSTH: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
+    error('ProcessGPIAS_PSTH: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
 end
 
 if exist('check1', 'var') & exist('check2', 'var')
@@ -145,7 +145,7 @@ fprintf('\nreminder to cross-check network mesasges with stimlog')
 basefn=sprintf('ch%d_simpleclust_*.t', channel);
 d=dir(basefn);
 numclusters=size(d, 1);
-if numclusters==0 error('ProcessTC_PSTH: no cluster files found');
+if numclusters==0 error('ProcessGPIAS_PSTH: no cluster files found');
 else fprintf('\n%d cluster files found - will process all of them', numclusters)
 end
 for clustnum=1:numclusters
@@ -167,8 +167,7 @@ Nclusters=numclusters;
 
 monitor = 0;
 if monitor
-    
-%   I'm running the soundcard trigger (SCT) into ai1 as another sanity check.
+    %   I'm running the soundcard trigger (SCT) into ai1 as another sanity check.
 SCTfname=getSCTfile(datadir);
 if isempty(SCTfname)
     warning('could not find soundcard trigger file')

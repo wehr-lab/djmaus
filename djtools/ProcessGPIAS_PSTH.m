@@ -262,8 +262,7 @@ samprate=sampleRate;
 %get freqs/amps
 j=0;
 for i=1:length(Events)
-    if strcmp(Events(i).type, '2tone') |strcmp(Events(i).type, 'tone') ...
-            |strcmp(Events(i).type, 'fmtone') | strcmp(Events(i).type, 'whitenoise')| strcmp(Events(i).type, 'grating')
+    if strcmp(Events(i).type, 'GPIAS')
         j=j+1;
         alldurs(j)=Events(i).duration;
         if strcmp(Events(i).type, 'tone') | strcmp(Events(i).type, '2tone')

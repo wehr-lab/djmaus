@@ -98,6 +98,7 @@ for clustindex=1:length(outfilename) %main cluster loop
     numgapdurs=out.numgapdurs;
     pulseamps=out.pulseamps;
     gapdurs=out.gapdurs;
+    gapdelay=out.gapdelay;
     samprate=out.samprate; %in Hz
     mM1ON=out.mM1ON;
     mM1OFF=out.mM1OFF;
@@ -169,7 +170,7 @@ for clustindex=1:length(outfilename) %main cluster loop
         end
     end
     subplot1(1)
-    h=title(sprintf('%s: \ntetrode%d cell%d %dms, nreps: %d-%d, OFF',datadir,channel,out.cluster,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
+    h=title(sprintf('%s: \ntetrode%d cell %d, nreps: %d-%d, OFF',datadir,channel,out.cluster,min(nrepsOFF(:)),max(nrepsOFF(:))));
     set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
     
     %label amps and freqs
@@ -178,7 +179,7 @@ for clustindex=1:length(outfilename) %main cluster loop
         for gdindex=1:numgapdurs
             p=p+1;
             subplot1(p)
-            
+            vpos=mean(ylimits);
             text(xlimits(1), vpos, sprintf('%.1f', gapdurs(gdindex)))
         end
     end

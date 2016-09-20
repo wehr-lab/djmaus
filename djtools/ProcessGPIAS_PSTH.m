@@ -105,11 +105,23 @@ for i=1:length(messages)
     elseif strcmp(Events_type, 'TrialType')
         sound_index=sound_index+1;
         Events(sound_index).type=str2{3};
-        for j=4:length(str2)
+        if 1 %temp hack because I had the wrong paramstr
+            fprintf('\nhack')
+            Events(sound_index).gapdur=str2num(str2{20});
+            Events(sound_index).soa=str2num(str2{9});
+            Events(sound_index).pulseamp=100;
+            Events(sound_index).gapdelay=1000;
+            Events(sound_index).pulsedur=0;
+            Events(sound_index).amplitude=80;
+            
+            
+        else
+            for j=4:length(str2)
             str3=strsplit(str2{j}, ':');
             fieldname=str3{1};
             value=str2num(str3{2});
             Events(sound_index).(fieldname)= value;
+            end
         end
         Events(sound_index).message_timestamp_samples=timestamp - StartAcquisitionSamples;
         Events(sound_index).message_timestamp_sec=timestamp/sampleRate - StartAcquisitionSec;
@@ -264,19 +276,19 @@ j=0;
 for i=1:length(Events)
     if strcmp(Events(i).type, 'GPIAS')
         j=j+1;
-        allsoas(j)=event(i).Param.soa;
-        allgapdurs(j)=event(i).Param.gapdur;
-        allgapdelays(j)=event(i).Param.gapdelay;
-        allpulseamps(j)=event(i).Param.pulseamp;
-        allpulsedurs(j)=event(i).Param.pulsedur;
-        allnoiseamps(j)=event(i).Param.amplitude;
+        allsoas(j)=Events(i).soa;
+        allgapdurs(j)=Events(i).gapdur;
+        allgapdelays(j)=Events(i).gapdelay;
+        allpulseamps(j)=Events(i).pulseamp;
+        allpulsedurs(j)=Events(i).pulsedur;
+        allnoiseamps(j)=Events(i).amplitude;
     elseif strcmp(event(i).Type, 'gapinnoise')
-        allsoas(j)=event(i).Param.soa;
-        allgapdurs(j)=event(i).Param.gapdur;
-        allgapdelays(j)=event(i).Param.gapdelay;
-        allpulseamps(j)=event(i).Param.pulseamp;
-        allpulsedurs(j)=event(i).Param.pulsedur;
-        allnoiseamps(j)=event(i).Param.amplitude;
+        allsoas(j)=Events(i).soa;
+        allgapdurs(j)=Events(i).gapdur;
+        allgapdelays(j)=Events(i).gapdelay;
+        allpulseamps(j)=Events(i).pulseamp;
+        allpulsedurs(j)=Events(i).pulsedur;
+        allnoiseamps(j)=Events(i).amplitude;
     end
     
 end
@@ -367,9 +379,9 @@ for i=1:length(Events)
         start=(pos+(xlimits(1)+gapdelay)*1e-3);
         stop=(pos+(xlimits(2)+gapdelay)*1e-3);
         if start>0 %(disallow negative or zero start times)
-            gapdur=Events(i).Param.gapdur;
+            gapdur=Events(i).gapdur;
             gdindex= find(gapdur==gapdurs);
-            pulseamp=Events(i).Param.pulseamp;
+            pulseamp=Events(i).pulseamp;
             paindex= find(pulseamp==pulseamps);
             for clust=1:Nclusters %could be multiple clusts (cells) per tetrode
                 st=spiketimes(clust).spiketimes; %are in seconds

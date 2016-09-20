@@ -175,7 +175,7 @@ for clustindex=1:length(outfilename) %main cluster loop
             p=p+1;
             subplot1(p)
             
-            text(xlimits(1), vpos, sprintf('%.1f', gapdurs(gdindex))
+            text(xlimits(1), vpos, sprintf('%.1f', gapdurs(gdindex)))
         end
     end
     

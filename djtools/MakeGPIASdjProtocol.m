@@ -187,11 +187,8 @@ for kk=1:length(rand_gapdurs)
     stimuli(n).param.pulsedur=pulsedur;
     stimuli(n).param.pulseamp=rand_pulseamps(kk);
     stimuli(n).param.laser=lasers(kk);
-    if lasers(kk) laserstr='laser ON'; else laserstr='laser OFF';end
-        paramstring= sprintf('GPIAS  %d dB, %g ms ramp, %d ms SOA, soa-type: %s, %d ms GPIAS dur, %d gapdelay, %d ms gap dur, %d ms pulse dur, %d dB pulseamp, %d ms isi, %s',...
-            noiseamp, ramp, soa, soaflag, gpias_duration, gapdelay, stimuli(n).param.gapdur, pulsedur, stimuli(n).param.pulseamp, next, laserstr);    
+    stimuli(n).stimulus_description=GetParamStr(stimuli(n));
     stimuli(n).protocol_name=name;
-    stimuli(n).stimulus_description=paramstring;
     stimuli(n).protocol_description=description;
     stimuli(n).version='djmaus';
     
@@ -207,10 +204,8 @@ for kk=1:length(rand_gapdurs)
         stimuli(n).param.seamless=1;
         stimuli(n).param.duration=gpias_duration; %trying to set to same dur as gpias
         stimuli(n).param.next=next; %totally empirical value that allows psychportaudio rescheduling to work seamlessly
-        
-        paramstring=sprintf('whitenoise %d dB, %.4f ms ramp, %d ms dur, %d ms isi',noiseamp, ramp, gpias_duration, next);
+        stimuli(n).stimulus_description=GetParamStr(stimuli(n));
         stimuli(n).protocol_name=name;
-        stimuli(n).stimulus_description=paramstring;
         stimuli(n).protocol_description=description;
         stimuli(n).version='djmaus';
     end

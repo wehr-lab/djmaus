@@ -43,9 +43,9 @@ switch action
         try stop(djTimer); end
         delete(djTimer);
         clear djTimer
-        delete(SP.fig)
         PPAdj('close')
         zeroMQwrapper('CloseThread',SP.zhandle);
+        delete(SP.fig)
         clear global SP
         fprintf('\nbye\n')
         
@@ -149,6 +149,8 @@ switch action
         djMessage(sprintf('Hi %s', user))
         SP.user=user;
         djPrefs;
+        cd (pref.datapath)
+        pref.datapath=pwd;
         SP.datapath=pref.datapath;
         set(SP.pathh, 'string', SP.datapath)
         set(SP.mouseIDMenuh, 'string', pref.allmouseIDs)
@@ -242,6 +244,10 @@ switch action
     case 'ResetZMQ'
         InitZMQ;
         
+    case 'TestZMQ'
+            zeroMQwrapper('Send',SP.zhandle ,'Test');
+            djMessage(sprintf('sent "Test" message to %s', pref.zmqurl))
+
     case 'LaserOnOff'
         SP.LaserOnOff=get(SP.LaserOnOffh, 'value');
         if SP.LaserOnOff
@@ -298,11 +304,15 @@ if any(strcmp(username, pref.users))
 else
     SP.user=username;
    cd(pref.datapath)
-   cd('Data')
+   cd ..
    mkdir(username)
+   cd(username)
    pref.datapath=pwd;
    pref.users{end+1}=username;
-
+   
+   [pathstr,name,~] =fileparts(pref.remotedatapath);
+   pref.remotedatapath=fullfile(pathstr, username);
+   
    %write new pref.users
    cd(pref.root)
    fid=fopen('djPrefs.m', 'a+');
@@ -333,12 +343,14 @@ else
    if ~isempty(I) %found key, overwrite with revised entry
        I=I(1);
        str1=sprintf('case ''%s''', username);
-       str2=sprintf('pref.datapath=''%s'';', fullfile(pref.datapath, username));
+       str2=sprintf('pref.datapath=''%s'';', pref.datapath);
+       str3=sprintf('pref.remotedatapath=''%s'';', pref.remotedatapath);
        Preftext_copy=Preftext;
        Preftext{I+1}=str1;
        Preftext{I+2}=str2;
-       for i=I+3:length(Preftext_copy)+2
-           Preftext{i}=Preftext_copy{i-2};
+       Preftext{I+3}=str3;
+       for i=I+4:length(Preftext_copy)+2
+           Preftext{i}=Preftext_copy{i-3};
        end
        fid = fopen('djPrefs.m', 'w');
        fprintf(fid, '%s\n', Preftext{:});
@@ -1025,6 +1037,16 @@ H=H+1*h+e;
 SP.ResetZMQh=uicontrol(fig,'tag','ResetZMQ','style','pushbutton','units','pixels',...
     'fontname','Arial', ...
     'string', 'ResetZMQ','callback', [me ';'],'enable','on','horiz','left','pos',[3*e+2*w H w h ]);
+% H=H+h+e;%reset zeroMQ button
+SP.ResetZMQh=uicontrol(fig,'tag','ResetZMQ','style','pushbutton','units','pixels',...
+    'fontname','Arial', ...
+    'string', 'ResetZMQ','callback', [me ';'],'enable','on','horiz','left','pos',[3*e+2*w H w h ]);
+ H=H+h+e;
+
+%test zeroMQ button
+SP.TestZMQh=uicontrol(fig,'tag','TestZMQ','style','pushbutton','units','pixels',...
+    'fontname','Arial', ...
+    'string', 'TestZMQ','callback', [me ';'],'enable','on','horiz','left','pos',[3*e+2*w H w h ]);
 % H=H+h+e;
 
 %User menu

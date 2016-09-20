@@ -164,7 +164,10 @@ end
 fprintf('\nsuccessfully loaded MClust spike data')
 Nclusters=numclusters;
 
-%might want to read settings.xml from this directory to grab info about
+monitor = 0;
+if monitor
+    
+    %might want to read settings.xml from this directory to grab info about
 %filter settings, etc.
 %   I'm running the soundcard trigger (SCT) into ai1 as another sanity check.
 SCTfname=getSCTfile(datadir);
@@ -176,7 +179,7 @@ end
 
 %here I'm loading a data channel to get good timestamps - the ADC timestamps are screwed up
 datafname=getContinuousFilename( pwd, 1 );
-    [scaledtrace, datatimestamps, datainfo] =load_open_ephys_data(datafname);
+[scaledtrace, datatimestamps, datainfo] =load_open_ephys_data(datafname);
 
 SCTtimestamps=SCTtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
 datatimestamps=datatimestamps-StartAcquisitionSec;
@@ -212,8 +215,7 @@ datatimestamps=datatimestamps-StartAcquisitionSec;
 
 
 
-monitor = 1;
-if monitor
+
     figure
     hold on
     set(gcf, 'pos', [-1853 555 1818 420]);
@@ -296,11 +298,17 @@ for i=1:length(Events)
         LaserScheduled(i)=Events(i).laser; %whether the stim protocol scheduled a laser for this stim
         LaserOnOffButton(i)=Events(i).LaserOnOff; %whether the laser button was turned on
         LaserTrials(i)=LaserScheduled(i) & LaserOnOffButton(i);
+        try
         LaserStart(i)=stimlog(i).LaserStart;
         LaserWidth(i)=stimlog(i).LaserWidth;
         LaserNumPulses(i)=stimlog(i).LaserNumPulses;
         LaserISI(i)=stimlog(i).LaserISI;
-        
+        catch
+        LaserStart(i)=nan;
+        LaserWidth(i)=nan;
+        LaserNumPulses(i)=nan;
+        LaserISI(i)=nan;
+        end
     elseif isfield(Events(i), 'laser') & ~isfield(Events(i), 'LaserOnOff')
         %Not sure about this one. Assume no laser for now, but investigate.
         warning('ProcessTC_LFP: Cannot tell if laser button was turned on in djmaus GUI');
@@ -523,7 +531,12 @@ for clust=1:Nclusters
     end
     sz=size(M1OFF);
     out.M1OFF=reshape(M1OFF(clust,:,:,:,:), sz(2:end)); % All spiketimes, trial-by-trial.   
-    out.mM1OFF=squeeze(mM1OFF(clust,:,:,:))'; % Accumulated spike times for *all* presentations of each laser/f/a combo.
+%for 6 freqs, 2 amps, this is wrong; for 3 freqs 1 amp it's right
+    if numamps>1
+        out.mM1OFF=squeeze(mM1OFF(clust,:,:,:)); % Accumulated spike times for *all* presentations of each laser/f/a combo.
+    else
+        out.mM1OFF=squeeze(mM1OFF(clust,:,:,:))'; % Accumulated spike times for *all* presentations of each laser/f/a combo.
+    end
     out.mM1OFFspikecount=(mM1OFFspikecount(clust,:,:,:));
     out.sM1OFFspikecount=(sM1OFFspikecount(clust,:,:,:));
     out.semM1OFFspikecount=(semM1OFFspikecount(clust,:,:,:));

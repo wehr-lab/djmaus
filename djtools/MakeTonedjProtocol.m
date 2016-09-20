@@ -42,20 +42,32 @@ function [filename,path]=MakeTonedjProtocol(freqsperoctave, minfreq, maxfreq, nu
 % example call with multiple durations:
 % MakeTonedjProtocol(4, 1000, 32000, 3, 50, 80, [200 400],10,1,1, 1, 500, 10)
 %
-%
+% MakeTonedjProtocol(0, 0, 0, 1, 70, 70, [1 2 4 8 16 32 64 128 256],0,1,0, 1, 1000, 10)
 
 if nargin==0; fprintf('\nno input');return;end
 
-numoctaves=log2(maxfreq/minfreq);
 numdurations=length(durations);
-logspacedfreqs=minfreq*2.^([0:(1/freqsperoctave):numoctaves]);
-newmaxfreq=logspacedfreqs(end);
-numfreqs=length(logspacedfreqs);
-if maxfreq~=newmaxfreq
-    fprintf('\nnote: could not divide %d-%d Hz evenly into exactly %d frequencies per octave', minfreq, maxfreq, freqsperoctave)
-    fprintf('\nusing new maxfreq of %d to achieve exactly %d frequencies per octave\n', round(newmaxfreq), freqsperoctave)
-    maxfreq=newmaxfreq;
+
+
+if freqsperoctave==0 & minfreq==0 & maxfreq==0 & include_whitenoise==1
+    %white noise only
+    WNonly=1;
+    logspacedfreqs=[];
+    numfreqs=0;
+    fprintf('\nwhite noise only')
+else
+    WNonly=0;
+    numoctaves=log2(maxfreq/minfreq);
+    logspacedfreqs=minfreq*2.^([0:(1/freqsperoctave):numoctaves]);
+    newmaxfreq=logspacedfreqs(end);
+    numfreqs=length(logspacedfreqs);
+    if maxfreq~=newmaxfreq
+        fprintf('\nnote: could not divide %d-%d Hz evenly into exactly %d frequencies per octave', minfreq, maxfreq, freqsperoctave)
+        fprintf('\nusing new maxfreq of %d to achieve exactly %d frequencies per octave\n', round(newmaxfreq), freqsperoctave)
+        maxfreq=newmaxfreq;
+    end
 end
+
 linspacedamplitudes = linspace( minamplitude , maxamplitude , numamplitudes );
 if numfreqs==0; logspacedfreqs=[]; end
 
@@ -102,22 +114,33 @@ if include_silent_sound
 else
     include_silent_soundstr='';
 end
-if include_whitenoise
-    include_whitenoisestr='+WN';
-else
-    include_whitenoisestr='';
-end
+    if include_whitenoise
+        include_whitenoisestr='+WN';
+    else
+        include_whitenoisestr='';
+    end
 
-
-name= sprintf('Tuning curve %s, %dfpo(%d-%dHz)/%da(%d-%ddB)/%dd(%sms)/%s-%s-%dmsisi/%d reps', ...
-    include_whitenoisestr, freqsperoctave,minfreq, round(maxfreq), numamplitudes,minamplitude,...
-    maxamplitude, numdurations, durstring,interleave_laserstr,include_silent_soundstr, isi,nrepeats);
-description=sprintf('tuning curve, tones%s, %d freqs/oct (%d-%dkHz), %d ampl. (%d-%d dB SPL), %d durations (%sms),%s, %s, %d ms isi,%d stim per rep, %d repeats, %d total stimuli, %ds per rep, %d s total dur',...
-    include_whitenoisestr,freqsperoctave, minfreq, round(maxfreq), numamplitudes,minamplitude, maxamplitude, numdurations, durstring, ...
-    interleave_laserstr,include_silent_soundstr, isi, StimPerRepeat, nrepeats,TotalNumStim, round(DurationPerRepeatSecs), round(TotalDurationSecs));
-filename=sprintf('tuning-curve-tones%s-%dfpo_%d-%dHz-%da_%d-%ddB-%dd_%sms-%s-%s-isi%dms-%dreps',...
-    include_whitenoisestr, freqsperoctave,minfreq, round(maxfreq), numamplitudes,minamplitude, maxamplitude, numdurations, durstring,...
-    interleave_laserstr,include_silent_soundstr, isi, nrepeats);
+    if WNonly
+        name= sprintf('Tuning curve WN only, %da(%d-%ddB)/%dd(%sms)/%s-%s-%dmsisi/%d reps', ...
+            numamplitudes,minamplitude,...
+            maxamplitude, numdurations, durstring,interleave_laserstr,include_silent_soundstr, isi,nrepeats);
+        description=sprintf('tuning curve, WN only, %d ampl. (%d-%d dB SPL), %d durations (%sms),%s, %s, %d ms isi,%d stim per rep, %d repeats, %d total stimuli, %ds per rep, %d s total dur',...
+            numamplitudes,minamplitude, maxamplitude, numdurations, durstring, ...
+            interleave_laserstr,include_silent_soundstr, isi, StimPerRepeat, nrepeats,TotalNumStim, round(DurationPerRepeatSecs), round(TotalDurationSecs));
+        filename=sprintf('tuning-curve-WNonly-%da_%d-%ddB-%dd_%sms-%s-%s-isi%dms-%dreps',...
+             numamplitudes,minamplitude, maxamplitude, numdurations, durstring,...
+            interleave_laserstr,include_silent_soundstr, isi, nrepeats);
+    else
+        name= sprintf('Tuning curve %s, %dfpo(%d-%dHz)/%da(%d-%ddB)/%dd(%sms)/%s-%s-%dmsisi/%d reps', ...
+            include_whitenoisestr, freqsperoctave,minfreq, round(maxfreq), numamplitudes,minamplitude,...
+            maxamplitude, numdurations, durstring,interleave_laserstr,include_silent_soundstr, isi,nrepeats);
+        description=sprintf('tuning curve, tones%s, %d freqs/oct (%d-%dkHz), %d ampl. (%d-%d dB SPL), %d durations (%sms),%s, %s, %d ms isi,%d stim per rep, %d repeats, %d total stimuli, %ds per rep, %d s total dur',...
+            include_whitenoisestr,freqsperoctave, minfreq, round(maxfreq), numamplitudes,minamplitude, maxamplitude, numdurations, durstring, ...
+            interleave_laserstr,include_silent_soundstr, isi, StimPerRepeat, nrepeats,TotalNumStim, round(DurationPerRepeatSecs), round(TotalDurationSecs));
+        filename=sprintf('tuning-curve-tones%s-%dfpo_%d-%dHz-%da_%d-%ddB-%dd_%sms-%s-%s-isi%dms-%dreps',...
+            include_whitenoisestr, freqsperoctave,minfreq, round(maxfreq), numamplitudes,minamplitude, maxamplitude, numdurations, durstring,...
+            interleave_laserstr,include_silent_soundstr, isi, nrepeats);
+    end
 
 nn=0;
 for rep=1:nrepeats
@@ -165,7 +188,7 @@ for rep=1:nrepeats
         stimuli(nn).param.laser=0;
         stimuli(nn).type='silentsound';
         stimuli(nn).param.duration=durs(1);
-        stimuli(nn).param.ramp=3;
+        stimuli(nn).param.ramp=0;
         stimuli(nn).param.next=isi;
         stimuli(nn).stimulus_description=GetParamStr(stimuli(nn));
         stimuli(nn).protocol_name=name;
@@ -178,7 +201,7 @@ for rep=1:nrepeats
             paramstring='silent sound Laser ON';
             stimuli(nn).type='silentsound';
             stimuli(nn).param.duration=durs(1);
-            stimuli(nn).param.ramp=3;
+            stimuli(nn).param.ramp=0;
             stimuli(nn).param.next=isi;
             stimuli(nn).stimulus_description=GetParamStr(stimuli(nn));
             stimuli(nn).protocol_name=name;

@@ -72,7 +72,8 @@ switch action
             if status.Active==0; %device not running
                 set(h, 'string', sprintf('PPA not running, XRuns=%g, CPUload=%.3f', status.XRuns, status.CPULoad), 'backgroundcolor', [.5 .5 .5])
             elseif status.Active==1; %device running
-                set(h, 'string', sprintf('PPA running, XRuns=%g, CPUload=%.3f', status.XRuns, status.CPULoad), 'backgroundcolor', [1 .5 .5])
+                set(h, 'string', sprintf('PPA running, Scheduled=%d, XRuns=%g, CPUload=%.3f', status.SchedulePosition, status.XRuns, status.CPULoad), 'backgroundcolor', [1 .5 .5])
+
                 if status.XRuns>0
                     fprintf('\nXRun')
                     set(h,'backgroundcolor', [1 0 0])
@@ -321,7 +322,11 @@ if on
                 set(SP.LaserWidthh, 'enable', 'on')
                 set(SP.LaserOnOffh, 'enable', 'on');
                 
-                start=SP.LaserStart; %ms
+                if isfield(param, 'soaflag') %workaround to identify a GPIAS stimulus
+                    start=SP.LaserStart+param.gapdelay; %ms relative to gap termination
+                else
+                    start=SP.LaserStart; %ms relative to sound onset
+                end
                 pulsewidth=SP.LaserWidth; %ms
                 numpulses=SP.LaserNumPulses; %ms
                 isi=SP.LaserISI; %ms

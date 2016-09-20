@@ -3,6 +3,8 @@ function MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_startle_duration,
 % usage MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_startle_duration, 
 %       pulsedur, pulseamps, soa, soaflag, ramp, iti, iti_var, interleave_laser, nrepeats)
 %
+%
+%
 % creates a djmaus stimulus protocol file for GPIAS (gap-induced pre-pulse inhibition of acoustic startle
 % response). can use multiple gap durations, gap is silent
 % using variable ITI.
@@ -55,7 +57,9 @@ function MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_startle_duration,
 %brief gap, no startle, ability to deliver a long (1sec) laser pulse beyond
 %startle offset time
 %MakeGPIASdjProtocol(80, [10], 1000, 1000, 0, 100, 60, 'soa', 0, 15e3, .33, 1, 20)
-
+%
+%MakeGPIASdjProtocol(80, [0 1 2 4 8 16 32 64 128 256], 1000, 1000, 0, 100, 50, 'isi', 0, 1e3, 0, 0, 15)
+%
 %note: still using the variable isi for inter-trial interval, AKA iti
 
 if ~strcmp(soaflag, 'isi')

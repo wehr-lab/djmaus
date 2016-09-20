@@ -150,8 +150,12 @@ for clustindex=1:length(outfilename) %main cluster loop
                     h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k');
                 end
             end
-            bar(x, N,1);
-            line([0 0+durs(dindex)], [-.2 -.2], 'color', 'm', 'linewidth', 4)
+            bar(x-gapdelay, N,1,'facecolor','none','edgecolor',[0 .8 0]);
+
+            if gapdurs(gdindex)>0
+                line([0 0],[ylim],'color','m')
+                line(-[(gapdurs(gdindex)) (gapdurs(gdindex))],[ylim],'color','m')
+            end
             line(xlimits, [0 0], 'color', 'k')
             ylimits2(2)=ylimits(2)*3;
             ylimits2(1)=-2;
@@ -206,8 +210,12 @@ for clustindex=1:length(outfilename) %main cluster loop
                         h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k');
                     end
                 end
-                bar(x, N,1);
-                line([0 0+durs(dindex)], [-.2 -.2], 'color', 'm', 'linewidth', 4)
+                bar(x-gapdelay, N,1,'facecolor','none','edgecolor',[0 .8 0]);
+                
+                if gapdurs(gdindex)>0
+                    line([0 0],[ylim],'color','m')
+                    line(-[(gapdurs(gdindex)) (gapdurs(gdindex))],[ylim],'color','m')
+                end
                 line(xlimits, [0 0], 'color', 'k')
                 ylimits2(2)=ylimits(2)*3;
                 ylimits2(1)=-2;

@@ -507,14 +507,19 @@ for clust=1:Nclusters
         out.mM1ONspikecount=(mM1ONspikecount(clust,:,:,:)); % Mean spikecount for each laser/f/a combo.
         out.sM1ONspikecount=(sM1ONspikecount(clust,:,:,:));
         out.semM1ONspikecount=(semM1ONspikecount(clust,:,:,:));
-        out.mM1ON=squeeze(mM1ON(clust,:,:,:))';
+        %I am not sure if I have this right:
+        if numfreqs>numamps
+            out.mM1ON=squeeze(mM1ON(clust,:,:,:))';
+        else
+            out.mM1ON=squeeze(mM1ON(clust,:,:,:));
+        end
         out.mM1spontON=(mM1spontON(clust,:,:,:)); % Spont spikes.
         out.sM1spontON=(sM1spontON(clust,:,:,:));
         out.semM1spontON=(semM1spontON(clust,:,:,:));
         out.LaserStart=unique(LaserStart); %only saving one value for now, assuming it's constant
         out.LaserWidth=unique(LaserWidth);
         out.LaserNumPulses=unique(LaserNumPulses);
-
+        
     else
         out.M1ON=[];
         out.mM1ONspikecount=[];
@@ -529,11 +534,13 @@ for clust=1:Nclusters
         out.Lasernumpulses=[];
     end
     sz=size(M1OFF);
-    out.M1OFF=reshape(M1OFF(clust,:,:,:,:), sz(2:end)); % All spiketimes, trial-by-trial.   
-    %i think this was for only 1 freq? the transpose i mean
-    %out.mM1OFF=squeeze(mM1OFF(clust,:,:,:))'; % Accumulated spike times for *all* presentations of each laser/f/a combo.
-    %for multiple freqs and amps, we need this:
-    out.mM1OFF=squeeze(mM1OFF(clust,:,:,:)); % Accumulated spike times for *all* presentations of each laser/f/a combo.
+    out.M1OFF=reshape(M1OFF(clust,:,:,:,:), sz(2:end)); % All spiketimes, trial-by-trial.
+    %I am not sure if I have this right:
+    if numfreqs>numamps
+        out.mM1OFF=squeeze(mM1OFF(clust,:,:,:))'; % Accumulated spike times for *all* presentations of each laser/f/a combo.
+    else
+        out.mM1OFF=squeeze(mM1OFF(clust,:,:,:)); % Accumulated spike times for *all* presentations of each laser/f/a combo.
+    end
     out.mM1OFFspikecount=(mM1OFFspikecount(clust,:,:,:));
     out.sM1OFFspikecount=(sM1OFFspikecount(clust,:,:,:));
     out.semM1OFFspikecount=(semM1OFFspikecount(clust,:,:,:));

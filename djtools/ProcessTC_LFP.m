@@ -9,6 +9,9 @@ function ProcessTC_LFP(varargin)
 %
 %notes: whitenoise plotted as freq=-1 kHz, silent sound as -2 kHz
 
+djPrefs;
+global pref
+
 if nargin==0
     fprintf('\nno input\n')
     return
@@ -56,6 +59,7 @@ fprintf('\nProcessing continuous data\nloading file: ')
 %try to read OE filename from exper structure (only will work after
 %02.14.14)
 
+cd(pref.datapath)
 cd(datadir)
 filename=getContinuousFilename('.', channel);
 if exist(filename, 'file')~=2 %couldn't find it
@@ -199,10 +203,10 @@ end
 
 
 
-monitor = 0;
+monitor = 1;
 if monitor
     figure
-    set(gcf, 'pos', [100 555 1818 420]);
+    set(gcf, 'pos', [-1853 555 1818 420]);
     SCTtrace=SCTtrace./max(abs(SCTtrace));
 %     plot(SCTtimestamps, SCTtrace)
     plot(datatimestamps, SCTtrace)
@@ -237,7 +241,7 @@ if monitor
     for i=1:length(Events)
         xlim([Events(i).message_timestamp_sec-.02 Events(i).message_timestamp_sec+.2])
         ylim([-4 2])
-        pause(0.01)
+        pause(0.5)
     end
 end %if monitor
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

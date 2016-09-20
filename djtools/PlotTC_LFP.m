@@ -35,12 +35,10 @@ high_pass_cutoff=400;
 [a,b]=butter(1, high_pass_cutoff/(30e3/2), 'high');
 fprintf('\nusing xlimits [%d-%d]', xlimits(1), xlimits(2))
 
-djPrefs;
-global pref
-cd (pref.datapath);
 cd(datadir)
 outfilename=sprintf('outLFP_ch%d.mat',channel);
-if exist(outfilename,'file')
+d=dir(outfilename);
+if ~isempty(d)
     load(outfilename)
 else
     ProcessTC_LFP(datadir,  channel, xlimits, ylimits);
@@ -139,7 +137,13 @@ if IL
                     else
                         vpos=ylimits(1)-mean(ylimits);
                     end
-                    text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
+                    if freqs(findex)>0
+                        text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
+                    elseif freqs(findex)==-1000
+                        text(xlimits(1), vpos, 'WN')
+                    elseif freqs(findex)==-2000
+                        text(xlimits(1), vpos, 'SS')
+                    end
                 end
             end
         end
@@ -190,7 +194,13 @@ for dindex=1:numdurs
                 else
                     vpos=ylimits(1)-mean(ylimits);
                 end
-                text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
+                if freqs(findex)>0
+                    text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
+                elseif freqs(findex)==-1000
+                    text(xlimits(1), vpos, 'WN')
+                elseif freqs(findex)==-2000
+                    text(xlimits(1), vpos, 'SS')
+                end
             end
             %             if findex==numfreqs && aindex==numamps
             %                 axis on

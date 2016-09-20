@@ -212,11 +212,11 @@ datatimestamps=datatimestamps-StartAcquisitionSec;
 
 
 
-monitor = 1;
+monitor = 0;
 if monitor
     figure
     hold on
-    set(gcf, 'pos', [-1853 555 1818 420]);
+    %set(gcf, 'pos', [-1853 555 1818 420]);
     SCTtrace=SCTtrace./max(abs(SCTtrace));
     scaledtrace=scaledtrace./max(abs(scaledtrace));
     plot(datatimestamps, SCTtrace) %plotting with data timestamps to work around wierd bug in ADC timestamps
@@ -296,10 +296,17 @@ for i=1:length(Events)
         LaserScheduled(i)=Events(i).laser; %whether the stim protocol scheduled a laser for this stim
         LaserOnOffButton(i)=Events(i).LaserOnOff; %whether the laser button was turned on
         LaserTrials(i)=LaserScheduled(i) & LaserOnOffButton(i);
-        LaserStart(i)=stimlog(i).LaserStart;
-        LaserWidth(i)=stimlog(i).LaserWidth;
-        LaserNumPulses(i)=stimlog(i).LaserNumPulses;
-        LaserISI(i)=stimlog(i).LaserISI;
+        if isempty(stimlog(i).LaserStart)
+            LaserStart(i)=nan;
+            LaserWidth(i)=nan;
+            LaserNumPulses(i)=nan;
+            LaserISI(i)=nan;
+        else
+            LaserStart(i)=stimlog(i).LaserStart;
+            LaserWidth(i)=stimlog(i).LaserWidth;
+            LaserNumPulses(i)=stimlog(i).LaserNumPulses;
+            LaserISI(i)=stimlog(i).LaserISI;
+        end
         
     elseif isfield(Events(i), 'laser') & ~isfield(Events(i), 'LaserOnOff')
         %Not sure about this one. Assume no laser for now, but investigate.
@@ -523,7 +530,10 @@ for clust=1:Nclusters
     end
     sz=size(M1OFF);
     out.M1OFF=reshape(M1OFF(clust,:,:,:,:), sz(2:end)); % All spiketimes, trial-by-trial.   
-    out.mM1OFF=squeeze(mM1OFF(clust,:,:,:))'; % Accumulated spike times for *all* presentations of each laser/f/a combo.
+    %i think this was for only 1 freq? the transpose i mean
+    %out.mM1OFF=squeeze(mM1OFF(clust,:,:,:))'; % Accumulated spike times for *all* presentations of each laser/f/a combo.
+    %for multiple freqs and amps, we need this:
+    out.mM1OFF=squeeze(mM1OFF(clust,:,:,:)); % Accumulated spike times for *all* presentations of each laser/f/a combo.
     out.mM1OFFspikecount=(mM1OFFspikecount(clust,:,:,:));
     out.sM1OFFspikecount=(sM1OFFspikecount(clust,:,:,:));
     out.semM1OFFspikecount=(semM1OFFspikecount(clust,:,:,:));

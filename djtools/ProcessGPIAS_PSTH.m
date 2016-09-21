@@ -60,6 +60,9 @@ end
 
 %read messages
 messagesfilename='messages.events';
+if exist(messagesfilename, 'file')~=2
+    error('Could not find messages.events file. Is this the right data directory?')
+end
 [messages] = GetNetworkEvents(messagesfilename);
 
 
@@ -95,24 +98,22 @@ for i=1:length(messages)
         %for some reason not always present, though
         StartAcquisitionSamples=timestamp;
         StartAcquisitionSec=timestamp/sampleRate;
+        fprintf('\nStartAcquisitionSec=%g', StartAcquisitionSec)
         check1=StartAcquisitionSamples;
     elseif strcmp(deblank(Events_type), 'Software')
         StartAcquisitionSamples=timestamp;
         StartAcquisitionSec=timestamp/sampleRate;
+        fprintf('\nStartAcquisitionSec=%g', StartAcquisitionSec)
         check2=StartAcquisitionSamples;
     elseif strcmp(Events_type, 'TrialType')
         sound_index=sound_index+1;
         Events(sound_index).type=str2{3};
-        if 0 %temp hack because I had the wrong paramstr
-            fprintf('\nhack')
-            Events(sound_index).gapdur=str2num(str2{20});
-            Events(sound_index).soa=str2num(str2{9});
-            Events(sound_index).pulseamp=100;
-            Events(sound_index).gapdelay=1000;
-            Events(sound_index).pulsedur=0;
+        if strcmp(str2{3}, 'whitenoise')
+            %temp hack because I had the wrong paramstr
+            Events(sound_index).dur=0;
             Events(sound_index).amplitude=80;
-            Events(sound_index).LaserOnOff=1;
-            Events(sound_index).laser=1;
+            Events(sound_index).LaserOnOff=0;
+            Events(sound_index).laser=0;
             
         else
             for j=4:length(str2)
@@ -144,13 +145,13 @@ end
 fprintf('\nNumber of sound events (from network messages): %d', length(Events));
 fprintf('\nNumber of hardware triggers (soundcardtrig TTLs): %d', length(all_SCTs));
 if length(Events) ~=  length(all_SCTs)
-    error('ProcessGPIAS_PSTH: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
+    warning('ProcessGPIAS_PSTH: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
+    [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog  );
 end
 
 if exist('check1', 'var') & exist('check2', 'var')
     fprintf('start acquisition method agreement check: %d, %d', check1, check2);
 end
-fprintf('\nreminder to cross-check network mesasges with stimlog')
 
 
 basefn=sprintf('ch%d_simpleclust_*.t', channel);

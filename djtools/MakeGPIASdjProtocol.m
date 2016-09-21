@@ -42,11 +42,12 @@ function MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_startle_duration,
 %            and non-laser trials in random order
 % nrepeats: number of repetitions (different pseudorandom orders)
 %
+% note: still using the variable isi for inter-trial interval, AKA iti
 % outputs:
 % creates a suitably named stimulus protocol in D:\lab\exper2.2\protocols\ASR Protocols
 %
 %example calls:
-% fixed iti of 10 seconds:
+% fixed iti of 10 seconds with interleaved laser:
 %MakeGPIASdjProtocol(80, [0 2 4 6], 1000, 1000, 25, 100, 60, 'soa', 0, 10e3, 0, 1, 5)
 %
 % iti ranging from 10s to 20s (15 s on average)
@@ -60,8 +61,9 @@ function MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_startle_duration,
 %
 %MakeGPIASdjProtocol(80, [0 1 2 4 8 16 32 64 128 256], 1000, 1000, 0, 100, 50, 'isi', 0, 1e3, 0, 0, 15)
 %
-%note: still using the variable isi for inter-trial interval, AKA iti
-
+%noiseamp=80, gapdurs=[0 1 2 4 8 16 32 64 128 256], gapdelay=1000, poststartle=1000,
+%pulsedur=0, pulseamps=100, soa=50, soaflag='isi', ramp=0, isi=1000,isi_var=.33, IL=1, nreps=10
+%MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, poststartle, pulsedur, pulseamps, soa, soaflag, ramp, isi, isi_var, IL, nreps)
 if ~strcmp(soaflag, 'isi')
     soaflag='soa';
     fprintf('\nusing soa of %d ms', soa)
@@ -162,10 +164,8 @@ for noisenum=1:num_noises
     %     stimuli(n).param.duration=500;
     stimuli(n).param.duration=gpias_duration;
     stimuli(n).param.next=next; %totally empirical value that allows psychportaudio rescheduling to work seamlessly
-
-    paramstring=sprintf('whitenoise %d dB, %.4f ms ramp, %d ms dur, %d ms isi',noiseamp, ramp, gpias_duration, next);
+    stimuli(n).stimulus_description=GetParamStr(stimuli(n));
     stimuli(n).protocol_name=name;
-    stimuli(n).stimulus_description=paramstring;
     stimuli(n).protocol_description=description;
     stimuli(n).version='djmaus';
 end

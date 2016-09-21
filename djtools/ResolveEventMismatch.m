@@ -48,3 +48,65 @@ else
     error('ResolveEventMismatch: this case is not handled yet')
 end
 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%if you want to investigate the situation, here are some things to try:
+if 0
+    SCTfname=getSCTfile(pwd);
+    if isempty(SCTfname)
+        warning('could not find soundcard trigger file')
+    else
+        [SCTtrace, SCTtimestamps, SCTinfo] =load_open_ephys_data(SCTfname);
+    end
+    
+    %here I'm loading a data channel to get good timestamps - the ADC timestamps are screwed up
+    %datafname=getContinuousFilename( pwd, 1 );
+    %[scaledtrace, datatimestamps, datainfo] =load_open_ephys_data(datafname);
+    
+    SCTtimestamps=SCTtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+    %datatimestamps=datatimestamps-StartAcquisitionSec;
+    
+     figure
+    hold on
+    %set(gcf, 'pos', [-1853 555 1818 420]);
+    SCTtrace=SCTtrace./max(abs(SCTtrace));
+    %scaledtrace=scaledtrace./max(abs(scaledtrace));
+    plot(SCTtimestamps, SCTtrace) %plotting with data timestamps to work around wierd bug in ADC timestamps
+    %plot(datatimestamps, scaledtrace, 'm') %plotting with data timestamps to work around wierd bug in ADC timestamps
+    
+    hold on
+    %plot "software trigs" i.e. network messages in red o's
+    for i=1:length(Events)
+        plot(Events(i).message_timestamp_sec, .25, 'ro');
+        plot(Events(i).soundcard_trigger_timestamp_sec, 1, 'g*');
+        text(Events(i).message_timestamp_sec, .5, sprintf('network message #%d', i))
+        text(Events(i).soundcard_trigger_timestamp_sec, .5, sprintf('SCT #%d', i))
+    end
+    
+    %all_channels_info.eventType(i) = 3 for digital line in (TTL), 5 for network Events
+    %all_channels_info.eventId = 1 for rising edge, 0 for falling edge
+    %all_channels_data(i) is the digital input line channel
+    
+    
+    % plot TTL SCTs in green ^=on, v=off
+    for i=1:length(all_channels_timestamps)
+        if all_channels_info.eventType(i)==3 & all_channels_info.eventId(i)==1 & all_channels_data(i)==2
+            plot(all_channels_timestamps(i), 1, 'g^')
+            text(all_channels_timestamps(i), 1, 'TTL on/off')
+        elseif all_channels_info.eventType(i)==3 & all_channels_info.eventId(i)==0 & all_channels_data(i)==2
+            plot(all_channels_timestamps(i), 1, 'gv')
+        end
+    end
+    
+    
+%    for i=1:length(Events)
+numEvents=length(Events);
+for i=numEvents-5:numEvents
+        xlim([Events(i).message_timestamp_sec-.02 Events(i).message_timestamp_sec+2])
+        ylim([-5 2])
+        drawnow
+        pause(.1)
+    end
+end
+

@@ -124,7 +124,7 @@ for i=1:length(messages)
         end
         [idx]=find(all_SCTs>Events(sound_index).message_timestamp_sec, 1); %find first SCT after the message timestamp
         SCTtime_sec=all_SCTs(idx);
-%         SCTtime_sec=SCTtime_sec-StartAcquisitionSec; %correct for open-ephys not starting with time zero
+        %         SCTtime_sec=SCTtime_sec-StartAcquisitionSec; %correct for open-ephys not starting with time zero
         Events(sound_index).soundcard_trigger_timestamp_sec=SCTtime_sec;
         
     end
@@ -138,8 +138,8 @@ end
 
 if exist('check1', 'var') & exist('check2', 'var')
     fprintf('start acquisition method agreement check: %d, %d', check1, check2);
+if check1==check2    fprintf(' Good.'), end
 end
-fprintf('\nreminder to cross-check network mesasges with stimlog')
 
 
 basefn=sprintf('ch%d_simpleclust_*.t', channel);
@@ -168,52 +168,52 @@ Nclusters=numclusters;
 monitor = 0;
 if monitor
     
-%   I'm running the soundcard trigger (SCT) into ai1 as another sanity check.
-SCTfname=getSCTfile(datadir);
-if isempty(SCTfname)
-    warning('could not find soundcard trigger file')
-else
-    [SCTtrace, SCTtimestamps, SCTinfo] =load_open_ephys_data(SCTfname);
-end
-
-%here I'm loading a data channel to get good timestamps - the ADC timestamps are screwed up
-datafname=getContinuousFilename( pwd, 1 );
+    %   I'm running the soundcard trigger (SCT) into ai1 as another sanity check.
+    SCTfname=getSCTfile(datadir);
+    if isempty(SCTfname)
+        warning('could not find soundcard trigger file')
+    else
+        [SCTtrace, SCTtimestamps, SCTinfo] =load_open_ephys_data(SCTfname);
+    end
+    
+    %here I'm loading a data channel to get good timestamps - the ADC timestamps are screwed up
+    datafname=getContinuousFilename( pwd, 1 );
     [scaledtrace, datatimestamps, datainfo] =load_open_ephys_data(datafname);
-
-SCTtimestamps=SCTtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
-datatimestamps=datatimestamps-StartAcquisitionSec;
-
-
-%sanity check
-% fid=fopen('temp.txt', 'w');
-% for i=1:length(all_channels_timestamps)
-%     fprintf(fid, '%f, eventType %d, Id %d, channel %d\n', ...
-%         all_channels_timestamps(i), all_channels_info.eventType(i), ...
-%         all_channels_info.eventId(i), all_channels_data(i));
-% end
-% fclose(fid);
-
-
-
-%messages is a list of all network event, which includes the stimuli
-%messages sent by djmaus, as well as the "ChangeDirectory" and
-%"GetRecordingPath" messages sent by djmaus, as well as 2 initial system
-%messages. I strip out the stimulus (sound) event and put them in "Events."
-%Events is a list of sound event, which were sent by djmaus with the
-%'TrialType' flag.
-
-%sanity check, continued
-% fid=fopen('temp.txt', 'a');
-% for i=1:length(Events)
-%     fprintf(fid, '%f, %s, freq %f\n', ...
-%         Events(i).message_timestamp_sec, Events(i).type, Events(i).frequency);
-% end
-% fclose(fid);
-
-
-
-
-
+    
+    SCTtimestamps=SCTtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+    datatimestamps=datatimestamps-StartAcquisitionSec;
+    
+    
+    %sanity check
+    % fid=fopen('temp.txt', 'w');
+    % for i=1:length(all_channels_timestamps)
+    %     fprintf(fid, '%f, eventType %d, Id %d, channel %d\n', ...
+    %         all_channels_timestamps(i), all_channels_info.eventType(i), ...
+    %         all_channels_info.eventId(i), all_channels_data(i));
+    % end
+    % fclose(fid);
+    
+    
+    
+    %messages is a list of all network event, which includes the stimuli
+    %messages sent by djmaus, as well as the "ChangeDirectory" and
+    %"GetRecordingPath" messages sent by djmaus, as well as 2 initial system
+    %messages. I strip out the stimulus (sound) event and put them in "Events."
+    %Events is a list of sound event, which were sent by djmaus with the
+    %'TrialType' flag.
+    
+    %sanity check, continued
+    % fid=fopen('temp.txt', 'a');
+    % for i=1:length(Events)
+    %     fprintf(fid, '%f, %s, freq %f\n', ...
+    %         Events(i).message_timestamp_sec, Events(i).type, Events(i).frequency);
+    % end
+    % fclose(fid);
+    
+    
+    
+    
+    
     figure
     hold on
     %set(gcf, 'pos', [-1853 555 1818 420]);
@@ -221,7 +221,7 @@ datatimestamps=datatimestamps-StartAcquisitionSec;
     scaledtrace=scaledtrace./max(abs(scaledtrace));
     plot(datatimestamps, SCTtrace) %plotting with data timestamps to work around wierd bug in ADC timestamps
     plot(datatimestamps, scaledtrace, 'm') %plotting with data timestamps to work around wierd bug in ADC timestamps
-
+    
     hold on
     %plot "software trigs" i.e. network messages in red o's
     for i=1:length(Events)
@@ -290,7 +290,6 @@ numamps=length(amps);
 numdurs=length(durs);
 
 %check for laser in Events
-%for now, setting AOPulseOn to 0 for all events
 for i=1:length(Events)
     if isfield(Events(i), 'laser') & isfield(Events(i), 'LaserOnOff')
         LaserScheduled(i)=Events(i).laser; %whether the stim protocol scheduled a laser for this stim

@@ -16,12 +16,11 @@ if nargin==0
 end
 datadir=varargin{1};
 
-xlimits=[0 200];
 try
     xlimits=varargin{4};
 end
 if isempty(xlimits)
-    xlimits=[0 200];
+    xlimits=[];
 end
 try
     ylimits=varargin{5};
@@ -47,7 +46,6 @@ if strcmp('char',class(cell))
 end
 
 
-fprintf('\nprocessing with xlimits [%d-%d]', xlimits(1), xlimits(2))
 
 djPrefs;
 global pref
@@ -105,7 +103,7 @@ for i=1:length(messages)
     elseif strcmp(Events_type, 'TrialType')
         sound_index=sound_index+1;
         Events(sound_index).type=str2{3};
-        if 1 %temp hack because I had the wrong paramstr
+        if 0 %temp hack because I had the wrong paramstr
             fprintf('\nhack')
             Events(sound_index).gapdur=str2num(str2{20});
             Events(sound_index).soa=str2num(str2{9});
@@ -113,14 +111,15 @@ for i=1:length(messages)
             Events(sound_index).gapdelay=1000;
             Events(sound_index).pulsedur=0;
             Events(sound_index).amplitude=80;
-            
+            Events(sound_index).LaserOnOff=1;
+            Events(sound_index).laser=1;
             
         else
             for j=4:length(str2)
-            str3=strsplit(str2{j}, ':');
-            fieldname=str3{1};
-            value=str2num(str3{2});
-            Events(sound_index).(fieldname)= value;
+                str3=strsplit(str2{j}, ':');
+                fieldname=str3{1};
+                value=str2num(str3{2});
+                Events(sound_index).(fieldname)= value;
             end
         end
         Events(sound_index).message_timestamp_samples=timestamp - StartAcquisitionSamples;
@@ -301,7 +300,8 @@ pulsedurs=unique(allpulsedurs);
 noiseamps=unique(allnoiseamps);
 numgapdurs=length(gapdurs);
 numpulseamps=length(pulseamps);
-nreps=zeros( numgapdurs, numpulseamps);
+nrepsON=zeros( numgapdurs, numpulseamps);
+nrepsOFF=zeros( numgapdurs, numpulseamps);
 
 if length(noiseamps)~=1
     error('not able to handle multiple noiseamps')
@@ -368,16 +368,23 @@ M1ON=[];M1OFF=[];
 nrepsON=zeros(numgapdurs, numpulseamps);
 nrepsOFF=zeros(numgapdurs, numpulseamps);
 
+% %find optimal axis limits
+if isempty(xlimits)
+    xlimits(1)=-1.5*max(gapdurs);
+    xlimits(2)=2*soa;
+end
+fprintf('\nprocessing with xlimits [%d-%d]', xlimits(1), xlimits(2))
+
 %extract the traces into a big matrix M
 j=0;
 inRange=zeros(1, Nclusters);
 for i=1:length(Events)
     if strcmp(Events(i).type, 'GPIAS') | strcmp(Events(i).type, 'gapinnoise')
         
-        pos=Events(i).soundcard_trigger_timestamp_sec;
+        pos=Events(i).soundcard_trigger_timestamp_sec; %pos is in seconds
         laser=LaserTrials(i);
-        start=(pos+(xlimits(1)+gapdelay)*1e-3);
-        stop=(pos+(xlimits(2)+gapdelay)*1e-3);
+        start=pos + gapdelay/1000 +xlimits(1)/1000; %start is in seconds
+        stop=pos+ gapdelay/1000 + xlimits(2)/1000; %stop is in seconds
         if start>0 %(disallow negative or zero start times)
             gapdur=Events(i).gapdur;
             gdindex= find(gapdur==gapdurs);
@@ -385,26 +392,26 @@ for i=1:length(Events)
             paindex= find(pulseamp==pulseamps);
             for clust=1:Nclusters %could be multiple clusts (cells) per tetrode
                 st=spiketimes(clust).spiketimes; %are in seconds
-                spiketimes1=st(st>start & st<stop); % spiketimes in region
-                spikecount=length(spiketimes1); % No. of spikes fired in response to this rep of this stim.
+                st_inrange=st(st>start & st<stop); % spiketimes in region, in seconds relative to start of acquisition
+                spikecount=length(st_inrange); % No. of spikes fired in response to this rep of this stim.
                 inRange(clust)=inRange(clust)+ spikecount; %accumulate total spikecount in region
-                spiketimes1=(spiketimes1-pos)*1000;%covert to ms after tone onset
+                spiketimes1=st_inrange*1000 - pos*1000 - gapdelay;%covert to ms after gap termination
                 spont_spikecount=length(find(st<start & st>(start-(stop-start)))); % No. spikes in a region of same length preceding response window
                 
                 if laser
                     if clust==1
-                        nrepsON(numgapdurs, numpulseamps)=nrepsON(numgapdurs, numpulseamps)+1;
+                        nrepsON(gdindex,paindex)=nrepsON(gdindex,paindex)+1;
                     end
-                    M1ON(clust, numgapdurs, numpulseamps, nrepsON(numgapdurs, numpulseamps)).spiketimes=spiketimes1; % Spike times
-                    M1ONspikecounts(clust, numgapdurs, numpulseamps,nrepsON(numgapdurs, numpulseamps))=spikecount; % No. of spikes
-                    M1spontON(clust, numgapdurs, numpulseamps, nrepsON(numgapdurs, numpulseamps))=spont_spikecount; % No. of spikes in spont window, for each presentation.
+                    M1ON(clust, gdindex,paindex, nrepsON(gdindex,paindex)).spiketimes=spiketimes1; % Spike times
+                    M1ONspikecounts(clust, gdindex,paindex,nrepsON(gdindex,paindex))=spikecount; % No. of spikes
+                    M1spontON(clust, gdindex,paindex, nrepsON(gdindex,paindex))=spont_spikecount; % No. of spikes in spont window, for each presentation.
                 else
                     if clust==1
-                        nrepsOFF(numgapdurs, numpulseamps)=nrepsOFF(numgapdurs, numpulseamps)+1;
+                        nrepsOFF(gdindex,paindex)=nrepsOFF(gdindex,paindex)+1;
                     end
-                    M1OFF(clust, numgapdurs, numpulseamps, nrepsOFF(numgapdurs, numpulseamps)).spiketimes=spiketimes1;
-                    M1OFFspikecounts(clust, numgapdurs, numpulseamps,nrepsOFF(numgapdurs, numpulseamps))=spikecount;
-                    M1spontOFF(clust, numgapdurs, numpulseamps, nrepsOFF(numgapdurs, numpulseamps))=spont_spikecount;
+                    M1OFF(clust, gdindex,paindex, nrepsOFF(gdindex,paindex)).spiketimes=spiketimes1;
+                    M1OFFspikecounts(clust, gdindex,paindex,nrepsOFF(gdindex,paindex))=spikecount;
+                    M1spontOFF(clust, gdindex,paindex, nrepsOFF(gdindex,paindex))=spont_spikecount;
                 end
             end
         end
@@ -427,20 +434,20 @@ for gdindex=1:numgapdurs; % Hardcoded.
             % on
             spiketimesON=[];
             spikecountsON=[];
-            for rep=1:nrepsON(numgapdurs, numpulseamps)
-                spiketimesON=[spiketimesON M1ON(clust, numgapdurs, numpulseamps, rep).spiketimes];
+            for rep=1:nrepsON(gdindex,paindex)
+                spiketimesON=[spiketimesON M1ON(clust, gdindex,paindex, rep).spiketimes];
             end
             
             % All spiketimes for a given f/a/d combo, for psth:
-            mM1ON(clust, numgapdurs, numpulseamps).spiketimes=spiketimesON;
+            mM1ON(clust, gdindex,paindex).spiketimes=spiketimesON;
             
             % off
             spiketimesOFF=[];
             spikecountsOFF=[];
-            for rep=1:nrepsOFF(numgapdurs, numpulseamps)
-                spiketimesOFF=[spiketimesOFF M1OFF(clust, numgapdurs, numpulseamps, rep).spiketimes];
+            for rep=1:nrepsOFF(gdindex,paindex)
+                spiketimesOFF=[spiketimesOFF M1OFF(clust, gdindex,paindex, rep).spiketimes];
             end
-            mM1OFF(clust, numgapdurs, numpulseamps).spiketimes=spiketimesOFF;
+            mM1OFF(clust, gdindex,paindex).spiketimes=spiketimesOFF;
         end
     end
 end
@@ -464,7 +471,7 @@ else
         semM1spontON(clust, :,:)=squeeze(sM1spontON(clust, :,:))./sqrt(max(max((nrepsON(:,:,1)))));
     end
 end
-if isempty(mM1OFF) %no laser pulses in this file
+if isempty(M1OFF) %only laser pulses in this file
     mM1OFFspikecount=[];
     sM1OFFspikecount=[];
     semM1OFFspikecount=[];
@@ -501,7 +508,7 @@ for clust=1:Nclusters
     out.cluster=clust; %there are some redundant names here
     out.cell=clust;
     if IL
-        sz=size(M1OFF);
+        sz=size(M1ON);
         out.M1ON=reshape(M1ON(clust,:,:,:,:), sz(2:end));
         out.mM1ONspikecount=(mM1ONspikecount(clust,:,:,:)); % Mean spikecount for each laser/f/a combo.
         out.sM1ONspikecount=(sM1ONspikecount(clust,:,:,:));
@@ -528,23 +535,35 @@ for clust=1:Nclusters
         out.LaserWidth=[];
         out.Lasernumpulses=[];
     end
-    sz=size(M1OFF);
-    out.M1OFF=reshape(M1OFF(clust,:,:,:,:), sz(2:end)); % All spiketimes, trial-by-trial.
-    %i think this was for only 1 freq? the transpose i mean
-    out.mM1OFF=squeeze(mM1OFF(clust,:,:,:))'; % Accumulated spike times for *all* presentations of each laser/f/a combo.
-    %for multiple freqs and amps, we need this:
-    %out.mM1OFF=squeeze(mM1OFF(clust,:,:,:)); % Accumulated spike times for *all* presentations of each laser/f/a combo.
-    out.mM1OFFspikecount=(mM1OFFspikecount(clust,:,:,:));
-    out.sM1OFFspikecount=(sM1OFFspikecount(clust,:,:,:));
-    out.semM1OFFspikecount=(semM1OFFspikecount(clust,:,:,:));
-    out.mM1spontOFF=(mM1spontOFF(clust,:,:,:));
-    out.sM1spontOFF=(sM1spontOFF(clust,:,:,:));
-    out.semM1spontOFF=(semM1spontOFF(clust,:,:,:));
+    if isempty(M1OFF)
+        out.M1OFF=[];
+        out.mM1OFF=[];
+        out.mM1OFFspikecount=[];
+        out.sM1OFFspikecount=[];
+        out.semM1OFFspikecount=[];
+        out.mM1spontOFF=[];
+        out.sM1spontOFF=[];
+        out.semM1spontOFF=[];
+    else
+        sz=size(M1OFF);
+        out.M1OFF=reshape(M1OFF(clust,:,:,:,:), sz(2:end)); % All spiketimes, trial-by-trial.
+        %i think this was for only 1 freq? the transpose i mean
+        out.mM1OFF=squeeze(mM1OFF(clust,:,:,:))'; % Accumulated spike times for *all* presentations of each laser/f/a combo.
+        %for multiple freqs and amps, we need this:
+        %out.mM1OFF=squeeze(mM1OFF(clust,:,:,:)); % Accumulated spike times for *all* presentations of each laser/f/a combo.
+        out.mM1OFFspikecount=(mM1OFFspikecount(clust,:,:,:));
+        out.sM1OFFspikecount=(sM1OFFspikecount(clust,:,:,:));
+        out.semM1OFFspikecount=(semM1OFFspikecount(clust,:,:,:));
+        out.mM1spontOFF=(mM1spontOFF(clust,:,:,:));
+        out.sM1spontOFF=(sM1spontOFF(clust,:,:,:));
+        out.semM1spontOFF=(semM1spontOFF(clust,:,:,:));
+    end
     out.numpulseamps = numpulseamps;
     out.numgapdurs = numgapdurs;
     out.pulseamps = pulseamps;
     out.gapdurs = gapdurs;
     out.gapdelay = gapdelay;
+    out.soa=soa;
     out.nrepsON=nrepsON;
     out.nrepsOFF=nrepsOFF;
     out.xlimits=xlimits;

@@ -11,6 +11,7 @@ function PlotGPIAS_PSTH(varargin)
 %Processes data if outfile is not found;
 
 rasters=1;
+force_reprocess=1;
 
 if nargin==0
     fprintf('\nno input');
@@ -38,7 +39,7 @@ end
 try
     xlimits=varargin{4};
 catch
-    xlimits=[0 200];
+    xlimits=[];
 end
 try
     ylimits=varargin{5};
@@ -54,12 +55,16 @@ end
 
 t_filename=sprintf('ch%s_simpleclust_0%s.t', channel, clust);
 
-fprintf('\nusing xlimits [%d-%d]', xlimits(1), xlimits(2))
 
 djPrefs;
 global pref
 cd (pref.datapath);
 cd(datadir)
+
+if force_reprocess
+    fprintf('\nForce ReProcess')
+    ProcessGPIAS_PSTH(datadir,  channel, xlimits, ylimits);
+end
 
 if isempty(clust)
     basefn=sprintf('outPSTH_ch%dc*.mat',channel);
@@ -106,18 +111,32 @@ for clustindex=1:length(outfilename) %main cluster loop
     M1OFF=out.M1OFF;
     nrepsON=out.nrepsON;
     nrepsOFF=out.nrepsOFF;
+    soa=out.soa;
     
     fs=10; %fontsize
     
     % %find optimal axis limits
+    if isempty(xlimits)
+        xlimits(1)=-1.5*max(gapdurs);
+        xlimits(2)=2*soa;
+    end
+    fprintf('\nusing xlimits [%d-%d]', xlimits(1), xlimits(2))
+    
     if isempty(ylimits)
         ymax=0;
         for paindex=1:numpulseamps
             for gdindex=1:numgapdurs
-                st=mM1OFF(gdindex,paindex).spiketimes;
+                if isempty(M1OFF)
+                    
+                    st=mM1ON(gdindex,paindex).spiketimes;
+                    nr=nrepsON(gdindex,paindex);
+                else
+                    st=mM1OFF(gdindex,paindex).spiketimes;
+                    nr=nrepsOFF(gdindex,paindex);
+                end
                 X=xlimits(1):binwidth:xlimits(2); %specify bin centers
                 [N, x]=hist(st, X);
-                N=N./nrepsOFF(gdindex,paindex); %normalize to spike rate (averaged across trials)
+                N=N./nr; %normalize to spike rate (averaged across trials)
                 N=1000*N./binwidth; %normalize to spike rate in Hz
                 ymax= max(ymax,max(N));
             end
@@ -125,65 +144,69 @@ for clustindex=1:length(outfilename) %main cluster loop
         ylimits=[-.3 ymax];
     end
     
-    
-    
-    %plot the mean tuning curve OFF
-    figure
-    p=0;
-    subplot1(numgapdurs, numpulseamps, 'Max', [.95 .9])
-    for paindex=1:numpulseamps
-        for gdindex=1:numgapdurs
-            p=p+1;
-            subplot1(p)
-            hold on
-            spiketimes1=mM1OFF(gdindex,paindex).spiketimes;
-            X=xlimits(1):binwidth:xlimits(2); %specify bin centers
-            [N, x]=hist(spiketimes1, X);
-            N=N./nrepsOFF(gdindex,paindex); %normalize to spike rate (averaged across trials)
-            N=1000*N./binwidth; %normalize to spike rate in Hz
-            offset=0;
-            yl=ylimits;
-            inc=(yl(2))/max(nrepsOFF(:));
-            if rasters==1
-                for n=1:nrepsOFF(gdindex,paindex)
-                    spiketimes2=M1OFF(gdindex,paindex, n).spiketimes;
-                    offset=offset+inc;
-                    h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k');
+    if ~isempty(M1OFF)
+        
+        %plot the mean tuning curve OFF
+        figure
+        p=0;
+        subplot1(numgapdurs, numpulseamps, 'Max', [.95 .9])
+        for paindex=1:numpulseamps
+            for gdindex=1:numgapdurs
+                p=p+1;
+                subplot1(p)
+                hold on
+                spiketimes1=mM1OFF(gdindex,paindex).spiketimes; %spiketimes are in ms relative to gap termination
+                X=xlimits(1):binwidth:xlimits(2); %specify bin centers
+                [N, x]=hist(spiketimes1, X);
+                N=N./nrepsOFF(gdindex,paindex); %normalize to spike rate (averaged across trials)
+                N=1000*N./binwidth; %normalize to spike rate in Hz
+                offset=0;
+                yl=ylimits;
+                inc=(yl(2))/max(nrepsOFF(:));
+                if rasters==1
+                    for n=1:nrepsOFF(gdindex,paindex)
+                        spiketimes2=M1OFF(gdindex,paindex, n).spiketimes;
+                        offset=offset+inc;
+                        h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k');
+                    end
                 end
+                bar(x, N,1,'facecolor','k','edgecolor','k');
+                
+                if gapdurs(gdindex)>0
+                    line([0 0],[ylim],'color','m')
+                    line(-[(gapdurs(gdindex)) (gapdurs(gdindex))],[ylim],'color','m')
+                end
+                line(xlimits, [0 0], 'color', 'k')
+                ylimits2(2)=ylimits(2)*3;
+                ylimits2(1)=-2;
+                ylim(ylimits2)
+                
+                xlim(xlimits)
+                set(gca, 'fontsize', fs)
+                %set(gca, 'xticklabel', '')
+                %set(gca, 'yticklabel', '')
+                
             end
-            bar(x-gapdelay, N,1,'facecolor','none','edgecolor',[0 .8 0]);
-
-            if gapdurs(gdindex)>0
-                line([0 0],[ylim],'color','m')
-                line(-[(gapdurs(gdindex)) (gapdurs(gdindex))],[ylim],'color','m')
+        end
+        subplot1(1)
+        h=title(sprintf('%s: \ntetrode%d cell %d, nreps: %d-%d, OFF',datadir,channel,out.cluster,min(nrepsOFF(:)),max(nrepsOFF(:))));
+        set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
+        
+        %label amps and freqs
+        p=0;
+        for paindex=1:numpulseamps
+            for gdindex=1:numgapdurs
+                p=p+1;
+                subplot1(p)
+                vpos=ylimits(2);
+                text(xlimits(1), vpos, sprintf('%d', gapdurs(gdindex)), 'color', 'r')
+                set(gca, 'yticklabel', '');
             end
-            line(xlimits, [0 0], 'color', 'k')
-            ylimits2(2)=ylimits(2)*3;
-            ylimits2(1)=-2;
-            ylim(ylimits2)
-            
-            xlim(xlimits)
-            set(gca, 'fontsize', fs)
-            %set(gca, 'xticklabel', '')
-            %set(gca, 'yticklabel', '')
-            
         end
+        %turn on ytick for bottom-most plot
+        set(gca, 'yticklabelmode', 'auto');
+        
     end
-    subplot1(1)
-    h=title(sprintf('%s: \ntetrode%d cell %d, nreps: %d-%d, OFF',datadir,channel,out.cluster,min(nrepsOFF(:)),max(nrepsOFF(:))));
-    set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
-    
-    %label amps and freqs
-    p=0;
-    for paindex=1:numpulseamps
-        for gdindex=1:numgapdurs
-            p=p+1;
-            subplot1(p)
-            vpos=mean(ylimits);
-            text(xlimits(1), vpos, sprintf('%.1f', gapdurs(gdindex)))
-        end
-    end
-    
     
     
     if IL
@@ -196,14 +219,14 @@ for clustindex=1:length(outfilename) %main cluster loop
                 p=p+1;
                 subplot1(p)
                 hold on
-                spiketimes1=mM1ON(gdindex,paindex).spiketimes;
+                spiketimes1=mM1ON(gdindex,paindex).spiketimes; %spiketimes are in ms relative to gap termination
                 X=xlimits(1):binwidth:xlimits(2); %specify bin centers
                 [N, x]=hist(spiketimes1, X);
                 N=N./nrepsON(gdindex,paindex); %normalize to spike rate (averaged across trials)
                 N=1000*N./binwidth; %normalize to spike rate in Hz
                 offset=0;
                 yl=ylimits;
-                inc=(yl(2))/max(max(max(nreps)));
+                inc=(yl(2))/max(nrepsON(:));
                 if rasters==1
                     for n=1:nrepsON(gdindex,paindex)
                         spiketimes2=M1ON(gdindex,paindex, n).spiketimes;
@@ -211,7 +234,7 @@ for clustindex=1:length(outfilename) %main cluster loop
                         h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k');
                     end
                 end
-                bar(x-gapdelay, N,1,'facecolor','none','edgecolor',[0 .8 0]);
+                bar(x, N,1,'facecolor','g','edgecolor','k');
                 
                 if gapdurs(gdindex)>0
                     line([0 0],[ylim],'color','m')
@@ -220,31 +243,33 @@ for clustindex=1:length(outfilename) %main cluster loop
                 line(xlimits, [0 0], 'color', 'k')
                 ylimits2(2)=ylimits(2)*3;
                 ylimits2(1)=-2;
-                ylim(ylimits2(:))
+                ylim(ylimits2)
                 
                 xlim(xlimits)
                 set(gca, 'fontsize', fs)
-                set(gca, 'xticklabel', '')
-                set(gca, 'yticklabel', '')
+                %set(gca, 'xticklabel', '')
+                %set(gca, 'yticklabel', '')
                 
             end
         end
         subplot1(1)
-        h=title(sprintf('%s: \ntetrode%d cell%d %dms, nreps: %d-%d, ON',datadir,channel,out.cluster,durs(dindex),min(min(min(nrepsON))),max(max(max(nrepsON)))));
-        set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
+        h=title(sprintf('%s: \ntetrode%d cell%d, nreps: %d-%d, ON',datadir,channel,out.cluster,min(nrepsON(:)),max(nrepsON(:))));
+        set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
         
-        
-        %label amps and freqs
+             %label amps and freqs
         p=0;
-        for paindex=1:numpulseamps;
-            for gdindex=1:numgapdurs;
+        for paindex=1:numpulseamps
+            for gdindex=1:numgapdurs
                 p=p+1;
                 subplot1(p)
-                
-                vpos=ylimits(1)-mean(ylimits);
-                text(xlimits(1), vpos, sprintf('%.1f', gapdurs(gdindex)))
+                vpos=ylimits(2);
+                text(xlimits(1), vpos, sprintf('%d', gapdurs(gdindex)), 'color', 'r')
+                set(gca, 'yticklabel', '');
             end
         end
+        %turn on ytick for bottom-most plot
+        set(gca, 'yticklabelmode', 'auto');
+        
     end %plot ON
     
     

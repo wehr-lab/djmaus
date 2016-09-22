@@ -4,7 +4,6 @@ function PlotGPIAS_PSTH(varargin)
 %
 % usage: PlotGPIAS_PSTH(datapath, [channel], [clust], [xlimits],[ylimits], [binwidth])
 % (channel, clust, xlimits, ylimits are optional)
-% xlimits default to [0 200]
 % channel number should be an integer
 % clust can be an integer or an array of integers, or defaults to all clusts
 %
@@ -62,7 +61,7 @@ cd (pref.datapath);
 cd(datadir)
 
 if force_reprocess
-    fprintf('\nForce ReProcess')
+    fprintf('\nForce re-process\n')
     ProcessGPIAS_PSTH(datadir,  channel, xlimits, ylimits);
 end
 

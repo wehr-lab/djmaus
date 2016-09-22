@@ -2,7 +2,6 @@ function fname = getContinuousFilename( datadir, channel )
 %figures out the filename for the continuous channel
 cd(datadir)
 
-k=0;
 NodeIds=getNodes(datadir);
 for i=1:length(NodeIds)
     filename=sprintf('%s_CH%d.continuous', NodeIds{i}, channel);

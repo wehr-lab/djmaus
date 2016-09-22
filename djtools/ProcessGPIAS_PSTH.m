@@ -17,13 +17,13 @@ end
 datadir=varargin{1};
 
 try
-    xlimits=varargin{4};
+    xlimits=varargin{3};
 end
 if isempty(xlimits)
     xlimits=[];
 end
 try
-    ylimits=varargin{5};
+    ylimits=varargin{4};
 catch
     ylimits=[];
 end
@@ -36,14 +36,7 @@ end
 if strcmp('char',class(channel))
     channel=str2num(channel);
 end
-try
-    cell=varargin{3};
-catch
-    cell=[];
-end
-if strcmp('char',class(cell))
-    cell=str2num(cell);
-end
+
 
 
 
@@ -87,6 +80,9 @@ sampleRate=all_channels_info.header.sampleRate; %in Hz
 %for example, in the test data file I'm working with, 100 is the Rhythm
 %FPGA, and 102 is the bandpass filter.
 
+% get all SCT timestamps
+
+etime=0;
 sound_index=0;
 for i=1:length(messages)
     str=messages{i};
@@ -126,7 +122,7 @@ for i=1:length(messages)
         Events(sound_index).message_timestamp_samples=timestamp - StartAcquisitionSamples;
         Events(sound_index).message_timestamp_sec=timestamp/sampleRate - StartAcquisitionSec;
         
-        %get corresponding SCT TTL timestamp and assign to Event
+        tic
         all_SCTs=[];
         for k=1:length(all_channels_timestamps)
             if all_channels_info.eventType(k)==3 & all_channels_info.eventId(k)==1 & all_channels_data(k)==2
@@ -134,14 +130,18 @@ for i=1:length(messages)
                 all_SCTs=[all_SCTs corrected_SCT];
             end
         end
-        [idx]=find(all_SCTs>Events(sound_index).message_timestamp_sec, 1); %find first SCT after the message timestamp
-        SCTtime_sec=all_SCTs(idx);
-        %         SCTtime_sec=SCTtime_sec-StartAcquisitionSec; %correct for open-ephys not starting with time zero
+        etime=etime+toc;
+        %get corresponding SCT TTL timestamp and assign to Event
+         %old way (from TC) won't work, since the network events get ahead of the SCTs.
+         %another way (dumb and brittle) is to just use the corresponding
+         %index, assuming they occur in the proper order with no drops or
+         %extras
+        SCTtime_sec=all_SCTs(sound_index);
         Events(sound_index).soundcard_trigger_timestamp_sec=SCTtime_sec;
         
     end
 end
-
+etime
 fprintf('\nNumber of sound events (from network messages): %d', length(Events));
 fprintf('\nNumber of hardware triggers (soundcardtrig TTLs): %d', length(all_SCTs));
 if length(Events) ~=  length(all_SCTs)
@@ -282,7 +282,7 @@ for i=1:length(Events)
         allpulseamps(j)=Events(i).pulseamp;
         allpulsedurs(j)=Events(i).pulsedur;
         allnoiseamps(j)=Events(i).amplitude;
-    elseif strcmp(event(i).Type, 'gapinnoise')
+    elseif strcmp(Events(i).type, 'gapinnoise')
         allsoas(j)=Events(i).soa;
         allgapdurs(j)=Events(i).gapdur;
         allgapdelays(j)=Events(i).gapdelay;

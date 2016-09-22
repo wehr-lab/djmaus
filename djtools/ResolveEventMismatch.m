@@ -40,7 +40,9 @@ if nstimlog==nEvents & nSCTs==1+ nEvents
     %if the extra one comes before any events, don't need to do anything
     if all_SCTs(1) < Events(1).message_timestamp_sec
         %we're fine, because extra SCTs before any message is automatically ignored
-        fprintf('\nMismatched resolved. Extra soundcard trigger discarded') 
+        fprintf('\nMismatched resolved. Extra (initial) soundcard trigger discarded') 
+    elseif  all_SCTs(end) > Events(end).message_timestamp_sec
+        warning(sprintf('\nMismatched possibly resolved by discarding extra (last) soundcard trigger. \nFurther investigation is highly recommended!!!!!!!')) 
     else
         error('ResolveEventMismatch: this case is not handled yet')
     end
@@ -90,14 +92,14 @@ if 0
     
     
     % plot TTL SCTs in green ^=on, v=off
-    for i=1:length(all_channels_timestamps)
-        if all_channels_info.eventType(i)==3 & all_channels_info.eventId(i)==1 & all_channels_data(i)==2
-            plot(all_channels_timestamps(i), 1, 'g^')
-            text(all_channels_timestamps(i), 1, 'TTL on/off')
-        elseif all_channels_info.eventType(i)==3 & all_channels_info.eventId(i)==0 & all_channels_data(i)==2
-            plot(all_channels_timestamps(i), 1, 'gv')
-        end
-    end
+%     for i=1:length(all_channels_timestamps)
+%         if all_channels_info.eventType(i)==3 & all_channels_info.eventId(i)==1 & all_channels_data(i)==2
+%             plot(all_channels_timestamps(i), 1, 'g^')
+%             text(all_channels_timestamps(i), 1, 'TTL on/off')
+%         elseif all_channels_info.eventType(i)==3 & all_channels_info.eventId(i)==0 & all_channels_data(i)==2
+%             plot(all_channels_timestamps(i), 1, 'gv')
+%         end
+%     end
     
     
 %    for i=1:length(Events)

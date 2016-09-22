@@ -72,7 +72,10 @@ switch action
             if status.Active==0; %device not running
                 set(h, 'string', sprintf('PPA not running, XRuns=%g, CPUload=%.3f', status.XRuns, status.CPULoad), 'backgroundcolor', [.5 .5 .5])
             elseif status.Active==1; %device running
-                set(h, 'string', sprintf('PPA running, Scheduled=%d, XRuns=%g, CPUload=%.3f', status.SchedulePosition, status.XRuns, status.CPULoad), 'backgroundcolor', [1 .5 .5])
+                protocol=SP.ProtocolIndex;
+                current=SP.CurrentStimulus(protocol);
+                inQueue=current-status.SchedulePosition-SP.CurrStimatPPAstart;
+                set(h, 'string', sprintf('PPA running, inQueue=%d, XRuns=%g, CPUload=%.3f', inQueue, status.XRuns, status.CPULoad), 'backgroundcolor', [1 .5 .5])
 
                 if status.XRuns>0
                     fprintf('\nXRun')
@@ -422,6 +425,7 @@ if isfield(param, 'seamless')
             currstimuli=SP.CurrentStimulus;
             protocol=SP.ProtocolIndex;
             currstimulus=currstimuli(protocol);
+            SP.CurrStimatPPAstart=currstimulus;
             fid=fopen(fullfile(SP.datapath, 'seamless_starts.txt'), 'a');
             fprintf(fid, '\n\nhad to start device');
             %fprintf(fid, '\nexpstart %s', datestr(getparam('control', 'expstart')));

@@ -957,8 +957,8 @@ H=H+h+e;
 
 %description window
 SP.protocol_descriptionh=uicontrol(fig,'tag','protocol_description','style','text','units','pixels',...
-    'enable','inact','horiz','left','backgroundcolor', [.8 .8 .8],'pos',[e H 2*w 4*h]);
-H=H+4*h+e;
+    'enable','inact','horiz','left','backgroundcolor', [.8 .8 .8],'pos',[e H 2*w 5*h]);
+H=H+5*h+e;
 
 %name window
 SP.protocol_nameh=uicontrol(fig,'tag','protocol_name','style','text','units','pixels',...

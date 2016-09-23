@@ -143,16 +143,13 @@ this_isi_ms=round(isi+isi*isi_var*(2*rand(1)-1));
 num_noises=round(this_isi_ms/gpias_duration);
 
 GPIASPerRepeat=length(neworder);
-StimPerRepeat=GPIASPerRepeat*num_noises;
-TotalNumStim=StimPerRepeat*nrepeats;
+StimPerRepeat=round(GPIASPerRepeat*isi/gpias_duration); %on average
 DurationPerRepeatSecs=StimPerRepeat*(gpias_duration)/1000;%approx. duration per repeat
-TotalDurationSecs=DurationPerRepeatSecs*nrepeats;
 
 name= sprintf('GPIAS-na%ddB-gd%sms-pd%dms-pa%sdb-soa%dms(%s)-r%d-iti%d-itivar%d-%s-%dreps.mat',...
     noiseamp, gapdursstring, round(pulsedur), pulseampsstring, soa,soaflag, round(ramp), isi,round(100*isi_var),interleave_laserstr, nrepeats);
 
-description=sprintf('Gap Induced Pre-Pulse Inhibition of Startle Response stimulus protocol noise amplitude:%ddB, gap duration: %sms, gapdelay: %dms, pulse duration%dms pulse amplitude:%sdb SOA:%dms (%s) ramp:%dms iti:%dms iti-var: %.1f %s %drepeats, %d stim per rep, %d total stimuli, %ds per rep, %d s total dur',...
-    noiseamp, gapdursstring, gapdelay, pulsedur, pulseampsstring, soa, soaflag, ramp, isi,round(100*isi_var),interleave_laserstr, nrepeats, StimPerRepeat, TotalNumStim, round(DurationPerRepeatSecs), round(TotalDurationSecs));
+description=''; %temp
 filename=name;
 
 n=0;
@@ -217,6 +214,13 @@ for kk=1:length(rand_gapdurs)
 
 end
 
+TotalNumStim=length(stimuli);
+TotalDurationSecs=TotalNumStim*gpias_duration/1000;
+description=sprintf('GPIAS protocol: noise amp:%ddB, gapdur: %sms, gapdelay: %dms, pulsedur%dms pulse amplitude:%sdb SOA:%dms (%s) ramp:%dms iti:%dms iti-var: %.1f %s %drepeats, %d stim per rep (avg), %d total stimuli, %ds per rep (avg), %d s total dur',...
+    noiseamp, gapdursstring, gapdelay, pulsedur, pulseampsstring, soa, soaflag, ramp, isi,round(100*isi_var),interleave_laserstr, nrepeats, StimPerRepeat, TotalNumStim, round(DurationPerRepeatSecs), round(TotalDurationSecs));
+for n=1:TotalNumStim
+    stimuli(n).protocol_description=description;
+end
 
 cd(pref.stimuli) %where stimulus protocols are saved
 warning off MATLAB:MKDIR:DirectoryExists

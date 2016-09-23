@@ -61,9 +61,10 @@ function MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_startle_duration,
 %
 %MakeGPIASdjProtocol(80, [0 1 2 4 8 16 32 64 128 256], 1000, 1000, 0, 100, 50, 'isi', 0, 1e3, 0, 0, 15)
 %
-%noiseamp=80, gapdurs=[0 1 2 4 8 16 32 64 128 256], gapdelay=1000, poststartle=1000,
-%pulsedur=0, pulseamps=100, soa=50, soaflag='isi', ramp=0, isi=1000,isi_var=.33, IL=1, nreps=10
+%noiseamp=80; gapdurs=[0 1 2 4 8 16 32 64 128 256]; gapdelay=1000; poststartle=1000;
+%pulsedur=0; pulseamps=100; soa=50; soaflag='isi'; ramp=0; isi=15000; isi_var=.33; IL=1; nreps=10;
 %MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, poststartle, pulsedur, pulseamps, soa, soaflag, ramp, isi, isi_var, IL, nreps)
+
 if ~strcmp(soaflag, 'isi')
     soaflag='soa';
     fprintf('\nusing soa of %d ms', soa)

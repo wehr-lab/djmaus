@@ -67,15 +67,7 @@ for i=1:length(messages)
     elseif strcmp(Events_type, 'TrialType')
         sound_index=sound_index+1;
         Events(sound_index).type=str2{3};
-        if 0%strcmp(str2{3}, 'whitenoise')
-            %temp hack because I had the wrong paramstr
-            Events(sound_index).dur=0;
-            Events(sound_index).amplitude=80;
-            Events(sound_index).LaserOnOff=0;
-            Events(sound_index).laser=0;
-            
-        else
-            
+                  
             for j=4:length(str2)
                 str3=strsplit(str2{j}, ':');
                 fieldname=str3{1};
@@ -85,7 +77,7 @@ for i=1:length(messages)
                 end
                 Events(sound_index).(fieldname)= value;
             end
-        end
+        
         Events(sound_index).message_timestamp_samples=timestamp - StartAcquisitionSamples;
         Events(sound_index).message_timestamp_sec=timestamp/sampleRate - StartAcquisitionSec;
         
@@ -97,11 +89,15 @@ for i=1:length(messages)
                 all_SCTs=[all_SCTs corrected_SCT];
             end
         end
-        [idx]=find(all_SCTs>Events(sound_index).message_timestamp_sec, 1); %find first SCT after the message timestamp
-        SCTtime_sec=all_SCTs(idx);
-        %         SCTtime_sec=SCTtime_sec-StartAcquisitionSec; %correct for open-ephys not starting with time zero
-        Events(sound_index).soundcard_trigger_timestamp_sec=SCTtime_sec;
         
+        %get corresponding SCT TTL timestamp and assign to Event
+         %old way (from TC) won't work, since the network events get ahead of the SCTs.
+         %another way (dumb and brittle) is to just use the corresponding
+         %index, assuming they occur in the proper order with no drops or
+         %extras
+        SCTtime_sec=all_SCTs(sound_index);
+        Events(sound_index).soundcard_trigger_timestamp_sec=SCTtime_sec;
+
     end
 end
 
@@ -147,9 +143,9 @@ fprintf('\n')
 %combine X,Y,Z accelerometer channels by RMS
 scaledtrace=sqrt(scaledtrace1.^2 + scaledtrace2.^2 + scaledtrace3.^2 );
 
-soundcardtrigfile=sprintf('%s_ADC1.continuous', node);
+    SCTfname=getSCTfile(datadir);
 stimfile=sprintf('%s_ADC2.continuous', node);
-[stim, stimtimestamps, stiminfo] =load_open_ephys_data(stimfile);
+[stim, stimtimestamps, stiminfo] =load_open_ephys_data(SCTfname);
 
 
 monitor = 0;
@@ -178,8 +174,9 @@ if monitor
     hold on
     SCTtrace=SCTtrace./max(abs(SCTtrace));
     scaledtrace=scaledtrace./max(abs(scaledtrace));
-    plot(SCTtimestamps, SCTtrace)
-    plot(datatimestamps, scaledtrace, 'm')
+    plot(SCTtimestamps, SCTtrace, 'b')
+    plot(stimtimestamps, stim, 'm')
+    plot(datatimestamps, scaledtrace, 'r')
     
     hold on
     %plot "software trigs" i.e. network messages in red o's
@@ -187,7 +184,9 @@ if monitor
         plot(Events(i).message_timestamp_sec, .25, 'ro');
         plot(Events(i).soundcard_trigger_timestamp_sec, 1, 'g*');
         text(Events(i).message_timestamp_sec, .5, sprintf('network message #%d', i))
-        text(Events(i).soundcard_trigger_timestamp_sec, .5, sprintf('SCT #%d', i))
+        text(Events(i).message_timestamp_sec, .75, sprintf('%s', Events(i).type))
+        text(Events(i).soundcard_trigger_timestamp_sec, 1.25, sprintf('SCT #%d', i))
+        
     end
     
     %all_channels_info.eventType(i) = 3 for digital line in (TTL), 5 for network Events
@@ -205,9 +204,11 @@ if monitor
     end
     
     for i=1:length(Events)
-        xlim([Events(i).message_timestamp_sec-.02 Events(i).message_timestamp_sec+.5])
+        if strcmp(Events(i).type, 'GPIAS')
+        xlim([Events(i).message_timestamp_sec-2 Events(i).message_timestamp_sec+3])
         ylim([-5 2])
-        pause(.1)
+        pause(1)
+        end
     end
 end %if monitor
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -320,11 +321,11 @@ M1ONstim=[];M1OFFstim=[];
 nrepsON=zeros(numgapdurs, numpulseamps);
 nrepsOFF=zeros(numgapdurs, numpulseamps);
 
-%xlimits = hard coded integration region for startle response
-xlimits(1)=0;
-xlimits(2)=150;
+xlimits=[-1200 200]; %xlimits for storing traces
+startle_window=[0 150]; %hard coded integration region for startle response
 
-fprintf('\nprocessing with xlimits [%d-%d]', xlimits(1), xlimits(2))
+fprintf('\nprocessing with xlimits [%d - %d]', xlimits(1), xlimits(2))
+fprintf('\nprocessing with startle integration window [%d - %d]', startle_window(1), startle_window(2))
 
 %extract the traces into a big matrix M
 j=0;
@@ -336,31 +337,46 @@ for i=1:length(Events)
         gapdur=Events(i).gapdur;
         switch soaflag
             case 'isi'
-                isi=soa;
+                isi=Events(i).soa;
                 soa=isi+gapdur;
             case 'soa'
+                soa=Events(i).soa;
                 isi=soa-gapdur;
         end
         pos=Events(i).soundcard_trigger_timestamp_sec; %pos is in seconds
         laser=LaserTrials(i);
-        start=pos + gapdelay/1000 + isi/1000 + xlimits(1)/1000; %start is in seconds, should be at startle onset
+        startle_onset2=pos+gapdelay/1000+isi/1000;
+        %since this is all about quantifying startle response, we want a trace
+        %locked to startle pulse (not gap)
+        start=pos + gapdelay/1000 + isi/1000 + xlimits(1)/1000; %start is in seconds, should be at xlimits relative to startle onset
         stop=pos+ gapdelay/1000 + isi/1000 + xlimits(2)/1000; %stop is in seconds
         if start>0 %(disallow negative or zero start times)
             gdindex= find(gapdur==gapdurs);
             pulseamp=Events(i).pulseamp;
             paindex= find(pulseamp==pulseamps);
-            start=round(pos+xlimits(1)*1e-3*samprate);
-            stop=round(pos+xlimits(2)*1e-3*samprate)-1;
-            region=start:stop;
+            %start=round(pos+xlimits(1)*1e-3*samprate);
+            %stop=round(pos+xlimits(2)*1e-3*samprate)-1;
+            region=round(start*samprate)+1:round(stop*samprate);
             if isempty(find(region<1))
                 if laser
                     nrepsON(gdindex,paindex)=nrepsON(gdindex,paindex)+1;
                     M1ON(gdindex,paindex, nrepsON(gdindex,paindex),:)=scaledtrace(region);
                     M1ONstim(gdindex, paindex, nrepsON(gdindex, paindex),:)=stim(region);
-                else
+                               else
                     nrepsOFF(gdindex,paindex)=nrepsOFF(gdindex,paindex)+1;
                     M1OFF(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=scaledtrace(region);
                     M1OFFstim(gdindex, paindex, nrepsOFF(gdindex, paindex),:)=stim(region);
+                    figure(8),clf;hold on
+                    t=region;t=t/samprate;
+                    plot(t, stim(region), 'm', t, scaledtrace(region), 'b')
+                    startle_onset1=pos+gapdelay/1000-gapdur/1000+soa/1000;
+                    
+                    gap_termination=pos+gapdelay/1000;
+                    gap_onset=pos+gapdelay/1000-gapdur/1000;
+                    plot(gap_onset, 0, '^', gap_termination,0, 'v')
+                    plot(startle_onset1, 0, 'bo', startle_onset2, 0, 'b*')
+                    plot(pos, 0, 'r*')
+                    keyboard
                 end
             end
         end
@@ -380,14 +396,18 @@ mM1ONstim=mean(M1ONstim, 3);
 
 
 % Accumulate startle response across trials using peak rectified signal in region
+start=(startle_window(1)-xlimits(1))*samprate/1000;
+stop=start+diff(startle_window)*samprate/1000;
+PeakON=nan(numgapdurs, numpulseamps, max(nrepsON(:)));
+PeakOFF=nan(numgapdurs, numpulseamps, max(nrepsOFF(:)));
 for paindex=1:numpulseamps
     for gdindex=1:numgapdurs; % Hardcoded.
         for k=1:nrepsON(gdindex, paindex);
-            traceON=squeeze(M1ON(gdindex,paindex, k, :));
+            traceON=squeeze(M1ON(gdindex,paindex, k, start:stop));
             PeakON(gdindex, paindex, k)=max(abs(traceON));
         end
         for k=1:nrepsOFF(gdindex, paindex);
-            traceOFF=squeeze(M1OFF(gdindex,paindex, k, :));
+            traceOFF=squeeze(M1OFF(gdindex,paindex, k, start:stop));
             PeakOFF(gdindex, paindex, k)=max(abs(traceOFF));
         end
         if isempty(PeakON)
@@ -502,6 +522,7 @@ out.soa=soa;
 out.isi=isi;
 out.soaflag=soaflag;
 out.xlimits=xlimits;
+out.startle_window=startle_window;
 out.samprate=samprate;
 out.datadir=datadir;
 try

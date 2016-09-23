@@ -82,7 +82,6 @@ sampleRate=all_channels_info.header.sampleRate; %in Hz
 
 % get all SCT timestamps
 
-etime=0;
 sound_index=0;
 for i=1:length(messages)
     str=messages{i};
@@ -122,7 +121,7 @@ for i=1:length(messages)
         Events(sound_index).message_timestamp_samples=timestamp - StartAcquisitionSamples;
         Events(sound_index).message_timestamp_sec=timestamp/sampleRate - StartAcquisitionSec;
         
-        tic
+        
         all_SCTs=[];
         for k=1:length(all_channels_timestamps)
             if all_channels_info.eventType(k)==3 & all_channels_info.eventId(k)==1 & all_channels_data(k)==2
@@ -130,7 +129,6 @@ for i=1:length(messages)
                 all_SCTs=[all_SCTs corrected_SCT];
             end
         end
-        etime=etime+toc;
         %get corresponding SCT TTL timestamp and assign to Event
          %old way (from TC) won't work, since the network events get ahead of the SCTs.
          %another way (dumb and brittle) is to just use the corresponding
@@ -141,7 +139,7 @@ for i=1:length(messages)
         
     end
 end
-etime
+
 fprintf('\nNumber of sound events (from network messages): %d', length(Events));
 fprintf('\nNumber of hardware triggers (soundcardtrig TTLs): %d', length(all_SCTs));
 if length(Events) ~=  length(all_SCTs)

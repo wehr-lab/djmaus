@@ -71,6 +71,9 @@ switch action
             h=SP.PPAactive;
             if status.Active==0; %device not running
                 set(h, 'string', sprintf('PPA not running, XRuns=%g, CPUload=%.3f', status.XRuns, status.CPULoad), 'backgroundcolor', [.5 .5 .5])
+%                 if ~SP.Run
+%                     set(SP.Runh, 'backgroundcolor', [0 1 0], 'Value', 0)
+%                 end
             elseif status.Active==1; %device running
                 protocol=SP.ProtocolIndex;
                 current=SP.CurrentStimulus(protocol);
@@ -81,6 +84,10 @@ switch action
                     fprintf('\nXRun')
                     set(h,'backgroundcolor', [1 0 0])
                 end
+            
+%                 if ~SP.Run
+%                    set(SP.Runh, 'backgroundcolor', [1 .5 .5])
+%                 end
                 
             end
         catch

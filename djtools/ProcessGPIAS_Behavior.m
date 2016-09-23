@@ -95,9 +95,17 @@ for i=1:length(messages)
         %another way (dumb and brittle) is to just use the corresponding
         %index, assuming they occur in the proper order with no drops or
         %extras
-        SCTtime_sec=all_SCTs(sound_index);
-        Events(sound_index).soundcard_trigger_timestamp_sec=SCTtime_sec;
-        
+        try
+            SCTtime_sec=all_SCTs(sound_index);
+            Events(sound_index).soundcard_trigger_timestamp_sec=SCTtime_sec;
+        catch
+            %     one reason this won't work is if you stop recording during the
+            %     play-out, i.e. stimuli were logged (to stimlog and network events)
+            %     but never played before recording was stopped
+            if sound_index>length(all_SCTs)
+            Events(sound_index).soundcard_trigger_timestamp_sec=nan;
+            end
+        end
     end
 end
 

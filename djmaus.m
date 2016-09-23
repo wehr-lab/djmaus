@@ -819,10 +819,7 @@ if ~isempty(cal) %it will be empty if Init failed to load calibration
         
     else
         switch stimtype
-            case {'clicktrain', 'whitenoise', 'amnoise', 'GPIAS'} %stimuli that consist of white noise
-               %note: GPIAS technically is band-limited noise, but since we
-               %almost always use whitenoise for it these days I'm
-               %calibrating it as such here
+            case {'clicktrain', 'whitenoise', 'amnoise'} %stimuli that consist of white noise
                try
                     findex=find(cal.logspacedfreqs==-1); %freq of -1 indicates white noise
                     atten=cal.atten(findex);
@@ -857,20 +854,17 @@ if ~isempty(cal) %it will be empty if Init failed to load calibration
                 catch
                     djMessage( 'NOT calibrated', 'append')
                 end
-%             case {'GPIAS'} %startle pulse (use whitenoise calibration)
-%                 %plus narrow-band noise (use center frequency calibration)
-%                 try
-%                     findex=find(cal.logspacedfreqs<=stimparam.center_frequency, 1, 'last');
-%                     atten=cal.atten(findex);
-%                     stimparam.amplitude=stimparam.amplitude-atten;
-%                     findex2=find(cal.logspacedfreqs==-1); %freq of -1 indicates white noise
-%                     atten=cal.atten(findex2);
-%                     stimparam.pulseamp=stimparam.pulseamp-atten;
-%                     
-%                     djMessage( 'calibrated', 'append')
-%                 catch
-%                     djMessage( 'NOT calibrated', 'append')
-%                 end
+            case {'GPIAS'} %startle pulse (use whitenoise calibration)
+               %note: GPIAS is now whitenoise-based (not band-limited noise)
+                try
+                    findex=find(cal.logspacedfreqs==-1); %freq of -1 indicates white noise
+                    atten=cal.atten(findex);
+                    stimparam.amplitude=stimparam.amplitude-atten;
+                    stimparam.pulseamp=stimparam.pulseamp-atten;
+                    djMessage( 'calibrated', 'append')
+                catch
+                    djMessage( 'NOT calibrated', 'append')
+                end
             case {'ASR'} %startle pulse (use whitenoise calibration)
                 try
                     findex=find(cal.logspacedfreqs==-1); %freq of -1 indicates white noise

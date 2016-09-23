@@ -62,7 +62,7 @@ function MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_startle_duration,
 %MakeGPIASdjProtocol(80, [0 1 2 4 8 16 32 64 128 256], 1000, 1000, 0, 100, 50, 'isi', 0, 1e3, 0, 0, 15)
 %
 %noiseamp=80; gapdurs=[0 1 2 4 8 16 32 64 128 256]; gapdelay=1000; poststartle=1000;
-%pulsedur=0; pulseamps=100; soa=50; soaflag='isi'; ramp=0; isi=15000; isi_var=.33; IL=1; nreps=10;
+%pulsedur=25; pulseamps=110; soa=50; soaflag='isi'; ramp=0; isi=15000; isi_var=.33; IL=1; nreps=10;
 %MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, poststartle, pulsedur, pulseamps, soa, soaflag, ramp, isi, isi_var, IL, nreps)
 
 if ~strcmp(soaflag, 'isi')
@@ -128,14 +128,6 @@ else
     interleave_laserstr='';
 end
 
-name= sprintf('GPIAS-na%ddB-gd%sms-pd%dms-pa%sdb-soa%dms(%s)-r%d-iti%d-itivar%d-%s-%dreps.mat',...
-    noiseamp, gapdursstring, round(pulsedur), pulseampsstring, soa,soaflag, round(ramp), isi,round(100*isi_var),interleave_laserstr, nrepeats);
-
-description=sprintf('Gap Induced Pre-Pulse Inhibition of Startle Response stimulus protocol noise amplitude:%ddB, gap duration: %sms, gapdelay: %dms, pulse duration%dms pulse amplitude:%sdb SOA:%dms (%s) ramp:%dms iti:%dms iti-var: %.1f %s %drepeats',...
-    noiseamp, gapdursstring, gapdelay, pulsedur, pulseampsstring, soa, soaflag, ramp, isi,round(100*isi_var),interleave_laserstr, nrepeats);
-filename=name;
-
-
 gpias_duration=gapdelay+max(rand_gapdurs)+soa+pulsedur+post_startle_duration; %actual duration
 
 %note: for seamless playing of sounds, all buffers must be identical in
@@ -150,6 +142,18 @@ next = -gapdelay/2;%testing mw 032410
 this_isi_ms=round(isi+isi*isi_var*(2*rand(1)-1));
 num_noises=round(this_isi_ms/gpias_duration);
 
+GPIASPerRepeat=length(neworder);
+StimPerRepeat=GPIASPerRepeat*num_noises;
+TotalNumStim=StimPerRepeat*nrepeats;
+DurationPerRepeatSecs=StimPerRepeat*(gpias_duration)/1000;%approx. duration per repeat
+TotalDurationSecs=DurationPerRepeatSecs*nrepeats;
+
+name= sprintf('GPIAS-na%ddB-gd%sms-pd%dms-pa%sdb-soa%dms(%s)-r%d-iti%d-itivar%d-%s-%dreps.mat',...
+    noiseamp, gapdursstring, round(pulsedur), pulseampsstring, soa,soaflag, round(ramp), isi,round(100*isi_var),interleave_laserstr, nrepeats);
+
+description=sprintf('Gap Induced Pre-Pulse Inhibition of Startle Response stimulus protocol noise amplitude:%ddB, gap duration: %sms, gapdelay: %dms, pulse duration%dms pulse amplitude:%sdb SOA:%dms (%s) ramp:%dms iti:%dms iti-var: %.1f %s %drepeats, %d stim per rep, %d total stimuli, %ds per rep, %d s total dur',...
+    noiseamp, gapdursstring, gapdelay, pulsedur, pulseampsstring, soa, soaflag, ramp, isi,round(100*isi_var),interleave_laserstr, nrepeats, StimPerRepeat, TotalNumStim, round(DurationPerRepeatSecs), round(TotalDurationSecs));
+filename=name;
 
 n=0;
 

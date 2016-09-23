@@ -52,6 +52,8 @@ mPeakON=out.mPeakON;
 mPeakOFF=out.mPeakOFF;
 semPeakON=out.semPeakON;
 semPeakOFF=out.semPeakOFF;
+percentGPIAS_ON=out.percentGPIAS_ON;
+percentGPIAS_OFF=out.percentGPIAS_OFF;
 samprate=out.samprate;
 M1ONstim=out.M1ONstim;
 M1OFFstim=out.M1OFFstim;
@@ -87,7 +89,7 @@ if true
                 subplot1(p)
                 hold on
                 
-                offset=1*std(M1OFF(:));
+                offset=10*std(M1OFF(:));
                 
                 % add the stimulus in magenta
                 stimtrace=squeeze(mM1OFFstim(gdindex, paindex,:));
@@ -183,47 +185,65 @@ if true
     
 end
 
+%plot the percent GPIAS
+%note: the percentGPIAS assumes only a single pulseamp, so if we ever do
+%more than one pulse amp we need to update that.
+figure;
+hold on
+gd=1:numgapdurs;
+if ~isempty(percentGPIAS_OFF)
+    plot(gd, percentGPIAS_OFF, 'k-o')
+end
+if ~isempty(percentGPIAS_ON)
+    plot(gd, percentGPIAS_ON, 'c-o')
+end
+set(gca, 'xtick', 1:numgapdurs)
+set(gca, 'xticklabel', gapdurs)
+title ('LaserON/OFF percent GPIAS')
+xlabel('gap duration')
+ylabel('percent GPIAS')
+
 
 %plot the mean peak rectified startle
-        for paindex=1:numpulseamps
-figure;
-hold on
-gd=1:numgapdurs;
-if ~isempty(mPeakOFF)
-    errorbar(gd, mPeakOFF(:,paindex),semPeakOFF(:,paindex), 'k-o')
+for paindex=1:numpulseamps
+    figure;
+    hold on
+    gd=1:numgapdurs;
+    if ~isempty(mPeakOFF)
+        errorbar(gd, mPeakOFF(:,paindex),semPeakOFF(:,paindex), 'k-o')
+    end
+    if ~isempty(mPeakON)
+        errorbar(gd, mPeakON(:,paindex),semPeakON(:,paindex), 'c-o')
+    end
+    set(gca, 'xtick', 1:numgapdurs)
+    set(gca, 'xticklabel', gapdurs)
+    title ('LaserON/OFF startle')
+    xlabel('gap duration')
+    ylabel('startle response +- sem')
 end
-if ~isempty(mPeakON)
-    errorbar(gd, mPeakON(:,paindex),semPeakON(:,paindex), 'c-o')
-end
-set(gca, 'xtick', 1:numgapdurs)
-set(gca, 'xticklabel', gapdurs)
-title ('LaserON/OFF startle')
-xlabel('gap duration')
-ylabel('startle response +- sem')
-        end
-        
+
 %plot all trials peak rectified startle
-        for paindex=1:numpulseamps
-figure;
-hold on
-gd=1:numgapdurs;
-if ~isempty(mPeakOFF)
-    errorbar(gd, mPeakOFF(:,paindex),semPeakOFF(:,paindex), 'k-o')
-    plot(gd, squeeze(PeakOFF(:,paindex,:)), 'ko')
+for paindex=1:numpulseamps
+    figure;
+    hold on
+    gd=1:numgapdurs;
+    if ~isempty(mPeakOFF)
+        errorbar(gd, mPeakOFF(:,paindex),semPeakOFF(:,paindex), 'k-o')
+        plot(gd, squeeze(PeakOFF(:,paindex,:)), 'ko')
+    end
+    if ~isempty(mPeakON)
+        errorbar(gd, mPeakON(:,paindex),semPeakON(:,paindex), 'c-o')
+        plot(gd, squeeze(PeakON(:,paindex,:)), 'co')
+    end
+    set(gca, 'xtick', 1:numgapdurs)
+    set(gca, 'xticklabel', gapdurs)
+    title ('LaserON/OFF startle')
+    xlabel('gap duration')
+    ylabel('startle responses all trials')
 end
-if ~isempty(mPeakON)
-    errorbar(gd, mPeakON(:,paindex),semPeakON(:,paindex), 'c-o')
-    plot(gd, squeeze(PeakON(:,paindex,:)), 'co')
-end
-set(gca, 'xtick', 1:numgapdurs)
-set(gca, 'xticklabel', gapdurs)
-title ('LaserON/OFF startle')
-xlabel('gap duration')
-ylabel('startle responses all trials')
-        end
-        
-        
-        
+
+
+
         
         
         
@@ -242,7 +262,7 @@ ylabel('startle responses all trials')
         
         
 return
-% code from here on is a complete mess, a mixture of re-computing
+% code from here on is a mess, a mixture of re-computing
 % integrated startle (already done in ProcessGPIAS_Behavior) and writing
 % stuff to text files.
 

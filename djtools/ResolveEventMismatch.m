@@ -33,18 +33,26 @@ if nstimlog==nEvents
     end
 end
 fprintf('\nGood. Logged stimuli match network Events.')
-    
+
 if nstimlog==nEvents & nSCTs==1+ nEvents
     %there's one extra soundcard trigger, find it and remove it
     
     %if the extra one comes before any events, don't need to do anything
     if all_SCTs(1) < Events(1).message_timestamp_sec
         %we're fine, because extra SCTs before any message is automatically ignored
-        fprintf('\nMismatched resolved. Extra (initial) soundcard trigger discarded') 
+        fprintf('\nMismatched resolved. Extra (initial) soundcard trigger discarded')
     elseif  all_SCTs(end) > Events(end).message_timestamp_sec
-        warning(sprintf('\nMismatched possibly resolved by discarding extra (last) soundcard trigger. \nFurther investigation is highly recommended!!!!!!!')) 
+        warning(sprintf('\nMismatch possibly resolved by discarding extra (last) soundcard trigger. \nFurther investigation is highly recommended!!!!!!!'))
     else
         error('ResolveEventMismatch: this case is not handled yet')
+    end
+elseif strcmp(stimlog(1).protocol_name(1:5), 'GPIAS')
+    %     one problem with GPIAS stimuli is if you stop recording during the
+    %     play-out, i.e. stimuli were logged (to stimlog and network events)
+    %     but never played before recording was stopped
+    if length(Events)>length(all_SCTs)
+        warning(sprintf('\nIt looks like Recording was stopped before all GPIAS stimuli finished playing. Mismatch possibly resolved by discarding extra Events. \nFurther investigation is highly recommended!!!!!!!'))
+        Events=Events(1:length(all_SCTs));
     end
 else
     error('ResolveEventMismatch: this case is not handled yet')
@@ -69,7 +77,7 @@ if 0
     SCTtimestamps=SCTtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
     %datatimestamps=datatimestamps-StartAcquisitionSec;
     
-     figure
+    figure
     hold on
     %set(gcf, 'pos', [-1853 555 1818 420]);
     SCTtrace=SCTtrace./max(abs(SCTtrace));
@@ -92,19 +100,19 @@ if 0
     
     
     % plot TTL SCTs in green ^=on, v=off
-%     for i=1:length(all_channels_timestamps)
-%         if all_channels_info.eventType(i)==3 & all_channels_info.eventId(i)==1 & all_channels_data(i)==2
-%             plot(all_channels_timestamps(i), 1, 'g^')
-%             text(all_channels_timestamps(i), 1, 'TTL on/off')
-%         elseif all_channels_info.eventType(i)==3 & all_channels_info.eventId(i)==0 & all_channels_data(i)==2
-%             plot(all_channels_timestamps(i), 1, 'gv')
-%         end
-%     end
+    %     for i=1:length(all_channels_timestamps)
+    %         if all_channels_info.eventType(i)==3 & all_channels_info.eventId(i)==1 & all_channels_data(i)==2
+    %             plot(all_channels_timestamps(i), 1, 'g^')
+    %             text(all_channels_timestamps(i), 1, 'TTL on/off')
+    %         elseif all_channels_info.eventType(i)==3 & all_channels_info.eventId(i)==0 & all_channels_data(i)==2
+    %             plot(all_channels_timestamps(i), 1, 'gv')
+    %         end
+    %     end
     
     
-%    for i=1:length(Events)
-numEvents=length(Events);
-for i=numEvents-5:numEvents
+    %    for i=1:length(Events)
+    numEvents=length(Events);
+    for i=numEvents-5:numEvents
         xlim([Events(i).message_timestamp_sec-.02 Events(i).message_timestamp_sec+2])
         ylim([-5 2])
         drawnow

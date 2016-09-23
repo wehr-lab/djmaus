@@ -67,16 +67,16 @@ for i=1:length(messages)
     elseif strcmp(Events_type, 'TrialType')
         sound_index=sound_index+1;
         Events(sound_index).type=str2{3};
-                  
-            for j=4:length(str2)
-                str3=strsplit(str2{j}, ':');
-                fieldname=str3{1};
-                value=str2num(str3{2});
-                if isempty(value) %this happens if it's a real string (like soaflag), not a 'num'
-                    value=str3{2}; %just use the string. E.g. 'soa' or 'isi'
-                end
-                Events(sound_index).(fieldname)= value;
+        
+        for j=4:length(str2)
+            str3=strsplit(str2{j}, ':');
+            fieldname=str3{1};
+            value=str2num(str3{2});
+            if isempty(value) %this happens if it's a real string (like soaflag), not a 'num'
+                value=str3{2}; %just use the string. E.g. 'soa' or 'isi'
             end
+            Events(sound_index).(fieldname)= value;
+        end
         
         Events(sound_index).message_timestamp_samples=timestamp - StartAcquisitionSamples;
         Events(sound_index).message_timestamp_sec=timestamp/sampleRate - StartAcquisitionSec;
@@ -91,13 +91,13 @@ for i=1:length(messages)
         end
         
         %get corresponding SCT TTL timestamp and assign to Event
-         %old way (from TC) won't work, since the network events get ahead of the SCTs.
-         %another way (dumb and brittle) is to just use the corresponding
-         %index, assuming they occur in the proper order with no drops or
-         %extras
+        %old way (from TC) won't work, since the network events get ahead of the SCTs.
+        %another way (dumb and brittle) is to just use the corresponding
+        %index, assuming they occur in the proper order with no drops or
+        %extras
         SCTtime_sec=all_SCTs(sound_index);
         Events(sound_index).soundcard_trigger_timestamp_sec=SCTtime_sec;
-
+        
     end
 end
 
@@ -143,9 +143,9 @@ fprintf('\n')
 %combine X,Y,Z accelerometer channels by RMS
 scaledtrace=sqrt(scaledtrace1.^2 + scaledtrace2.^2 + scaledtrace3.^2 );
 
-    SCTfname=getSCTfile(datadir);
+SCTfname=getSCTfile(datadir);
 stimfile=sprintf('%s_ADC2.continuous', node);
-[stim, stimtimestamps, stiminfo] =load_open_ephys_data(SCTfname);
+[stim, stimtimestamps, stiminfo] =load_open_ephys_data(stimfile);
 
 
 monitor = 0;
@@ -205,9 +205,9 @@ if monitor
     
     for i=1:length(Events)
         if strcmp(Events(i).type, 'GPIAS')
-        xlim([Events(i).message_timestamp_sec-2 Events(i).message_timestamp_sec+3])
-        ylim([-5 2])
-        pause(1)
+            xlim([Events(i).message_timestamp_sec-2 Events(i).message_timestamp_sec+3])
+            ylim([-5 2])
+            pause(1)
         end
     end
 end %if monitor
@@ -273,7 +273,7 @@ soaflag=soaflags{:};
 for i=1:length(Events)
     if isfield(Events(i), 'laser') & isfield(Events(i), 'LaserOnOff')
         if isempty(Events(i).laser)
-        Events(i).laser=0;    
+            Events(i).laser=0;
         end
         LaserScheduled(i)=Events(i).laser; %whether the stim protocol scheduled a laser for this stim
         LaserOnOffButton(i)=Events(i).LaserOnOff; %whether the laser button was turned on
@@ -321,7 +321,7 @@ M1ONstim=[];M1OFFstim=[];
 nrepsON=zeros(numgapdurs, numpulseamps);
 nrepsOFF=zeros(numgapdurs, numpulseamps);
 
-xlimits=[-1200 200]; %xlimits for storing traces
+xlimits=[-200 200]; %xlimits for storing traces
 startle_window=[0 150]; %hard coded integration region for startle response
 
 fprintf('\nprocessing with xlimits [%d - %d]', xlimits(1), xlimits(2))
@@ -332,7 +332,7 @@ j=0;
 for i=1:length(Events)
     if strcmp(Events(i).type, 'GPIAS')
         %note: gapdelay is the time from the soundcardtrigger (pos) to the
-        %gap termination. The time to startle onset should be 
+        %gap termination. The time to startle onset should be
         %(gapdelay + soa) after pos, if soaflag=soa
         gapdur=Events(i).gapdur;
         switch soaflag
@@ -345,11 +345,11 @@ for i=1:length(Events)
         end
         pos=Events(i).soundcard_trigger_timestamp_sec; %pos is in seconds
         laser=LaserTrials(i);
-        startle_onset2=pos+gapdelay/1000+isi/1000;
         %since this is all about quantifying startle response, we want a trace
         %locked to startle pulse (not gap)
-        start=pos + gapdelay/1000 + isi/1000 + xlimits(1)/1000; %start is in seconds, should be at xlimits relative to startle onset
-        stop=pos+ gapdelay/1000 + isi/1000 + xlimits(2)/1000; %stop is in seconds
+        startle_onset=pos+gapdelay/1000+isi/1000;
+        start=startle_onset + xlimits(1)/1000; %start is in seconds, should be at xlimits relative to startle onset
+        stop=startle_onset + xlimits(2)/1000; %stop is in seconds
         if start>0 %(disallow negative or zero start times)
             gdindex= find(gapdur==gapdurs);
             pulseamp=Events(i).pulseamp;
@@ -362,21 +362,20 @@ for i=1:length(Events)
                     nrepsON(gdindex,paindex)=nrepsON(gdindex,paindex)+1;
                     M1ON(gdindex,paindex, nrepsON(gdindex,paindex),:)=scaledtrace(region);
                     M1ONstim(gdindex, paindex, nrepsON(gdindex, paindex),:)=stim(region);
-                               else
+                else
                     nrepsOFF(gdindex,paindex)=nrepsOFF(gdindex,paindex)+1;
                     M1OFF(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=scaledtrace(region);
                     M1OFFstim(gdindex, paindex, nrepsOFF(gdindex, paindex),:)=stim(region);
-                    figure(8),clf;hold on
-                    t=region;t=t/samprate;
-                    plot(t, stim(region), 'm', t, scaledtrace(region), 'b')
-                    startle_onset1=pos+gapdelay/1000-gapdur/1000+soa/1000;
                     
-                    gap_termination=pos+gapdelay/1000;
-                    gap_onset=pos+gapdelay/1000-gapdur/1000;
-                    plot(gap_onset, 0, '^', gap_termination,0, 'v')
-                    plot(startle_onset1, 0, 'bo', startle_onset2, 0, 'b*')
-                    plot(pos, 0, 'r*')
-                    keyboard
+                    %                     figure(8),clf;hold on
+                    %                     t=region;t=t/samprate;
+                    %                     plot(t, stim(region), 'm', t, scaledtrace(region), 'b')
+                    %                     gap_termination=pos+gapdelay/1000;
+                    %                     gap_onset=pos+gapdelay/1000-gapdur/1000;
+                    %                     plot(gap_onset, 0, '^', gap_termination,0, 'v')
+                    %                     plot(startle_onset, 0, 'bo')
+                    %                     plot(pos, 0, 'r*')
+                    %                     keyboard
                 end
             end
         end
@@ -414,15 +413,15 @@ for paindex=1:numpulseamps
             mPeakON=[];
             semPeakON=[];
         else
-            mPeakON(gdindex, paindex)=mean(PeakON(gdindex,paindex, 1:nrepsON(gdindex, paindex)));
-            semPeakON(gdindex, paindex)=mean(PeakON(gdindex,paindex, 1:nrepsON(gdindex, paindex)))/sqrt(nrepsON(gdindex, paindex));
+            mPeakON(gdindex, paindex)=mean(PeakON(gdindex,paindex, 1:nrepsON(gdindex, paindex)),3);
+            semPeakON(gdindex, paindex)=std(PeakON(gdindex,paindex, 1:nrepsON(gdindex, paindex)),0,3)/sqrt(nrepsON(gdindex, paindex));
         end
         if isempty(PeakOFF)
             mPeakOFF=[];
             semPeakOFF=[];
         else
-            mPeakOFF(gdindex, paindex)=mean(PeakOFF(gdindex,paindex, 1:nrepsOFF(gdindex, paindex)));
-            semPeakOFF(gdindex, paindex)=mean(PeakOFF(gdindex,paindex, 1:nrepsOFF(gdindex, paindex)))/sqrt(nrepsOFF(gdindex, paindex));
+            mPeakOFF(gdindex, paindex)=mean(PeakOFF(gdindex,paindex, 1:nrepsOFF(gdindex, paindex)),3);
+            semPeakOFF(gdindex, paindex)=std(PeakOFF(gdindex,paindex, 1:nrepsOFF(gdindex, paindex)),0,3)/sqrt(nrepsOFF(gdindex, paindex));
         end
         
         
@@ -434,6 +433,7 @@ for paindex=1:numpulseamps
     end
     
     %only makes sense for numgapdurs==2
+    fprintf('\n')
     if isempty(PeakON)
         percentGPIAS_ON=[];
         pON=[];
@@ -447,10 +447,11 @@ for paindex=1:numpulseamps
             A=PeakON(1,paindex, 1:nrepsON(1, paindex));
             B=PeakON(p,paindex, 1:nrepsON(p, paindex));
             [H,pON(p)]=ttest2(A,B);
-            fprintf('\nLaser ON  pa:%ddB,', pulseamps(paindex));
-            fprintf(' %%GPIAS = %.1f%%, T-test:%d, p-value:%.3f',percentGPIAS_ON,H,pON(p));
+            fprintf('\nLaser ON  pa:%ddB, ', pulseamps(paindex));
+            fprintf('gd: %dms %%GPIAS = %.1f%%, T-test:%d, p-value:%.3f',gapdurs(p),percentGPIAS_ON(p),H,pON(p));
         end
     end
+    fprintf('\n')
     if isempty(PeakOFF)
         percentGPIAS_OFF=[];
         pOFF=[];
@@ -464,8 +465,9 @@ for paindex=1:numpulseamps
             A=PeakOFF(1,paindex, 1:nrepsOFF(1, paindex));
             B=PeakOFF(p,paindex, 1:nrepsOFF(p, paindex));
             [H,pOFF(p)]=ttest2(A,B);
-            fprintf('\nLaser OFF  pa:%ddB,', pulseamps(paindex));
-            fprintf(' %%GPIAS = %.1f%%, T-test:%d, p-value:%.3f',percentGPIAS_OFF,H,pOFF(p));
+            fprintf('\nLaser OFF  pa:%ddB, ', pulseamps(paindex));
+            fprintf('gd: %dms %%GPIAS = %.1f%%, T-test:%d, p-value:%.3f',gapdurs(p),percentGPIAS_OFF(p),H,pOFF(p));
+            
         end
     end
     
@@ -536,6 +538,7 @@ catch
 end
 outfilename=sprintf('outGPIAS_Behavior.mat');
 save (outfilename, 'out')
+fprintf('\n\nsaved outfile %s \nin directory %s\n', outfilename, pwd)
 
 
 

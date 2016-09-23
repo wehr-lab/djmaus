@@ -12,7 +12,7 @@ PostStartleWindowms=[0 100]; % in ms relative to onset of startle-pulse
 ISIWindowms=[0 60]; % in ms relative to onset of pre-pulse    %added by APW 3_31_14
 
 
-force_reprocess=1;
+force_reprocess=0;
 if force_reprocess
     fprintf('\nForce re-process\n')
     ProcessGPIAS_Behavior(datadir)
@@ -57,6 +57,7 @@ M1ONstim=out.M1ONstim;
 M1OFFstim=out.M1OFFstim;
 mM1ONstim=out.mM1ONstim;
 mM1OFFstim=out.mM1OFFstim;
+xlimits=out.xlimits;
 
 % %find optimal axis limits
 if ~isempty(mM1OFF)
@@ -67,7 +68,6 @@ elseif ~isempty(mM1ON)
     ylimits(2)=max(mM1ON(:));
 end
 
-xlimits=[-200 200];
 fs=10;
 
 %plot the tuning curves
@@ -135,7 +135,7 @@ if true
                 subplot1(p)
                 hold on
                 
-                offset=1*std(M1ON(:));
+                offset=10*std(M1ON(:));
                 
                 % add the stimulus in magenta
                 stimtrace=squeeze(mM1ONstim(gdindex, paindex,:));
@@ -170,7 +170,8 @@ if true
                 
             end
             subplot1(1)
-            h=title(sprintf('Laser ON, %s-%s-%s', expdate, session, filenum));
+            h=title(sprintf('%s:\nnreps: %d-%d, ON',datadir,min(nrepsON(:)),max(nrepsON(:))));
+            set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
             subplot1(numgapdurs)
             xlabel('Time (ms)');
             
@@ -183,7 +184,63 @@ if true
 end
 
 
-
+%plot the mean peak rectified startle
+        for paindex=1:numpulseamps
+figure;
+hold on
+gd=1:numgapdurs;
+if ~isempty(mPeakOFF)
+    errorbar(gd, mPeakOFF(:,paindex),semPeakOFF(:,paindex), 'k-o')
+end
+if ~isempty(mPeakON)
+    errorbar(gd, mPeakON(:,paindex),semPeakON(:,paindex), 'c-o')
+end
+set(gca, 'xtick', 1:numgapdurs)
+set(gca, 'xticklabel', gapdurs)
+title ('LaserON/OFF startle')
+xlabel('gap duration')
+ylabel('startle response +- sem')
+        end
+        
+%plot all trials peak rectified startle
+        for paindex=1:numpulseamps
+figure;
+hold on
+gd=1:numgapdurs;
+if ~isempty(mPeakOFF)
+    errorbar(gd, mPeakOFF(:,paindex),semPeakOFF(:,paindex), 'k-o')
+    plot(gd, squeeze(PeakOFF(:,paindex,:)), 'ko')
+end
+if ~isempty(mPeakON)
+    errorbar(gd, mPeakON(:,paindex),semPeakON(:,paindex), 'c-o')
+    plot(gd, squeeze(PeakON(:,paindex,:)), 'co')
+end
+set(gca, 'xtick', 1:numgapdurs)
+set(gca, 'xticklabel', gapdurs)
+title ('LaserON/OFF startle')
+xlabel('gap duration')
+ylabel('startle responses all trials')
+        end
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
 return
 % code from here on is a complete mess, a mixture of re-computing
 % integrated startle (already done in ProcessGPIAS_Behavior) and writing

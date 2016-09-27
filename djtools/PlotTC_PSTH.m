@@ -38,7 +38,7 @@ end
 try
     xlimits=varargin{4};
 catch
-    xlimits=[0 200];
+    xlimits=[-100 200];
 end
 try
     ylimits=varargin{5};

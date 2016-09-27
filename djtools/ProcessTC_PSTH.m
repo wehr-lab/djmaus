@@ -16,7 +16,6 @@ if nargin==0
 end
 datadir=varargin{1};
 
-xlimits=[0 200];
 try
     xlimits=varargin{4};
 end
@@ -504,25 +503,28 @@ for clust=1:Nclusters
     out.channel=channel;
     out.cluster=clust; %there are some redundant names here
     out.cell=clust;
+    out.LaserStart=unique(LaserStart); %only saving one value for now, assuming it's constant
+    out.LaserWidth=unique(LaserWidth);
+    out.LaserNumPulses=unique(LaserNumPulses);
+    out.LaserISI=unique(LaserISI);
+    
     if IL
-        sz=size(M1ON);
-        out.M1ON=reshape(M1ON(clust,:,:,:,:), sz(2:end));
-        out.mM1ONspikecount=(mM1ONspikecount(clust,:,:,:)); % Mean spikecount for each laser/f/a combo.
+        szM=size(M1ON);
+        out.M1ON=reshape(M1ON(clust,:,:,:,:), szM(2:end));
+                szm=size(mM1OFF);
+                out.mM1OFF=reshape(mM1OFF(clust,:,:,:,:), szm(2:end)); %Accumulated spike times for *all* presentations of each laser/f/a/d combo.
+                %         %I am not sure if I have this right:
+                %         if numfreqs>numamps
+                %             out.mM1ON=squeeze(mM1ON(clust,:,:,:))';
+                %         else
+                %             out.mM1ON=squeeze(mM1ON(clust,:,:,:));
+                %         end
+                out.mM1ONspikecount=(mM1ONspikecount(clust,:,:,:)); % Mean spikecount for each laser/f/a combo.
         out.sM1ONspikecount=(sM1ONspikecount(clust,:,:,:));
         out.semM1ONspikecount=(semM1ONspikecount(clust,:,:,:));
-        %I am not sure if I have this right:
-        if numfreqs>numamps
-            out.mM1ON=squeeze(mM1ON(clust,:,:,:))';
-        else
-            out.mM1ON=squeeze(mM1ON(clust,:,:,:));
-        end
         out.mM1spontON=(mM1spontON(clust,:,:,:)); % Spont spikes.
         out.sM1spontON=(sM1spontON(clust,:,:,:));
         out.semM1spontON=(semM1spontON(clust,:,:,:));
-        out.LaserStart=unique(LaserStart); %only saving one value for now, assuming it's constant
-        out.LaserWidth=unique(LaserWidth);
-        out.LaserNumPulses=unique(LaserNumPulses);
-        out.LaserISI=unique(LaserISI);
         
         sz=size(M_LaserStart);
         out.M_LaserStart=reshape(M_LaserStart(clust,:,:,:,:), sz(2:end));
@@ -549,14 +551,16 @@ for clust=1:Nclusters
         out.M_LaserISI=[];
 
     end
-    sz=size(M1OFF);
-    out.M1OFF=reshape(M1OFF(clust,:,:,:,:), sz(2:end)); % All spiketimes, trial-by-trial.
-    %I am not sure if I have this right:
-    if numfreqs>numamps
-        out.mM1OFF=squeeze(mM1OFF(clust,:,:,:))'; % Accumulated spike times for *all* presentations of each laser/f/a combo.
-    else
-        out.mM1OFF=squeeze(mM1OFF(clust,:,:,:)); % Accumulated spike times for *all* presentations of each laser/f/a combo.
-    end
+    szM=size(M1OFF);
+    out.M1OFF=reshape(M1OFF(clust,:,:,:,:), szM(2:end)); % All spiketimes, trial-by-trial.
+    szm=size(mM1OFF);
+    out.mM1OFF=reshape(mM1OFF(clust,:,:,:,:), szm(2:end)); %Accumulated spike times for *all* presentations of each laser/f/a/d combo.
+%     %I am not sure if I have this right:
+%     if numfreqs>numamps
+%         out.mM1OFF=squeeze(mM1OFF(clust,:,:,:))'; % Accumulated spike times for *all* presentations of each laser/f/a combo.
+%     else
+%         out.mM1OFF=squeeze(mM1OFF(clust,:,:,:)); % Accumulated spike times for *all* presentations of each laser/f/a combo.
+%     end
     out.mM1OFFspikecount=(mM1OFFspikecount(clust,:,:,:));
     out.sM1OFFspikecount=(sM1OFFspikecount(clust,:,:,:));
     out.semM1OFFspikecount=(semM1OFFspikecount(clust,:,:,:));

@@ -194,7 +194,8 @@ switch action
     case 'mouseGenotype'
         SP.mouseGenotype=get(SP.mouseGenotypeh, 'string');
         cd (pref.root)
-        load mouseDB
+        try load mouseDB
+        end
         str=sprintf('%s.mouseGenotype=''%s'';', SP.mouseID, SP.mouseGenotype);
         eval(str);
         save('mouseDB.mat', SP.mouseID, '-append')
@@ -203,7 +204,8 @@ switch action
         SP.mouseSex=lower(get(SP.mouseSexh, 'string'));
         set(SP.mouseSexh, 'string', SP.mouseSex)
         cd (pref.root)
-        load mouseDB
+        try load mouseDB
+        end
         str=sprintf('%s.mouseSex=''%s'';', SP.mouseID, SP.mouseSex);
         eval(str)
         save('mouseDB.mat', SP.mouseID, '-append')
@@ -211,7 +213,8 @@ switch action
     case 'mouseDOB'
         SP.mouseDOB=get(SP.mouseDOBh, 'string');
         cd (pref.root)
-        load mouseDB
+        try load mouseDB
+        end
         str=sprintf('%s.mouseDOB=''%s'';', SP.mouseID, SP.mouseDOB);
         eval(str)
         save('mouseDB.mat', SP.mouseID, '-append')
@@ -369,6 +372,7 @@ end
 function LoadMouse
 global SP
 cd (SP.datapath)
+try
 mouseDB=load('mouseDB.mat');
 if isfield(mouseDB, SP.mouseID)
     try
@@ -394,7 +398,9 @@ else
     SP.mouseDOB='age unknown';
     set(SP.mouseDOBh, 'string', SP.mouseDOB);
 end
-
+catch
+    djMessage('could not load mouse database')
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function WriteMouseIDtoPrefs
 global SP pref

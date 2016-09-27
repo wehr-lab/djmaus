@@ -109,6 +109,14 @@ for clustindex=1:length(outfilename) %main cluster loop
     nrepsON=out.nrepsON;
     nrepsOFF=out.nrepsOFF;
     
+    M_LaserStart=out.M_LaserStart;
+    M_LaserWidth=out.M_LaserWidth;
+    M_LaserNumPulses=out.M_LaserNumPulses;
+    M_LaserISI=out.M_LaserISI;
+    LaserStart=out.LaserStart;
+    LaserWidth=out.LaserWidth;
+    LaserNumPulses=out.LaserNumPulses;
+    LaserISI=out.LaserISI;
     fs=10; %fontsize
     
     % %find optimal axis limits
@@ -219,15 +227,31 @@ for clustindex=1:length(outfilename) %main cluster loop
                             spiketimes2=M1ON(findex, aindex, dindex, n).spiketimes;
                             offset=offset+inc;
                             h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k');
+                            %this should plot a cyan line for every trial among the rasters
+                            %it should accomodate trial-by-trial changes to
+                            %Laser params
+                            MLaserStart=M_LaserStart(findex,aindex,dindex, n);
+                            MLaserWidth=M_LaserWidth(findex,aindex,dindex, n);
+                            MLaserNumPulses=M_LaserNumPulses(findex,aindex,dindex, n);
+                            MLaserISI=M_LaserISI(findex,aindex,dindex, n);
+                            for np=1:MLaserNumPulses
+                                plot([MLaserStart+(np-1)*(MLaserWidth+MLaserISI) MLaserStart+(np-1)*(MLaserWidth+MLaserISI)+MLaserWidth], [1 1]+offset, 'c')
+                            end
                         end
                     end
                     bar(x, N,1);
                     line([0 0+durs(dindex)], [-.2 -.2], 'color', 'm', 'linewidth', 4)
                     line(xlimits, [0 0], 'color', 'k')
+                    
                     ylimits2(2)=ylimits(2)*3;
                     ylimits2(1)=-2;
                     ylim(ylimits2(:))
                     
+                    %this should plot a cyan line at the unique Laser
+                    %params - not sure what will happen if not scalar
+                    for np=1:LaserNumPulses
+                        plot([LaserStart+(np-1)*(LaserWidth+LaserISI) LaserStart+(np-1)*(LaserWidth+LaserISI)+LaserWidth], [1 1]+offset, 'c')
+                    end
                     xlim(xlimits)
                     set(gca, 'fontsize', fs)
                     set(gca, 'xticklabel', '')

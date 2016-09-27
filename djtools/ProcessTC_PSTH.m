@@ -396,6 +396,10 @@ for i=1:length(Events)
                     M1ON(clust, findex,aindex,dindex, nrepsON(findex, aindex, dindex)).spiketimes=spiketimes1; % Spike times
                     M1ONspikecounts(clust, findex,aindex,dindex,nrepsON(findex, aindex, dindex))=spikecount; % No. of spikes
                     M1spontON(clust, findex,aindex,dindex, nrepsON(findex, aindex, dindex))=spont_spikecount; % No. of spikes in spont window, for each presentation.
+                    M_LaserStart(clust, findex,aindex,dindex, nrepsON(findex, aindex, dindex))=LaserStart(i);
+                    M_LaserWidth(clust, findex,aindex,dindex, nrepsON(findex, aindex, dindex))= LaserWidth(i);
+                    M_LaserNumPulses(clust, findex,aindex,dindex, nrepsON(findex, aindex, dindex))= LaserNumPulses(i);
+                    M_LaserISI(clust, findex,aindex,dindex, nrepsON(findex, aindex, dindex))= LaserISI(i);
                 else
                     if clust==1
                         nrepsOFF(findex, aindex, dindex)=nrepsOFF(findex, aindex, dindex)+1;
@@ -501,7 +505,7 @@ for clust=1:Nclusters
     out.cluster=clust; %there are some redundant names here
     out.cell=clust;
     if IL
-        sz=size(M1OFF);
+        sz=size(M1ON);
         out.M1ON=reshape(M1ON(clust,:,:,:,:), sz(2:end));
         out.mM1ONspikecount=(mM1ONspikecount(clust,:,:,:)); % Mean spikecount for each laser/f/a combo.
         out.sM1ONspikecount=(sM1ONspikecount(clust,:,:,:));
@@ -518,6 +522,14 @@ for clust=1:Nclusters
         out.LaserStart=unique(LaserStart); %only saving one value for now, assuming it's constant
         out.LaserWidth=unique(LaserWidth);
         out.LaserNumPulses=unique(LaserNumPulses);
+        out.LaserISI=unique(LaserISI);
+        
+        sz=size(M_LaserStart);
+        out.M_LaserStart=reshape(M_LaserStart(clust,:,:,:,:), sz(2:end));
+        out.M_LaserWidth=reshape(M_LaserWidth(clust,:,:,:,:), sz(2:end));
+        out.M_LaserNumPulses=reshape(M_LaserNumPulses(clust,:,:,:,:), sz(2:end));
+        out.M_LaserISI=reshape(M_LaserISI(clust,:,:,:,:), sz(2:end));
+        
         
     else
         out.M1ON=[];
@@ -531,6 +543,11 @@ for clust=1:Nclusters
         out.LaserStart=[];
         out.LaserWidth=[];
         out.Lasernumpulses=[];
+        out.M_LaserStart=[];
+        out.M_LaserWidth=[];
+        out.M_LaserNumPulses=[];
+        out.M_LaserISI=[];
+
     end
     sz=size(M1OFF);
     out.M1OFF=reshape(M1OFF(clust,:,:,:,:), sz(2:end)); % All spiketimes, trial-by-trial.

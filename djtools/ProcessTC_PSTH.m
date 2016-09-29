@@ -15,15 +15,15 @@ if nargin==0
     return;
 end
 datadir=varargin{1};
-
+xlimits=[]
 try
-    xlimits=varargin{4};
+    xlimits=varargin{3};
 end
 if isempty(xlimits)
     xlimits=[0 200];
 end
 try
-    ylimits=varargin{5};
+    ylimits=varargin{4};
 catch
     ylimits=[];
 end

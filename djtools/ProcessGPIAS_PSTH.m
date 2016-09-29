@@ -129,13 +129,23 @@ for i=1:length(messages)
                 all_SCTs=[all_SCTs corrected_SCT];
             end
         end
-        %get corresponding SCT TTL timestamp and assign to Event
-         %old way (from TC) won't work, since the network events get ahead of the SCTs.
-         %another way (dumb and brittle) is to just use the corresponding
-         %index, assuming they occur in the proper order with no drops or
-         %extras
-        SCTtime_sec=all_SCTs(sound_index);
-        Events(sound_index).soundcard_trigger_timestamp_sec=SCTtime_sec;
+        
+              %get corresponding SCT TTL timestamp and assign to Event
+        %old way (from TC) won't work, since the network events get ahead of the SCTs.
+        %another way (dumb and brittle) is to just use the corresponding
+        %index, assuming they occur in the proper order with no drops or
+        %extras
+        try
+            SCTtime_sec=all_SCTs(sound_index);
+            Events(sound_index).soundcard_trigger_timestamp_sec=SCTtime_sec;
+        catch
+            %     one reason this won't work is if you stop recording during the
+            %     play-out, i.e. stimuli were logged (to stimlog and network events)
+            %     but never played before recording was stopped
+            if sound_index>length(all_SCTs)
+            Events(sound_index).soundcard_trigger_timestamp_sec=nan;
+            end
+        end
         
     end
 end
@@ -185,12 +195,11 @@ if monitor
         [SCTtrace, SCTtimestamps, SCTinfo] =load_open_ephys_data(SCTfname);
     end
     
-    %here I'm loading a data channel to get good timestamps - the ADC timestamps are screwed up
-    datafname=getContinuousFilename( pwd, 1 );
-    [scaledtrace, datatimestamps, datainfo] =load_open_ephys_data(datafname);
+%     %here I'm loading a data channel to get good timestamps - the ADC timestamps are screwed up
+%     datafname=getContinuousFilename( pwd, 1 );
+%     [scaledtrace, datatimestamps, datainfo] =load_open_ephys_data(datafname);
     
     SCTtimestamps=SCTtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
-    datatimestamps=datatimestamps-StartAcquisitionSec;
     
     
     %sanity check
@@ -227,9 +236,9 @@ if monitor
     hold on
     %set(gcf, 'pos', [-1853 555 1818 420]);
     SCTtrace=SCTtrace./max(abs(SCTtrace));
-    scaledtrace=scaledtrace./max(abs(scaledtrace));
-    plot(datatimestamps, SCTtrace) %plotting with data timestamps to work around wierd bug in ADC timestamps
-    plot(datatimestamps, scaledtrace, 'm') %plotting with data timestamps to work around wierd bug in ADC timestamps
+%     scaledtrace=scaledtrace./max(abs(scaledtrace));
+    plot(SCTtimestamps, SCTtrace) %plotting with data timestamps to work around wierd bug in ADC timestamps
+   % plot(datatimestamps, scaledtrace, 'm') %plotting with data timestamps to work around wierd bug in ADC timestamps
     
     hold on
     %plot "software trigs" i.e. network messages in red o's
@@ -237,7 +246,8 @@ if monitor
         plot(Events(i).message_timestamp_sec, .25, 'ro');
         plot(Events(i).soundcard_trigger_timestamp_sec, 1, 'g*');
         text(Events(i).message_timestamp_sec, .5, sprintf('network message #%d', i))
-        text(Events(i).soundcard_trigger_timestamp_sec, .5, sprintf('SCT #%d', i))
+        text(Events(i).message_timestamp_sec, .75, sprintf('%s', Events(i).type))
+        text(Events(i).soundcard_trigger_timestamp_sec, 1.25, sprintf('SCT #%d', i))
     end
     
     %all_channels_info.eventType(i) = 3 for digital line in (TTL), 5 for network Events
@@ -257,9 +267,9 @@ if monitor
     
     
     for i=1:length(Events)
-        xlim([Events(i).message_timestamp_sec-.02 Events(i).message_timestamp_sec+.5])
+        xlim([Events(i).message_timestamp_sec-2 Events(i).message_timestamp_sec+3])
         ylim([-5 2])
-        pause(.1)
+        pause(.01)
     end
 end %if monitor
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -152,7 +152,7 @@ for clustindex=1:length(outfilename) %main cluster loop
         ystep=1;
         yend=numy;
     end
-        
+    
     %plot the mean tuning curve OFF
     for windex=1:numw
         figure
@@ -197,11 +197,11 @@ for clustindex=1:length(outfilename) %main cluster loop
         end
         subplot1(1)
         h=title(sprintf('%s: \ntetrode%d cell%d %dms, nreps: %d-%d, OFF',datadir,channel,out.cluster,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
-        set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
+        set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
         
         %label amps and freqs
         p=0;
-        for yindex=numy:-1:1
+        for yindex=ystart:ystep:yend
             for findex=1:numfreqs
                 p=p+1;
                 subplot1(p)
@@ -211,7 +211,7 @@ for clustindex=1:length(outfilename) %main cluster loop
                     else
                         text(xlimits(1)+diff(xlimits)/20, mean(ylimits), int2str(durs(yindex)))
                     end
-
+                    
                 end
                 if yindex==1
                     if mod(findex,2) %odd freq
@@ -227,15 +227,18 @@ for clustindex=1:length(outfilename) %main cluster loop
     
     if IL
         %plot the mean tuning curve ON
-        for dindex=1:numdurs
+        for windex=1:numw
             figure
             p=0;
-        subplot1(numamps,numfreqs, 'Max', [.95 .9])
-        for aindex=numamps:-1:1
+            subplot1(numy,numfreqs, 'Max', [.95 .9])
+            for yindex=ystart:ystep:yend
                 for findex=1:numfreqs
                     p=p+1;
                     subplot1(p)
                     hold on
+                    if numamps>=numdurs, aindex=yindex; dindex=windex;
+                    else aindex=windex; dindex=yindex;
+                    end
                     spiketimes1=mM1ON(findex, aindex, dindex).spiketimes;
                     X=xlimits(1):binwidth:xlimits(2); %specify bin centers
                     [N, x]=hist(spiketimes1, X);
@@ -274,7 +277,7 @@ for clustindex=1:length(outfilename) %main cluster loop
                         plot([LaserStart+(np-1)*(LaserWidth+LaserISI) LaserStart+(np-1)*(LaserWidth+LaserISI)+LaserWidth], [-2 -2], 'c', 'linewidth', 2)
                     end
                     line([0 0+durs(dindex)], [-.2 -.2], 'color', 'm', 'linewidth', 4)
-
+                    
                     xlim(xlimits)
                     set(gca, 'fontsize', fs)
                     set(gca, 'xticklabel', '')
@@ -284,17 +287,22 @@ for clustindex=1:length(outfilename) %main cluster loop
             end
             subplot1(1)
             h=title(sprintf('%s: \ntetrode%d cell%d %dms, nreps: %d-%d, ON',datadir,channel,out.cluster,durs(dindex),min(min(min(nrepsON))),max(max(max(nrepsON)))));
-        set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
+            set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
             
-
+            
             %label amps and freqs
             p=0;
-            for aindex=numamps:-1:1
+            for yindex=ystart:ystep:yend
                 for findex=1:numfreqs
                     p=p+1;
                     subplot1(p)
+                    
                     if findex==1
-                        text(xlimits(1)-diff(xlimits)/2, mean(ylimits), int2str(amps(aindex)))
+                        if numamps>=numdurs
+                            text(xlimits(1)-diff(xlimits)/2, mean(ylimits), int2str(amps(yindex)))
+                        else
+                            text(xlimits(1)+diff(xlimits)/20, mean(ylimits), int2str(durs(yindex)))
+                        end
                     end
                     if aindex==1
                         if mod(findex,2) %odd freq

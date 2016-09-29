@@ -13,6 +13,7 @@ catch
 end
 pref.num_soundcard_outputchannels=4;
 pref.reqlatencyclass=0; %Rig1: saw dropouts with 0, fewer 1, fewer with 2, still some with 3
+pref.suggestedLatency=.01;
 pref.SoundFs=192000;
 pref.maxSPL=80;
 pref.allmouseIDs='';

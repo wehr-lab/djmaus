@@ -38,7 +38,7 @@ end
 try
     xlimits=varargin{4};
 catch
-    xlimits=[-100 200];
+    xlimits=[-100 300];
 end
 try
     ylimits=varargin{5};
@@ -126,6 +126,13 @@ for clustindex=1:length(outfilename) %main cluster loop
             for findex=1:numfreqs
                 for dindex=1:numdurs
                     st=mM1OFF(findex, aindex, dindex).spiketimes;
+                    X=xlimits(1):binwidth:xlimits(2); %specify bin centers
+                    [N, x]=hist(st, X);
+                    N=N./nreps(findex, aindex, dindex); %normalize to spike rate (averaged across trials)
+                    N=1000*N./binwidth; %normalize to spike rate in Hz
+                    ymax= max(ymax,max(N));
+                    
+                    st=mM1ON(findex, aindex, dindex).spiketimes;
                     X=xlimits(1):binwidth:xlimits(2); %specify bin centers
                     [N, x]=hist(st, X);
                     N=N./nreps(findex, aindex, dindex); %normalize to spike rate (averaged across trials)

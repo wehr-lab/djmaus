@@ -137,7 +137,7 @@ end
 
 if exist('check1', 'var') & exist('check2', 'var')
     fprintf('start acquisition method agreement check: %d, %d', check1, check2);
-if check1==check2    fprintf(' Good.'), end
+    if check1==check2    fprintf(' Good.'), end
 end
 
 
@@ -420,6 +420,8 @@ for clust=1:Nclusters %could be multiple clusts (cells) per tetrode
     fprintf('\nIn range: %d', inRange(clust))
 end
 
+mM1ON=[];
+mM1OFF=[];
 
 % Accumulate spiketimes across trials, for psth...
 for dindex=1:length(durs); % Hardcoded.
@@ -511,15 +513,21 @@ for clust=1:Nclusters
     if IL
         szM=size(M1ON);
         out.M1ON=reshape(M1ON(clust,:,:,:,:), szM(2:end));
-                szm=size(mM1OFF);
-                out.mM1OFF=reshape(mM1OFF(clust,:,:,:,:), szm(2:end)); %Accumulated spike times for *all* presentations of each laser/f/a/d combo.
-                %         %I am not sure if I have this right:
-                %         if numfreqs>numamps
-                %             out.mM1ON=squeeze(mM1ON(clust,:,:,:))';
-                %         else
-                %             out.mM1ON=squeeze(mM1ON(clust,:,:,:));
-                %         end
-                out.mM1ONspikecount=(mM1ONspikecount(clust,:,:,:)); % Mean spikecount for each laser/f/a combo.
+        szm=size(mM1ON);
+        if numel(mM1ON)==1 %only a single stimulus
+            out.mM1ON=mM1ON; %Accumulated spike times for *all* presentations of each laser/f/a/d combo.
+        elseif length(szm)==2 & szm(2)==1
+            out.mM1ON=mM1ON(clust,:); %Accumulated spike times for *all* presentations of each laser/f/a/d combo.
+        else
+            out.mM1ON=reshape(mM1ON(clust,:,:,:,:), szm(2:end)); %Accumulated spike times for *all* presentations of each laser/f/a/d combo.
+        end
+        %         %I am not sure if I have this right:
+        %         if numfreqs>numamps
+        %             out.mM1ON=squeeze(mM1ON(clust,:,:,:))';
+        %         else
+        %             out.mM1ON=squeeze(mM1ON(clust,:,:,:));
+        %         end
+        out.mM1ONspikecount=(mM1ONspikecount(clust,:,:,:)); % Mean spikecount for each laser/f/a combo.
         out.sM1ONspikecount=(sM1ONspikecount(clust,:,:,:));
         out.semM1ONspikecount=(semM1ONspikecount(clust,:,:,:));
         out.mM1spontON=(mM1spontON(clust,:,:,:)); % Spont spikes.
@@ -549,18 +557,24 @@ for clust=1:Nclusters
         out.M_LaserWidth=[];
         out.M_LaserNumPulses=[];
         out.M_LaserISI=[];
-
+        
     end
     szM=size(M1OFF);
     out.M1OFF=reshape(M1OFF(clust,:,:,:,:), szM(2:end)); % All spiketimes, trial-by-trial.
     szm=size(mM1OFF);
-    out.mM1OFF=reshape(mM1OFF(clust,:,:,:,:), szm(2:end)); %Accumulated spike times for *all* presentations of each laser/f/a/d combo.
-%     %I am not sure if I have this right:
-%     if numfreqs>numamps
-%         out.mM1OFF=squeeze(mM1OFF(clust,:,:,:))'; % Accumulated spike times for *all* presentations of each laser/f/a combo.
-%     else
-%         out.mM1OFF=squeeze(mM1OFF(clust,:,:,:)); % Accumulated spike times for *all* presentations of each laser/f/a combo.
-%     end
+    if numel(mM1OFF)==1 %only a single stimulus
+        out.mM1OFF=mM1OFF; %Accumulated spike times for *all* presentations of each laser/f/a/d combo.
+    elseif length(szm)==2 & szm(2)==1
+        out.mM1OFF=mM1OFF(clust,:); %Accumulated spike times for *all* presentations of each laser/f/a/d combo.
+    else
+        out.mM1OFF=reshape(mM1OFF(clust,:,:,:,:), szm(2:end)); %Accumulated spike times for *all* presentations of each laser/f/a/d combo.
+    end
+    %     %I am not sure if I have this right:
+    %     if numfreqs>numamps
+    %         out.mM1OFF=squeeze(mM1OFF(clust,:,:,:))'; % Accumulated spike times for *all* presentations of each laser/f/a combo.
+    %     else
+    %         out.mM1OFF=squeeze(mM1OFF(clust,:,:,:)); % Accumulated spike times for *all* presentations of each laser/f/a combo.
+    %     end
     out.mM1OFFspikecount=(mM1OFFspikecount(clust,:,:,:));
     out.sM1OFFspikecount=(sM1OFFspikecount(clust,:,:,:));
     out.semM1OFFspikecount=(semM1OFFspikecount(clust,:,:,:));

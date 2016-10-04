@@ -212,6 +212,7 @@ PlaySound
 function LoadPPA(type,where,param)
 global SP pref debugging 
 % loads data. type can be either 'file' or 'var'
+str='';
 switch type
     case 'file'
         try

@@ -7,8 +7,6 @@ Should work on mac, linux, windows.
     -if psychtoolbox is already downloaded, you can just run SetupPsychtoolbox
 3. Download djmaus from https://github.com/wehr-lab/djmaus and put anywhere. Add that folder to matlab path (with subfolders).
 	-Pro tip: if you expect to do any code development, clone it instead (using the github desktop or command-line). Then you can commit changes.
-	-to clone from the command line, use:
-		git clone https://github.com/wehr-lab/djmaus.git
 	-to commit with github desktop: click "changes" tab at top, review which checked files you want to commit, 
 		add summary (required) and details (optional), click "commit to master", and then click sync in upper right corner.
 4. Copy djPrefs-template.m to djPrefs.m, and then edit djPrefs.m to reflect any specifics of your machine and paths. 

@@ -18,25 +18,39 @@ pref.SoundFs=192000;
 pref.maxSPL=80;
 pref.allmouseIDs='';
 pref.root=fileparts(which(mfilename));
-%use these urls for local communication (djmaus and open-ephys on same
-%computer):
-switch computer
-    case 'MACI64'
-        pref.zmqurl='tcp://localhost:5556'; %seems to work for mac
-        pref.mexpath='mac';
-    case 'GLNXA64'
-        pref.zmqurl='tcp://127.0.0.1:5556'; %seems to work for linux
-        pref.mexpath='unix';
-    case 'PCWIN64'
-        pref.zmqurl='tcp://127.0.0.1:5556'; %seems to work for windows
-        pref.mexpath='windows';
+
+pref.local =0; %1 for local communication (djmaus and open-ephys on same
+%computer), 0 for remote (djmaus and open-ephys on different computers)
+if pref.local %same computer
+    switch computer
+        case 'MACI64'
+            pref.zmqurl='tcp://localhost:5556'; %seems to work for mac
+            pref.mexpath='mac';
+        case 'GLNXA64'
+            pref.zmqurl='tcp://127.0.0.1:5556'; %seems to work for linux
+            pref.mexpath='unix';
+        case 'PCWIN64'
+            pref.zmqurl='tcp://127.0.0.1:5556'; %seems to work for windows
+            pref.mexpath='windows';
+    end
+    pref.datapath=fullfile(pref.root, 'Data\lab'); %open-ephys data is acquired on this computer
+    pref.remotedatapath=pref.datapath; %these are the same thing for local acquisition
+        pref.datahost='\';
+else %different computer
+    switch computer
+        case 'MACI64'
+            pref.mexpath='mac';
+        case 'GLNXA64'
+            pref.mexpath='unix';
+        case 'PCWIN64'
+            pref.mexpath='windows';
+    end
+    %specific zmq url for the open-ephys computer
+    pref.zmqurl='tcp://184.171.85.38:5556';
+    pref.datahost='\\wehrrig1b';
+    pref.remotedatapath='d:\lab\djmaus\Data\lab'; %what the open-ephys datapath looks like on the other computer
+    pref.datapath='\\wehrrig1b\d\lab\djmaus\Data\lab'; %what the open-ephys datapath looks like to this computer
 end
-%use a specific url for open-ephys on a different computer
-%pref.zmqurl='tcp://184.171.85.38:5556'; 
-pref.stimuli=fullfile(pref.root, 'stimuli');
-pref.stimuli=fullfile(pref.root, 'stimuli');
-pref.datapath=fullfile(pref.root, 'Data');
-pref.OEpath='D:\lab\plugin-GUI\Builds\VisualStudio2013\x64\Release64\bin\open-ephys.exe &'; %make sure to put & at the end
 
 % individual user prefs:
 if ~isfield(SP, 'user')

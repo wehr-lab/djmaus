@@ -1,13 +1,27 @@
-function MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_startle_duration, pulsedur, pulseamps, soa, soaflag, ...
-    ramp, isi, isi_var, interleave_laser, nrepeats)
-% usage MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_startle_duration, 
-%       pulsedur, pulseamps, soa, soaflag, ramp, iti, iti_var, interleave_laser, nrepeats)
+function MakeAsymGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_startle_duration, pulsedur, pulseamp, soa, soaflag, ...
+    pulseramp,gapramps, isi, isi_var, interleave_laser, nrepeats)
+% usage MakeAsymGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_startle_duration, 
+%       pulsedur, pulseamp, soa, soaflag, ramp, iti, iti_var, interleave_laser, nrepeats)
 %
 %
 %
-% creates a djmaus stimulus protocol file for GPIAS (gap-induced pre-pulse inhibition of acoustic startle
+% creates a djmaus stimulus protocol file for Asymmetrical GPIAS (gap-induced pre-pulse inhibition of acoustic startle
 % response). can use multiple gap durations, gap is silent
 % using variable ITI.
+% What is an Asymmetric GPIAS?
+% The gap ramps are specified individually. The offramp is the noise offset
+% ramp (start of gap). The onramp is the noise onset (gap termination).
+% Note that the conventional GPIAS stimuli always have gap ramp of zero.
+% Note that the continuous background noise has ramps fixed at zero
+% (which is required if they are to be continuous). 
+% The ramps are centered on gap transitions. In other words, the background
+% noise starts changing half-ramp before and stops changing half-ramp after
+% each transition.
+% This protocol is designed such that you provide a list of gap ramps (such
+% as [0 5 10]), and the on and off ramps take each possible combination of
+% these values. You could design it differently, all you need to do is
+% specify what on & off ramps you want MakeAsymGPIAS to use.
+%
 %recent edits: 
 %  -updated to djmaus version 9-2016
 %  -added interleave_laser flag (0 or 1), so output can be already
@@ -17,14 +31,13 @@ function MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_startle_duration,
 %  -changed gapdelay to specify time to gap offset instead of gap onset (so
 %   that ppalaser comes on relative to gap offset in the 'isi' case) (note:
 %   this is actually implemented in MakeGPIAS)
-% Note that GPIAS stimuli always have gap ramp of zero.
-% Note that the continuous background noise now has ramps fixed at zero
-% (which is required if they are to be continuous). 
-%
-%   mw 10.11.2016
+%  -introduced asymmetric ramps
+%  -only one pulseamp allowed in this protocol builder
+%   mw 10.11.2014
 %
 %NOTE: 
 % inputs:
+% gapramps: list of ramps for gap onset and termination, in ms
 % noiseamp: amplitude of the continuous white noise, in dB SPL
 % gapdurs: durations of the pre-pulse gap, in ms, in a vector, e.g. 50, or [0 50]
 % gapdelay: delay from start of continuous noise to gap OFFSET, in ms
@@ -32,14 +45,14 @@ function MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_startle_duration,
 %       stimulus has finished. We added this Oct 14, 2013 to allow extra time
 %       for laser be on after the startle. 
 % pulsedur: duration of the startle pulse in ms (can be 0 for no startle)
-% pulseamps: amplitudes of the startle pulse in dB SPL, in a vector, e.g. 95, or [90 95 100]
+% pulseamp: amplitude of the startle pulse in dB SPL, only one value allowed here
 % soa: Stimulus Onset Asynchrony in ms = time between gap onset and
 %       startle pulse tone onset
 % soaflag: can be either 'soa' (default), in which case soa value specifies the time
 % between the onset of the gap and the onset of the startle, or else 'isi',
 % in which case soa specifies the time between gap offset and startle
 % onset. If anything other than 'isi' it will default to 'soa'.
-% ramp: on-off ramp duration in ms
+% pulseramp: startle pulse on-off ramp duration in ms
 % iti: inter trial interval (onset-to-onset) in ms
 % iti_var: fractional variability of iti. Use 0 for fixed iti, or e.g. 0.1 to have iti vary by up to +-10%
 % interleave_laser: 0 or 1 to duplicate all stimuli and interleave laser
@@ -49,6 +62,9 @@ function MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_startle_duration,
 % note: still using the variable isi for inter-trial interval, AKA iti
 % outputs:
 % creates a suitably named stimulus protocol in D:\lab\exper2.2\protocols\ASR Protocols
+%
+% Note that the ITI between GPIAS stimuli cannot be less than
+% gapdelay+poststartle, and can only vary by increments of this duration.
 %
 %example calls:
 % fixed iti of 10 seconds with interleaved laser:
@@ -65,9 +81,9 @@ function MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_startle_duration,
 %
 %MakeGPIASdjProtocol(80, [0 1 2 4 8 16 32 64 128 256], 1000, 1000, 0, 100, 50, 'isi', 0, 1e3, 0, 0, 15)
 %
-%noiseamp=80; gapdurs=[0 1 2 4 8 16 32 64 128 256]; gapdelay=1000; poststartle=1000;
-%pulsedur=25; pulseamps=110; soa=50; soaflag='isi'; ramp=0; isi=15000; isi_var=.33; IL=1; nreps=10;
-%MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, poststartle, pulsedur, pulseamps, soa, soaflag, ramp, isi, isi_var, IL, nreps)
+%noiseamp=80; gapdurs=[16 128 ]; gapdelay=1000; poststartle=1000; gapramps=[0 4 8]
+%pulsedur=0; pulseamp=0; soa=50; soaflag='isi'; pulseramp=0; isi=1000; isi_var=0; IL=0; nreps=50;
+%MakeAsymGPIASdjProtocol(noiseamp, gapdurs, gapdelay, poststartle, pulsedur, pulseamp, soa, soaflag, pulseramp, gapramps, isi, isi_var, IL, nreps)
 
 if ~strcmp(soaflag, 'isi')
     soaflag='soa';
@@ -83,14 +99,19 @@ if strcmp(soaflag, 'soa')
     end
 end
 
+if any(gapramps>min(gapdurs))
+    warning('at least one gap ramp exceeds a gap duration... that won''t work')
+end
+if length(pulseamp)>1 error('only one pulseamp allowed in this protocol builder');end
+
 %if post_startle_duration==0 error('please use a finite post_startle_duration');end
 
 global pref
 if isempty(pref) djPrefs;end
-if nargin~=13 error('\MakeGPIASdjProtocol: wrong number of arguments.'); end
 
 numgapdurs=length(gapdurs);
-numpulseamps=length(pulseamps);
+numgapramps=length(gapramps);
+numgaprampcombos=numgapramps*factorial(numgapramps); %number of combinations of on and off ramps of each value
 
 gapdursstring='';
 for i=1:numgapdurs
@@ -98,31 +119,32 @@ for i=1:numgapdurs
 end
 gapdursstring=gapdursstring(1:end-1); %remove trailing -
 
-pulseampsstring='';
-for i=1:numpulseamps
-    pulseampsstring=[pulseampsstring, sprintf('%d-', pulseamps(i))];
+gaprampstring='';
+for i=1:numgapramps
+    gaprampstring=[gaprampstring, sprintf('%d-', gapramps(i))];
 end
-pulseampsstring=pulseampsstring(1:end-1); %remove trailing -
+gaprampstring=gaprampstring(1:end-1); %remove trailing -
 
 if interleave_laser==1
-    [GapdurGrid,PulseampGrid, Lasers]=meshgrid( gapdurs , pulseamps, [0 1]);
+    [GapdurGrid,GapOnrampGrid, GapOfframpGrid, Lasers]=ndgrid( gapdurs , gapramps, gapramps, [0 1]);
     numlasers=2;
 else
-    [GapdurGrid,PulseampGrid, Lasers]=meshgrid( gapdurs , pulseamps, 0);
+    [GapdurGrid,GapOnrampGrid, GapOfframpGrid, Lasers]=ndgrid( gapdurs ,gapramps, gapramps, 0);
     numlasers=1;
 end
 
 
-neworder=randperm( numpulseamps * numgapdurs * numlasers);
+neworder=randperm( numgapdurs * numgapramps * numgapramps * numlasers);
 rand_gapdurs=zeros(1, size(neworder, 2)*nrepeats);
-rand_pulseamps=zeros(1, size(neworder, 2)*nrepeats);
+rand_gapramps=zeros(1, size(neworder, 2)*nrepeats);
 lasers=zeros(1, size(neworder, 2)*nrepeats);
 
 
 for n=1:nrepeats
-    neworder=randperm( numpulseamps * numgapdurs * numlasers);
+    neworder=randperm( numgapdurs * numgapramps * numgapramps * numlasers);
     rand_gapdurs( prod(size(GapdurGrid))*(n-1) + (1:prod(size(GapdurGrid))) ) = GapdurGrid( neworder );
-    rand_pulseamps( prod(size(PulseampGrid))*(n-1) + (1:prod(size(PulseampGrid))) ) = PulseampGrid( neworder );
+    rand_gaponramps( prod(size(GapOnrampGrid))*(n-1) + (1:prod(size(GapOnrampGrid))) ) = GapOnrampGrid( neworder );
+    rand_gapofframps( prod(size(GapOfframpGrid))*(n-1) + (1:prod(size(GapOfframpGrid))) ) = GapOfframpGrid( neworder );
     lasers( prod(size(Lasers))*(n-1) + (1:prod(size(Lasers))) ) = Lasers( neworder );
 end
 
@@ -150,8 +172,8 @@ GPIASPerRepeat=length(neworder);
 StimPerRepeat=round(GPIASPerRepeat*isi/gpias_duration); %on average
 DurationPerRepeatSecs=StimPerRepeat*(gpias_duration)/1000;%approx. duration per repeat
 
-name= sprintf('GPIAS-na%ddB-gd%sms-pd%dms-pa%sdb-soa%dms(%s)-r%d-iti%d-itivar%d-%s-%dreps.mat',...
-    noiseamp, gapdursstring, round(pulsedur), pulseampsstring, soa,soaflag, round(ramp), isi,round(100*isi_var),interleave_laserstr, nrepeats);
+name= sprintf('AsymGPIAS-na%ddB-gd%sms-gr%sms-pd%dms-pa%ddb-pr%d-soa%dms(%s)-iti%d-itivar%d-%s-%dreps.mat',...
+    noiseamp, gapdursstring, gaprampstring, round(pulsedur),pulseamp, round(pulseramp),soa,soaflag, isi,round(100*isi_var),interleave_laserstr, nrepeats);
 
 description=''; %temp
 filename=name;
@@ -179,9 +201,9 @@ end
 for kk=1:length(rand_gapdurs)
 
     n=n+1;
-    stimuli(n).type='GPIAS';
+    stimuli(n).type='AsymGPIAS';
     stimuli(n).param.amplitude=noiseamp;
-    stimuli(n).param.ramp=ramp;
+    stimuli(n).param.pulseramp=pulseramp;
     stimuli(n).param.soa=soa;
     stimuli(n).param.soaflag=soaflag;
     stimuli(n).param.loop_flg=0;
@@ -190,8 +212,10 @@ for kk=1:length(rand_gapdurs)
     stimuli(n).param.next=next; %totally empirical value that allows psychportaudio rescheduling to work seamlessly
     stimuli(n).param.gapdelay=gapdelay;
     stimuli(n).param.gapdur=rand_gapdurs(kk);
+    stimuli(n).param.onramp=rand_gaponramps(kk);
+    stimuli(n).param.offramp=rand_gapofframps(kk);
     stimuli(n).param.pulsedur=pulsedur;
-    stimuli(n).param.pulseamp=rand_pulseamps(kk);
+    stimuli(n).param.pulseamp=pulseamp;
     stimuli(n).param.laser=lasers(kk);
     stimuli(n).stimulus_description=GetParamStr(stimuli(n));
     stimuli(n).protocol_name=name;
@@ -220,8 +244,8 @@ end
 
 TotalNumStim=length(stimuli);
 TotalDurationSecs=TotalNumStim*gpias_duration/1000;
-description=sprintf('GPIAS protocol: noise amp:%ddB, gapdur: %sms, gapdelay: %dms, pulsedur%dms pulse amplitude:%sdb SOA:%dms (%s) ramp:%dms iti:%dms iti-var: %.1f %s %drepeats, %d stim per rep (avg), %d total stimuli, %ds per rep (avg), %d s total dur',...
-    noiseamp, gapdursstring, gapdelay, pulsedur, pulseampsstring, soa, soaflag, ramp, isi,round(100*isi_var),interleave_laserstr, nrepeats, StimPerRepeat, TotalNumStim, round(DurationPerRepeatSecs), round(TotalDurationSecs));
+description=sprintf('Asymmetric GPIAS protocol: noise amp:%ddB, gapdur: %sms, gapramps: %s ms, gapdelay: %dms, pulsedur%dms pulse amplitude:%ddb pulseramp:%dms SOA:%dms (%s) iti:%dms iti-var: %.1f %s %drepeats, %d stim per rep (avg), %d total stimuli, %ds per rep (avg), %d s total dur',...
+    noiseamp, gapdursstring, gaprampstring, gapdelay, pulsedur, pulseamp, pulseramp, soa, soaflag, isi,round(100*isi_var),interleave_laserstr, nrepeats, StimPerRepeat, TotalNumStim, round(DurationPerRepeatSecs), round(TotalDurationSecs));
 for n=1:TotalNumStim
     stimuli(n).protocol_description=description;
 end

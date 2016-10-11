@@ -601,6 +601,8 @@ switch type
         fcn='MakeTone';
     case 'whitenoise'
         fcn='MakeWhiteNoise';
+    case 'AsymGPIAS'
+        fcn='MakeAsymGPIAS';
     case 'GPIAS'
         fcn='MakeGPIAS';
     case 'noise'
@@ -942,9 +944,9 @@ SP.fig=fig;
 set(fig,'visible','off');
 set(fig,'visible','off','numbertitle','off','name','djmaus',...
     'doublebuffer','on','menubar','none','closerequestfcn','djmaus(''Close'')')
-height=620; width=420; e=2; H=e;
+e=2; H=e;
 w=100; h=25;
-set(fig,'pos',[1200 400 width height],'visible','on');
+set(fig,'pos',pref.windowpos,'visible','on');
 
 labelfs=8; %fontsize for labels
 

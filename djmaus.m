@@ -601,6 +601,8 @@ switch type
         fcn='MakeTone';
     case 'whitenoise'
         fcn='MakeWhiteNoise';
+    case 'AsymGPIAS'
+        fcn='MakeAsymGPIAS';
     case 'GPIAS'
         fcn='MakeGPIAS';
     case 'noise'

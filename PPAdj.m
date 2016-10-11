@@ -92,6 +92,8 @@ switch action
             end
         catch
             djMessage('ppatimer could not check status', 'append')
+            set(h, 'string', '', 'backgroundcolor', [.4 .4 .4])
+
         end
         
         
@@ -521,7 +523,10 @@ else %this stimulus is not seamless
     %but on rig3 it appears to need the line to transition back to
     %non-seamless stimuli, and causes no complaints. mw 09-11-09
     PsychPortAudio('FillBuffer', PPAhandle, samples); % fill buffer now, start in PlaySound
-    
+    currstimuli=SP.CurrentStimulus;
+    protocol=SP.ProtocolIndex;
+    currstimulus=currstimuli(protocol);
+    SP.CurrStimatPPAstart=currstimulus;
     nreps=0; %0=repeat
     seamless=0;
     %this is a different approach which also works

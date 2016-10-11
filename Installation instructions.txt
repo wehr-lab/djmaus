@@ -15,8 +15,8 @@ Should work on mac, linux, windows.
     It might work out of the box, but you might want to edit the zmqurl if you are using a different computer for 
     open-ephys data acquisition, for example. If you have user-specific prefs they go under individual users at bottom.
 5. Install Open Ephys GUI. Download from http://www.open-ephys.org/gui/
-	to use Network Events on Mac you need to build from source code, 
-	which is described here: https://open-ephys.atlassian.net/wiki/display/OEW/Mac+OS+X 
+	to use Network Events you need to build from source code, 
+	which is described here: https://open-ephys.atlassian.net/wiki/display/OEW/Installation
 6. Install zeroMQ. Download from http://zeromq.org/intro:get-the-software 
 	Using package managers is much better:
 	linux:

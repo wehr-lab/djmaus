@@ -21,7 +21,7 @@ function MakeAsymGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_startle_durat
 % as [0 5 10]), and the on and off ramps take each possible combination of
 % these values. You could design it differently, all you need to do is
 % specify what on & off ramps you want MakeAsymGPIAS to use.
-
+%
 %recent edits: 
 %  -updated to djmaus version 9-2016
 %  -added interleave_laser flag (0 or 1), so output can be already

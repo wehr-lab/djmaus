@@ -1,2 +1,2 @@
-d:\lab\djmaus\Data\kat\2016-10-05_13-16-45_mouse-none
-53
+/home/lab/djmaus/ira/2016-10-13_12-48-54_mouse-none€
+51

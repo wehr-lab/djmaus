@@ -6,6 +6,9 @@
 */
 //to compile with XCode 7.x on Mac you need to be running Matlab R2016a or higher mw070716
 
+//note that mac/zeroMQwrapper.cpp and unix/zeroMQwrapper.cpp are identical
+//but windows/zeroMQwrapper.cpp is slightly different for platform reasons
+
 #include <stdio.h>
 #include "mex.h"
 #include "zmq.h"
@@ -115,6 +118,7 @@ void* MyThreadFunction( void* lpParam )
                 FILE *fp;
                 fp=fopen("RecordingPath.txt", "w");
                 fprintf (fp, "%s\n", mymsg);
+                fprintf (fp, "\n%d", mymsgsize);
                 fclose(fp);
 
                 printf ("\nzmq wrapper:wrote %s to RecordingPath.txt", mymsg);

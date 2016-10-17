@@ -862,7 +862,7 @@ if ~isempty(cal) %it will be empty if Init failed to load calibration
                 catch
                     djMessage( 'NOT calibrated', 'append')
                 end
-            case {'GPIAS'} %startle pulse (use whitenoise calibration)
+            case {'GPIAS', 'AsymGPIAS'} %startle pulse (use whitenoise calibration)
                %note: GPIAS is now whitenoise-based (not band-limited noise)
                 try
                     findex=find(cal.logspacedfreqs==-1); %freq of -1 indicates white noise

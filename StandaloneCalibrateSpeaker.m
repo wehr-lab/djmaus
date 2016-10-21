@@ -203,7 +203,7 @@ for lp = 1:num_loops
         ScaledData=detrend(audiodata(1,:), 'constant'); %in volts
         %high pass filter a little bit to remove rumble
         %for display purposes only
-        [b,a]=butter(1,100/(samplingrate*1000), 'high');
+        [b,a]=butter(1,100/(samplingrate), 'high');
         % Display trace.
         ax1=handles.axes1;
         ax2=handles.axes2;
@@ -229,6 +229,15 @@ for lp = 1:num_loops
         xt=get(ax2, 'xtick');
         set(ax2, 'xticklabel', round(10*xt/1000)/10)
         
+        if GetXonarDevice & isempty(GetAsioLynxDevice)
+            fudgefactorTone=-1.07;
+            fudgefactorWN=0.79;
+        elseif GetAsioLynxDevice  & isempty(GetXonarDevice)
+            fudgefactorTone=7.5;
+            fudgefactorWN=9.3;
+        else
+            error ('what soundcard are we using for recording?')
+        end
         ylabel(ax2, 'PSD');
         if tonefreq==-1
             %estimate amplitude -- RMS method
@@ -238,14 +247,14 @@ for lp = 1:num_loops
             Vrms=sqrt(mean(filtfilt(b,a,ScaledData).^2));
             db=dBSPL(Vrms, BKsensitivity);
             %fudge factor to achieve 94dB for B&K calibrator:
-            db=db+9.3;
+            db=db+fudgefactorWN;
             Message( sprintf('estimated noise amp: %.2f dB', db), handles);
         else
             %estimate amplitude -- Pxx method
             %                 fidx=closest(f, tonefreq);
             db=dBPSD(Pxx(fmaxindex), BKsensitivity);%should return 94 for B&K calibrator
             %fudge factor to achieve 94dB for B&K calibrator:
-            db=db+7.5;
+            db=db+fudgefactorTone;
             %db=dBPSD(Pxx(fidx), GetParam(me, 'mic_sensitivity'));
             Message( sprintf('estimated tone amp: %.2f dB', db), handles);
             %                             pause(.35)
@@ -303,11 +312,11 @@ for lp = 1:num_loops
         atten=atten-reset_amount*min(atten); %reset min atten towards 0 to avoid saturating
         atten(atten<0)=0;
         cd(pref.root)
-        try
-            cal=load('calibration.mat');
-        catch % #ok
-            cal=[];
-        end
+%         try
+%             cal=load('calibration.mat');
+%         catch % #ok
+%             cal=[];
+%         end
         timestampstr=['last saved ', datestr(now)];
         save calibration logspacedfreqs timestampstr DB  atten minfreq maxfreq freqsperoctave
         userdata.atten=atten;
@@ -617,6 +626,8 @@ numChan=2;
 buffSize=[]; %use default
 Mode=3; %full duplex: simultaneous capture and playback
 
+%hack mw 10.13.2016 to use other soundcard for input
+Mode=1;
 
 %stop and close
 try
@@ -625,13 +636,16 @@ try
 end
 
 try pahandle = PsychPortAudio('Open', DeviceID, Mode, reqlatencyclass, SoundFs, numChan, buffSize);
+ %hack mw 10.13.2016:
+ paInhandle = PsychPortAudio('Open', 0, 2, reqlatencyclass, SoundFs, numChan, buffSize);
     %runMode = 0; %default, turns off soundcard after playback
     runMode = 1; %leaves soundcard on (hot), uses more resources but may solve dropouts? mw 08.25.09: so far so good.
     PsychPortAudio('RunMode', pahandle, runMode);
     % Preallocate an internal audio recording  buffer with a capacity of 10 seconds:
-    PsychPortAudio('GetAudioData', pahandle, 10);
+    PsychPortAudio('GetAudioData', paInhandle, 10);%hack mw 10.13.2016
     
     userdata.pahandle=pahandle;
+    userdata.paInhandle=paInhandle;%hack mw 10.13.2016
     set(handles.figure1, 'userdata', userdata);
     Message('Initialized Sound', handles)
     
@@ -914,18 +928,21 @@ samples=reshape(samples, nstimchans, length(samples)); %ensure samples are a row
 samples(2,:)=0.*samples;
 
 pahandle=userdata.pahandle;
+paInhandle=userdata.paInhandle;
 PsychPortAudio('FillBuffer', pahandle, samples); % fill buffer
 nreps=1;
 when=0; %use this to start immediately
 waitForStart=0;
 PsychPortAudio('Start', pahandle,nreps,when,waitForStart);
+PsychPortAudio('Start', paInhandle,nreps,when,waitForStart);
 
 % Stop capture:
 waitForEndOfPlayback=1; %'waitForEndOfPlayback' - If set to 1, this method will wait until playback of the audio stream finishes by itself.
 PsychPortAudio('Stop', pahandle, waitForEndOfPlayback);
+PsychPortAudio('Stop', paInhandle, waitForEndOfPlayback);
 
 % Retrieve pending audio data from the drivers internal ringbuffer:
-[audiodata absrecposition overflow cstarttime] = PsychPortAudio('GetAudioData', pahandle);
+[audiodata absrecposition overflow cstarttime] = PsychPortAudio('GetAudioData', paInhandle);
 nrsamples = size(audiodata, 2);
 if overflow>0 warning('overflow in RecordTone'); end
 

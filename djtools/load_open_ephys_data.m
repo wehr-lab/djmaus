@@ -236,7 +236,8 @@ elseif strcmp(filetype, 'continuous')
             
             %fread(fid, 10, 'char*1'); % read in record marker and discard
             mymarker=fread(fid, 10, 'char*1'); % read in record marker and discard
-            if ~all(mymarker==[0:8 255]') error('bad marker');end %mw 9-9-2016
+      %      if ~all(mymarker==[0:8 255]') error('bad marker');end %mw 9-9-2016
+      %commenting out 10.20.16 on linux box
             
             data(current_sample+1:current_sample+nsamples) = block;
             

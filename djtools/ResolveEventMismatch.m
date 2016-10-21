@@ -10,7 +10,27 @@ fprintf('\nNumber of sound events (from network messages): %d', nEvents);
 fprintf('\nNumber of hardware triggers (soundcardtrig TTLs): %d', nSCTs);
 
 if nstimlog~=nEvents
-    error('ResolveEventMismatch: number of logged stim does not match number of Events')
+    warning('ResolveEventMismatch: number of logged stim does not match number of Events')
+    %try to match them up
+    %situation: AsymGPIAS stimlog missed the first stimulus
+    switch stimlog(1).type
+        case 'AsymGPIAS'
+            for i=1:10
+                events(i,:)=[Events(i).gapdur Events(i).onramp Events(i).offramp];
+                stim(i,:)=[stimlog(i).param.gapdur stimlog(i).param.onramp stimlog(i).param.offramp];
+            end
+            C=corr(stim', events');
+            offset=find(C(1,:)==1)-1; %num stimuli that stimlog is missing
+            if offset>=1
+                for i=2:length(Events)
+                    temp(i)=stimlog(i-1);
+                end
+                stimlog=temp;
+            end
+            %implicitly, stimlog(1) has the fields but they are all []
+            warning(sprintf('\nLooks like the first %d stimuli were not logged to notebook. Mismatch possibly resolved by shifting stimlog by %d. \nFurther investigation is highly recommended!!!!!!!'), offset, offset)
+            return
+    end
 end
 
 %first double-check that the stimlog and Events match

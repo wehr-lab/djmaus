@@ -1,6 +1,6 @@
 function PlotGPIAS_PSTH(varargin)
 
-%plots clustered spiking tuning curve data from djmaus
+%plots clustered spiking AsymGPIAS data from djmaus
 %
 % usage: PlotGPIAS_PSTH(datapath, [channel], [clust], [xlimits],[ylimits], [binwidth])
 % (channel, clust, xlimits, ylimits are optional)
@@ -75,7 +75,7 @@ if isempty(clust)
         d=dir(basefn);
         numclusters=size(d, 1);
         if numclusters==0
-            error('ProcessGPIAS_PSTH: no cluster files found');
+            error('ProcessAsymGPIAS_PSTH: no cluster files found');
         end
     else fprintf('\nno cluster specified\n%d outfiles found', numclusters)
         if numclusters>1 fprintf(' -  will plot all of them');end

@@ -1,8 +1,8 @@
-function ProcessGPIAS_PSTH(varargin)
+function ProcessAsymGPIAS_PSTH(varargin)
 
-%processes clustered spiking tuning curve data from djmaus
+%processes clustered spiking AsymGPIAS data from djmaus
 %
-% usage: ProcessGPIAS_PSTH(datadir, channel, [xlimits],[ylimits])
+% usage: ProcessAsymGPIAS_PSTH(datadir, channel, [xlimits],[ylimits])
 % (xlimits, ylimits are optional)
 % xlimits default to [0 200]
 % channel (tetrode) number should be an integer, if omitted you will be prompted for it
@@ -18,6 +18,8 @@ datadir=varargin{1};
 
 try
     xlimits=varargin{3};
+catch
+    xlimits=[];
 end
 if isempty(xlimits)
     xlimits=[];
@@ -103,24 +105,16 @@ for i=1:length(messages)
     elseif strcmp(Events_type, 'TrialType')
         sound_index=sound_index+1;
         Events(sound_index).type=str2{3};
-        if strcmp(str2{3}, 'whitenoise')
-            %temp hack because I had the wrong paramstr
-            Events(sound_index).dur=0;
-            Events(sound_index).amplitude=80;
-            Events(sound_index).LaserOnOff=0;
-            Events(sound_index).laser=0;
-            
-        else
-            for j=4:length(str2)
-                str3=strsplit(str2{j}, ':');
-                fieldname=str3{1};
-                value=str2num(str3{2});
-                if isempty(value) %this happens if it's a real string (like soaflag), not a 'num'
-                    value=str3{2}; %just use the string. E.g. 'soa' or 'isi'
-                end
-                Events(sound_index).(fieldname)= value;
+        for j=4:length(str2)
+            str3=strsplit(str2{j}, ':');
+            fieldname=str3{1};
+            value=str2num(str3{2});
+            if isempty(value) %this happens if it's a real string (like soaflag), not a 'num'
+                value=str3{2}; %just use the string. E.g. 'soa' or 'isi'
             end
+            Events(sound_index).(fieldname)= value;
         end
+        
         Events(sound_index).message_timestamp_samples=timestamp - StartAcquisitionSamples;
         Events(sound_index).message_timestamp_sec=timestamp/sampleRate - StartAcquisitionSec;
         
@@ -133,7 +127,7 @@ for i=1:length(messages)
             end
         end
         
-              %get corresponding SCT TTL timestamp and assign to Event
+        %get corresponding SCT TTL timestamp and assign to Event
         %old way (from TC) won't work, since the network events get ahead of the SCTs.
         %another way (dumb and brittle) is to just use the corresponding
         %index, assuming they occur in the proper order with no drops or
@@ -146,7 +140,7 @@ for i=1:length(messages)
             %     play-out, i.e. stimuli were logged (to stimlog and network events)
             %     but never played before recording was stopped
             if sound_index>length(all_SCTs)
-            Events(sound_index).soundcard_trigger_timestamp_sec=nan;
+                Events(sound_index).soundcard_trigger_timestamp_sec=nan;
             end
         end
         
@@ -155,8 +149,14 @@ end
 
 fprintf('\nNumber of sound events (from network messages): %d', length(Events));
 fprintf('\nNumber of hardware triggers (soundcardtrig TTLs): %d', length(all_SCTs));
+fprintf('\nNumber of logged stimuli in notebook: %d', length(stimlog));
 if length(Events) ~=  length(all_SCTs)
-    warning('ProcessGPIAS_PSTH: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
+    warning('ProcessAsymGPIAS_PSTH: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
+    [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog  );
+end
+
+if length(Events) ~=  length(stimlog)
+    warning('ProcessAsymGPIAS_PSTH: Number of sound events (from network messages) does not match Number of stimuli logged to notebook)')
     [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog  );
 end
 
@@ -168,7 +168,7 @@ end
 basefn=sprintf('ch%d_simpleclust_*.t', channel);
 d=dir(basefn);
 numclusters=size(d, 1);
-if numclusters==0 error('ProcessGPIAS_PSTH: no cluster files found');
+if numclusters==0 error('ProcessAsymGPIAS_PSTH: no cluster files found');
 else fprintf('\n%d cluster files found - will process all of them', numclusters)
 end
 for clustnum=1:numclusters
@@ -198,9 +198,9 @@ if monitor
         [SCTtrace, SCTtimestamps, SCTinfo] =load_open_ephys_data(SCTfname);
     end
     
-%     %here I'm loading a data channel to get good timestamps - the ADC timestamps are screwed up
-%     datafname=getContinuousFilename( pwd, 1 );
-%     [scaledtrace, datatimestamps, datainfo] =load_open_ephys_data(datafname);
+    %     %here I'm loading a data channel to get good timestamps - the ADC timestamps are screwed up
+    %     datafname=getContinuousFilename( pwd, 1 );
+    %     [scaledtrace, datatimestamps, datainfo] =load_open_ephys_data(datafname);
     
     SCTtimestamps=SCTtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
     
@@ -239,9 +239,9 @@ if monitor
     hold on
     %set(gcf, 'pos', [-1853 555 1818 420]);
     SCTtrace=SCTtrace./max(abs(SCTtrace));
-%     scaledtrace=scaledtrace./max(abs(scaledtrace));
+    %     scaledtrace=scaledtrace./max(abs(scaledtrace));
     plot(SCTtimestamps, SCTtrace) %plotting with data timestamps to work around wierd bug in ADC timestamps
-   % plot(datatimestamps, scaledtrace, 'm') %plotting with data timestamps to work around wierd bug in ADC timestamps
+    % plot(datatimestamps, scaledtrace, 'm') %plotting with data timestamps to work around wierd bug in ADC timestamps
     
     hold on
     %plot "software trigs" i.e. network messages in red o's
@@ -285,7 +285,7 @@ samprate=sampleRate;
 %get freqs/amps
 j=0;
 for i=1:length(Events)
-    if strcmp(Events(i).type, 'GPIAS')
+    if strcmp(Events(i).type, 'AsymGPIAS')
         j=j+1;
         allsoas(j)=Events(i).soa;
         allgapdurs(j)=Events(i).gapdur;
@@ -293,27 +293,33 @@ for i=1:length(Events)
         allpulseamps(j)=Events(i).pulseamp;
         allpulsedurs(j)=Events(i).pulsedur;
         allnoiseamps(j)=Events(i).amplitude;
-    elseif strcmp(Events(i).type, 'gapinnoise')
-        allsoas(j)=Events(i).soa;
-        allgapdurs(j)=Events(i).gapdur;
-        allgapdelays(j)=Events(i).gapdelay;
-        allpulseamps(j)=Events(i).pulseamp;
-        allpulsedurs(j)=Events(i).pulsedur;
-        allnoiseamps(j)=Events(i).amplitude;
+        allonramps(j)=Events(i).onramp;
+        allofframps(j)=Events(i).offramp;
+        allpulseramps(j)=Events(i).pulseramp;
     end
     
 end
-gapdurs=unique(allgapdurs);
-pulsedurs=unique(allpulsedurs);
 soas=unique(allsoas);
+gapdurs=unique(allgapdurs);
 gapdelays=unique(allgapdelays);
 pulseamps=unique(allpulseamps);
 pulsedurs=unique(allpulsedurs);
 noiseamps=unique(allnoiseamps);
+onramps=unique(allonramps);
+offramps=unique(allofframps);
+pulseramps=unique(allpulseramps);
+
 numgapdurs=length(gapdurs);
 numpulseamps=length(pulseamps);
-nrepsON=zeros( numgapdurs, numpulseamps);
-nrepsOFF=zeros( numgapdurs, numpulseamps);
+numonramps=length(onramps);
+numofframps=length(offramps);
+numpulseramps=length(pulseramps);
+
+if length(numofframps)~=length(numonramps)
+    error('number of on ramps should be same as number of off ramps')
+end
+numgapramps=numofframps;
+
 
 if length(noiseamps)~=1
     error('not able to handle multiple noiseamps')
@@ -352,7 +358,7 @@ for i=1:length(Events)
         
     elseif isfield(Events(i), 'laser') & ~isfield(Events(i), 'LaserOnOff')
         %Not sure about this one. Assume no laser for now, but investigate.
-        warning('ProcessGPIAS_PSTH: Cannot tell if laser button was turned on in djmaus GUI');
+        warning('ProcessAsymGPIAS_PSTH: Cannot tell if laser button was turned on in djmaus GUI');
         LaserTrials(i)=0;
         Events(i).laser=0;
     elseif ~isfield(Events(i), 'laser') & ~isfield(Events(i), 'LaserOnOff')
@@ -377,8 +383,8 @@ end
 %if lasers were used, we'll un-interleave them and save ON and OFF data
 
 M1ON=[];M1OFF=[];
-nrepsON=zeros(numgapdurs, numpulseamps);
-nrepsOFF=zeros(numgapdurs, numpulseamps);
+nrepsON=zeros(numgapdurs, numonramps, numofframps);
+nrepsOFF=zeros(numgapdurs, numonramps, numofframps);
 
 % %find optimal axis limits
 if isempty(xlimits)
@@ -391,7 +397,7 @@ fprintf('\nprocessing with xlimits [%d-%d]', xlimits(1), xlimits(2))
 j=0;
 inRange=zeros(1, Nclusters);
 for i=1:length(Events)
-    if strcmp(Events(i).type, 'GPIAS') | strcmp(Events(i).type, 'gapinnoise')
+    if strcmp(Events(i).type, 'AsymGPIAS')
         
         pos=Events(i).soundcard_trigger_timestamp_sec; %pos is in seconds
         laser=LaserTrials(i);
@@ -402,6 +408,11 @@ for i=1:length(Events)
             gdindex= find(gapdur==gapdurs);
             pulseamp=Events(i).pulseamp;
             paindex= find(pulseamp==pulseamps);
+            onramp=Events(i).onramp;
+            onrampindex= find(onramp==onramps);
+            offramp=Events(i).offramp;
+            offrampindex= find(offramp==offramps);
+            
             for clust=1:Nclusters %could be multiple clusts (cells) per tetrode
                 st=spiketimes(clust).spiketimes; %are in seconds
                 st_inrange=st(st>start & st<stop); % spiketimes in region, in seconds relative to start of acquisition
@@ -412,18 +423,18 @@ for i=1:length(Events)
                 
                 if laser
                     if clust==1
-                        nrepsON(gdindex,paindex)=nrepsON(gdindex,paindex)+1;
+                        nrepsON(gdindex,onrampindex, offrampindex)=nrepsON(gdindex,onrampindex, offrampindex)+1;
                     end
-                    M1ON(clust, gdindex,paindex, nrepsON(gdindex,paindex)).spiketimes=spiketimes1; % Spike times
-                    M1ONspikecounts(clust, gdindex,paindex,nrepsON(gdindex,paindex))=spikecount; % No. of spikes
-                    M1spontON(clust, gdindex,paindex, nrepsON(gdindex,paindex))=spont_spikecount; % No. of spikes in spont window, for each presentation.
+                    M1ON(clust, gdindex,onrampindex, offrampindex, nrepsON(gdindex,onrampindex, offrampindex)).spiketimes=spiketimes1; % Spike times
+                    M1ONspikecounts(clust, gdindex,onrampindex, offrampindex,nrepsON(gdindex,onrampindex, offrampindex))=spikecount; % No. of spikes
+                    M1spontON(clust, gdindex,onrampindex, offrampindex, nrepsON(gdindex,onrampindex, offrampindex))=spont_spikecount; % No. of spikes in spont window, for each presentation.
                 else
                     if clust==1
-                        nrepsOFF(gdindex,paindex)=nrepsOFF(gdindex,paindex)+1;
+                        nrepsOFF(gdindex,onrampindex, offrampindex)=nrepsOFF(gdindex,onrampindex, offrampindex)+1;
                     end
-                    M1OFF(clust, gdindex,paindex, nrepsOFF(gdindex,paindex)).spiketimes=spiketimes1;
-                    M1OFFspikecounts(clust, gdindex,paindex,nrepsOFF(gdindex,paindex))=spikecount;
-                    M1spontOFF(clust, gdindex,paindex, nrepsOFF(gdindex,paindex))=spont_spikecount;
+                    M1OFF(clust, gdindex,onrampindex, offrampindex, nrepsOFF(gdindex,onrampindex, offrampindex)).spiketimes=spiketimes1;
+                    M1OFFspikecounts(clust, gdindex,onrampindex, offrampindex,nrepsOFF(gdindex,onrampindex, offrampindex))=spikecount;
+                    M1spontOFF(clust, gdindex,onrampindex, offrampindex, nrepsOFF(gdindex,onrampindex, offrampindex))=spont_spikecount;
                 end
             end
         end
@@ -440,26 +451,28 @@ end
 
 % Accumulate spiketimes across trials, for psth...
 for gdindex=1:numgapdurs; % Hardcoded.
-    for paindex=1:numpulseamps
-        for clust=1:Nclusters
-            
-            % on
-            spiketimesON=[];
-            spikecountsON=[];
-            for rep=1:nrepsON(gdindex,paindex)
-                spiketimesON=[spiketimesON M1ON(clust, gdindex,paindex, rep).spiketimes];
+    for onrampindex=1:numonramps
+        for offrampindex=1:numofframps
+            for clust=1:Nclusters
+                
+                % on
+                spiketimesON=[];
+                spikecountsON=[];
+                for rep=1:nrepsON(gdindex,onrampindex, offrampindex)
+                    spiketimesON=[spiketimesON M1ON(clust, gdindex,onrampindex, offrampindex, rep).spiketimes];
+                end
+                
+                % All spiketimes for a given f/a/d combo, for psth:
+                mM1ON(clust, gdindex,onrampindex, offrampindex).spiketimes=spiketimesON;
+                
+                % off
+                spiketimesOFF=[];
+                spikecountsOFF=[];
+                for rep=1:nrepsOFF(gdindex,onrampindex, offrampindex)
+                    spiketimesOFF=[spiketimesOFF M1OFF(clust, gdindex,onrampindex, offrampindex, rep).spiketimes];
+                end
+                mM1OFF(clust, gdindex,onrampindex, offrampindex).spiketimes=spiketimesOFF;
             end
-            
-            % All spiketimes for a given f/a/d combo, for psth:
-            mM1ON(clust, gdindex,paindex).spiketimes=spiketimesON;
-            
-            % off
-            spiketimesOFF=[];
-            spikecountsOFF=[];
-            for rep=1:nrepsOFF(gdindex,paindex)
-                spiketimesOFF=[spiketimesOFF M1OFF(clust, gdindex,paindex, rep).spiketimes];
-            end
-            mM1OFF(clust, gdindex,paindex).spiketimes=spiketimesOFF;
         end
     end
 end
@@ -558,9 +571,11 @@ for clust=1:Nclusters
         out.semM1spontOFF=[];
     else
         sz=size(M1OFF);
+        szm=size(mM1OFF);
         out.M1OFF=reshape(M1OFF(clust,:,:,:,:), sz(2:end)); % All spiketimes, trial-by-trial.
         %i think this was for only 1 freq? the transpose i mean
-        out.mM1OFF=squeeze(mM1OFF(clust,:,:,:))'; % Accumulated spike times for *all* presentations of each laser/f/a combo.
+        
+        out.mM1OFF=squeeze(mM1OFF(clust,:,:,:)); % Accumulated spike times for *all* presentations of each laser/f/a combo.
         %for multiple freqs and amps, we need this:
         %out.mM1OFF=squeeze(mM1OFF(clust,:,:,:)); % Accumulated spike times for *all* presentations of each laser/f/a combo.
         out.mM1OFFspikecount=(mM1OFFspikecount(clust,:,:,:));
@@ -571,11 +586,15 @@ for clust=1:Nclusters
         out.semM1spontOFF=(semM1spontOFF(clust,:,:,:));
     end
     out.numpulseamps = numpulseamps;
+    out.numonramps = numonramps;
+    out.numofframps = numofframps;
     out.numgapdurs = numgapdurs;
     out.pulseamps = pulseamps;
     out.gapdurs = gapdurs;
     out.gapdelay = gapdelay;
     out.soa=soa;
+    out.onramps=onramps;
+    out.offramps=offramps;
     out.nrepsON=nrepsON;
     out.nrepsOFF=nrepsOFF;
     out.xlimits=xlimits;

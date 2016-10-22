@@ -35,6 +35,12 @@ high_pass_cutoff=400;
 [a,b]=butter(1, high_pass_cutoff/(30e3/2), 'high');
 fprintf('\nusing xlimits [%d-%d]', xlimits(1), xlimits(2))
 
+force_reprocess=1;
+if force_reprocess
+    fprintf('\nForce Re-process')
+    ProcessTC_LFP(datadir,  channel, xlimits, ylimits);
+end
+
 cd(datadir)
 outfilename=sprintf('outLFP_ch%d.mat',channel);
 d=dir(outfilename);
@@ -62,6 +68,11 @@ traces_to_keep=out.traces_to_keep;
 mM1=out.mM1;
 mM1ON=out.mM1ON;
 mM1OFF=out.mM1OFF;
+mM1ONLaser=out.mM1ONLaser;
+M1ONLaser=out.M1ONLaser;
+mM1OFFLaser=out.mM1OFFLaser;
+mM1ONStim=out.mM1ONStim;
+mM1OFFStim=out.mM1OFFStim;
 nrepsON=out.nrepsON;
 nrepsOFF=out.nrepsOFF;
 IL=out.IL; %whether there were interleaved laser trials or not
@@ -81,6 +92,7 @@ if isempty(ylimits)
         end
     end
 end
+
 ylimits=round(ylimits*100)/100;
 
 %plot the mean tuning curve BOTH
@@ -95,7 +107,8 @@ if IL
                 subplot1(p)
                 %
                 %             for i=1:length(nrepsON)
-                %             end
+                %             endmM1ONLaser=out.mM1ONLaser;
+                
                 %             trace1=squeeze(squeeze(meanONbl(findex, aindex, dindex, :)));
                 %             trace2=(squeeze(meanOFFbl(findex, aindex, dindex, :)));
                 trace1=squeeze(squeeze(out.mM1ON(findex, aindex, dindex, :)));
@@ -129,7 +142,7 @@ if IL
                 p=p+1;
                 subplot1(p)
                 if findex==1
-                text(xlimits(1)-diff(xlimits)/2, mean(ylimits), int2str(amps(aindex)))
+                    text(xlimits(1)-diff(xlimits)/2, mean(ylimits), int2str(amps(aindex)))
                 end
                 if aindex==1
                     if mod(findex,2) %odd freq
@@ -163,11 +176,21 @@ for dindex=1:numdurs
             %             trace1=filtfilt(b,a,trace1);
             trace1=trace1 -mean(trace1(1:100));
             
+            Lasertrace=squeeze(mM1OFFLaser(findex, aindex, dindex, :));
+            Lasertrace=Lasertrace -mean(Lasertrace(1:100));
+            Lasertrace=.05*diff(ylimits)*Lasertrace;
+            Stimtrace=squeeze(mM1OFFStim(findex, aindex, dindex, :));
+            Stimtrace=Stimtrace -mean(Stimtrace(1:100));
+            Stimtrace=.05*diff(ylimits)*Stimtrace;
+            
+            
             t=1:length(trace1);
             t=1000*t/out.samprate; %convert to ms
             t=t+out.xlimits(1); %correct for xlim in original processing call
-            line([0 0+durs(dindex)], [0 0], 'color', 'm', 'linewidth', 5)
+            line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
             hold on; plot(t, trace1, 'k');
+            offset=ylimits(1)+.1*diff(ylimits);
+            plot(t, Stimtrace+offset, 'm', t, Lasertrace+offset, 'c')
             ylim(ylimits)
             xlim(xlimits)
             xlabel off
@@ -187,26 +210,28 @@ for dindex=1:numdurs
             subplot1(p)
             if findex==1
                 text(xlimits(1)-diff(xlimits)/2, mean(ylimits), int2str(amps(aindex)))
-            end
-            if aindex==1
-                if mod(findex,2) %odd freq
-                    vpos=ylimits(1)-mean(ylimits);
-                else
-                    vpos=ylimits(1)-mean(ylimits);
+                endmM1ONLaser=out.mM1ONLaser;
+                
+                if aindex==1
+                    if mod(findex,2) %odd freq
+                        vpos=ylimits(1)-mean(ylimits);
+                    else
+                        vpos=ylimits(1)-mean(ylimits);
+                    end
+                    if freqs(findex)>0
+                        text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
+                    elseif freqs(findex)==-1000
+                        text(xlimits(1), vpos, 'WN')
+                    elseif freqs(findex)==-2000
+                        text(xlimits(1), vpos, 'SS')
+                    end
                 end
-                if freqs(findex)>0
-                    text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
-                elseif freqs(findex)==-1000
-                    text(xlimits(1), vpos, 'WN')
-                elseif freqs(findex)==-2000
-                    text(xlimits(1), vpos, 'SS')
-                end
+                %             if findex==numfreqs && aindex==numamps
+                %                 axis on
+                %                 ylab=[ceil(ylimits(1)*10)/10 floor(ylimits(2)*10)/10];
+                %                 set(gca,'ytick',ylab,'yticklabel',ylab,'YAxisLocation','right')
+                %             end
             end
-            %             if findex==numfreqs && aindex==numamps
-            %                 axis on
-            %                 ylab=[ceil(ylimits(1)*10)/10 floor(ylimits(2)*10)/10];
-            %                 set(gca,'ytick',ylab,'yticklabel',ylab,'YAxisLocation','right')
-            %             end
         end
     end
 end
@@ -226,11 +251,27 @@ if IL
                 trace1=squeeze(mM1ON(findex, aindex, dindex, :));
                 %             trace1=filtfilt(b,a,trace1);
                 trace1=trace1 -mean(trace1(1:100));
+                
+                
+                Stimtrace=squeeze(mM1ONStim(findex, aindex, dindex, :));
+                Stimtrace=Stimtrace -mean(Stimtrace(1:100));
+                Stimtrace=.05*diff(ylimits)*Stimtrace;
+                
                 t=1:length(trace1);
                 t=1000*t/out.samprate; %convert to ms
                 t=t+out.xlimits(1); %correct for xlim in original processing call
-                line([0 0+durs(dindex)], [0 0], 'color', 'm', 'linewidth', 5)
+                line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
                 hold on; plot(t, trace1, 'b');
+                offset=ylimits(1)+.1*diff(ylimits);
+                plot(t, Stimtrace+offset, 'm')
+                
+                for rep=1:nrepsON(findex, aindex, dindex)
+                    Lasertrace=squeeze(M1ONLaser(findex, aindex, dindex,rep, :));
+                    Lasertrace=Lasertrace -mean(Lasertrace(1:100));
+                    Lasertrace=.05*diff(ylimits)*Lasertrace;
+                    plot( t, Lasertrace+offset, 'c')
+                end
+                
                 ylim(ylimits)
                 xlim(xlimits)
                 axis off
@@ -248,7 +289,7 @@ if IL
                 p=p+1;
                 subplot1(p)
                 if findex==1
-                text(xlimits(1)-diff(xlimits)/2, mean(ylimits), int2str(amps(aindex)))
+                    text(xlimits(1)-diff(xlimits)/2, mean(ylimits), int2str(amps(aindex)))
                 end
                 if aindex==1
                     if mod(findex,2) %odd freq

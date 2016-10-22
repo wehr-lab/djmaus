@@ -54,7 +54,7 @@ fprintf('\nProcessing continuous data\nloading file: ')
 %     godatadir(expdate, session, filenum)
 %     pathname='C:\Program Files\Open Ephys\ira_2014-02-14_13-43-56\'
 %     cd(pathname)
-%     filename=sprintf('102_CH%s.continuous',channel)
+%     filename=sprintf('102_CH/max(abs(Lasertrace))%s.continuous',channel)
 
 %try to read OE filename from exper structure (only will work after
 %02.14.14)
@@ -76,12 +76,6 @@ end
 %should record a copy of stim
 stim=0*scaledtrace;
 
-%   I'm running the soundcard trigger (SCT) into ai1 as another sanity check.
-try
-[SCTtrace, SCTtimestamps, SCTinfo] =load_open_ephys_data(getSCTfile('.'));
-catch
-    warning('cannot find soundcard trigger file')
-end
 %might want to read settings.xml from this directory to grab info about
 %filter settings, etc.
 
@@ -94,6 +88,10 @@ end
 Eventsfilename='all_channels.events';
 [all_channels_data, all_channels_timestamps, all_channels_info] = load_open_ephys_data(Eventsfilename);
 sampleRate=all_channels_info.header.sampleRate; %in Hz
+
+% ADC1: sound monitor
+% ADC2: soundcard trigger monitor
+% ADC3: laser monitor
 
 %all_channels_data is the channel the Events are associated with
 % the 0 channel Events are network Events
@@ -112,13 +110,13 @@ sampleRate=all_channels_info.header.sampleRate; %in Hz
 %FPGA, and 102 is the bandpass filter.
 
 %sanity check
-% fid=fopen('temp.txt', 'w');
-% for i=1:length(all_channels_timestamps)
-%     fprintf(fid, '%f, eventType %d, Id %d, channel %d\n', ...
-%         all_channels_timestamps(i), all_channels_info.eventType(i), ...
-%         all_channels_info.eventId(i), all_channels_data(i));
-% end
-% fclose(fid);
+fid=fopen('temp.txt', 'w');
+for i=1:length(all_channels_timestamps)
+    fprintf(fid, '%f, eventType %d, Id %d, channel %d\n', ...
+        all_channels_timestamps(i), all_channels_info.eventType(i), ...
+        all_channels_info.eventId(i), all_channels_data(i));
+end
+fclose(fid);
 
 
 %read messages
@@ -163,15 +161,30 @@ for i=1:length(messages)
                 all_SCTs=[all_SCTs corrected_SCT];
             end
         end
-        [idx]=find(all_SCTs>Events(sound_index).message_timestamp_sec, 1); %find first SCT after the message timestamp
-        SCTtime_sec=all_SCTs(idx);
-        %SCTtime_sec=SCTtime_sec-StartAcquisitionSec; %correct for open-ephys not starting with time zero
+        %find closest SCT by finding first before and first after, and
+        %choosing whichever is closerstimtrace
+        [idx_after]=find(all_SCTs>Events(sound_index).message_timestamp_sec, 1); %find first SCT after the message timestamp
+        [idx_before]=find(all_SCTs<=Events(sound_index).message_timestamp_sec, 1, 'last'); %find first SCT before the message timestamp
+       
+        if isempty(idx_after)
+                        SCTtime_sec=all_SCTs(idx_before);
+        elseif isempty(idx_before)
+                        SCTtime_sec=all_SCTs(idx_after);
+        elseif abs(diff([all_SCTs(idx_before), Events(sound_index).message_timestamp_sec])) <= abs(diff([all_SCTs(idx_after), Events(sound_index).message_timestamp_sec]))
+            %before is closer
+            SCTtime_sec=all_SCTs(idx_before);
+        elseif abs(diff([all_SCTs(idx_before), Events(sound_index).message_timestamp_sec])) > abs(diff([all_SCTs(idx_after), Events(sound_index).message_timestamp_sec]))
+                      %after is closer
+            SCTtime_sec=all_SCTs(idx_after);
+        else
+        error('WTF how can this happen')
+        end
         Events(sound_index).soundcard_trigger_timestamp_sec=SCTtime_sec;
         
+
     end
 end
 
-SCTtimestamps=SCTtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
 datatimestamps=datatimestamps-StartAcquisitionSec;
 
 if exist('check1', 'var') & exist('check2', 'var')
@@ -185,7 +198,7 @@ if length(Events) ~=  length(all_SCTs)
 end
 
 %messages is a list of all network event, which includes the stimuli
-%messages sent by djmaus, as well as the "ChangeDirectory" and
+%messages sent by djmaus, SCTchannelas well as the "ChangeDirectory" and
 %"GetRecordingPath" messages sent by djmaus, as well as 2 initial system
 %messages. I strip out the stimulus (sound) event and put them in "Events."
 %Events is a list of sound event, which were sent by djmaus with the
@@ -200,24 +213,50 @@ end
 % fclose(fid);
 
 
+%try to load laser and stimulus monitor
+Lasertrace=0*scaledtrace;
+stimtrace=0*scaledtrace;
+try
+    [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data(getLaserfile('.'));
+    Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+    Lasertrace=Lasertrace./max(abs(Lasertrace));
+    fprintf('\nsuccessfully loaded laser trace')
+end
+try
+    [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(getStimfile('.'));
+    Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+    Stimtrace=Stimtrace./max(abs(Stimtrace));
+    fprintf('\nsuccessfully loaded stim trace')
+end
 
 
-
-monitor = 1;
+monitor = 0;
 if monitor
     figure
     set(gcf, 'pos', [-1853 555 1818 420]);
-    SCTtrace=SCTtrace./max(abs(SCTtrace));
-%     plot(SCTtimestamps, SCTtrace)
-    plot(datatimestamps, SCTtrace)
-    
+
+    %   I'm running the soundcard trigger (SCT) into ai1 as another sanity check.
+    try
+        [SCTtrace, SCTtimestamps, SCTinfo] =load_open_ephys_data(getSCTfile('.'));
+        SCTtimestamps=SCTtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+    catch
+        warning('cannot find soundcard trigger file')
+    end
+   
+
+%     SCTtrace=SCTtrace./max(abs(SCTtrace));
     hold on
+     plot(SCTtimestamps, SCTtrace./max(SCTtrace), 'k')
+    plot(Lasertimestamps, Lasertrace./max(Lasertrace)+1, 'c')
+    plot(Stimtimestamps, Stimtrace./max(Stimtrace)+2, 'm')
+    plot(all_SCTs, .8+0*all_SCTs, 'g^')
+
     %plot "software trigs" i.e. network messages in red o's
     for i=1:length(Events)
         plot(Events(i).message_timestamp_sec, 0, 'ro');
-        plot(Events(i).soundcard_trigger_timestamp_sec, 1, 'g*');
-        text(Events(i).message_timestamp_sec, 1, sprintf('network message #%d', i))
-        text(Events(i).soundcard_trigger_timestamp_sec, .5, sprintf('SCT #%d', i))
+        text(Events(i).message_timestamp_sec, .2, sprintf('network message #%d', i), 'color', 'r')
+        plot(Events(i).soundcard_trigger_timestamp_sec, .5, 'g*');
+        text(Events(i).soundcard_trigger_timestamp_sec, .7, sprintf('SCT #%d', i), 'color', 'g')
     end
     
     %all_channels_info.eventType(i) = 3 for digital line in (TTL), 5 for network Events
@@ -300,7 +339,8 @@ for i=1:length(Events)
         %Not sure about this one. Assume no laser for now, but investigate.
         warning('ProcessTC_LFP: Cannot tell if laser button was turned on in djmaus GUI');
         LaserTrials(i)=0;
-        Events(i).laser=0;
+        Events(i).laser=0;%
+
     elseif ~isfield(Events(i), 'laser') & ~isfield(Events(i), 'LaserOnOff')
         %if neither of the right fields are there, assume no laser
         LaserTrials(i)=0;
@@ -322,7 +362,11 @@ else
 end
 %if lasers were used, we'll un-interleave them and save ON and OFF data
 
-M1=[];M1ON=[];M1OFF=[];
+M1=[];
+M1ON=[];M1OFF=[];
+M1ONLaser=[]; M1OFFLaser=[];
+M1ONStim=[];M1OFFStim=[];
+
 nreps=zeros(numfreqs, numamps, numdurs);
 nrepsON=zeros(numfreqs, numamps, numdurs);
 nrepsOFF=zeros(numfreqs, numamps, numdurs);
@@ -354,7 +398,7 @@ for i=1:length(Events)
                     freq=Events(i).frequency;
                     amp=Events(i).amplitude;
                 case 'fmtone'
-                    freq=Events(i).carrier_frequency;
+                    freq=Events(i).carrier_frequency;%
                     amp=Events(i).amplitude;
                 case 'whitenoise'
                     freq=-1000;
@@ -374,15 +418,18 @@ for i=1:length(Events)
             dindex= find(durs==dur);
             nreps(findex, aindex, dindex)=nreps(findex, aindex, dindex)+1;
             M1(findex,aindex,dindex, nreps(findex, aindex, dindex),:)=scaledtrace(region);
-            M1stim(findex,aindex,dindex, nreps(findex, aindex, dindex),:)=stim(region);
+            M1stim(findex,aindex,dindex, nreps(findex, aindex, dindex),:)=Stimtrace(region);
             if laser
                 nrepsON(findex, aindex, dindex)=nrepsON(findex, aindex, dindex)+1;
                 M1ON(findex,aindex,dindex, nrepsON(findex, aindex, dindex),:)=scaledtrace(region);
+                M1ONLaser(findex,aindex,dindex, nrepsON(findex, aindex, dindex),:)=Lasertrace(region);
+                M1ONStim(findex,aindex,dindex, nrepsON(findex, aindex, dindex),:)=Stimtrace(region);
             else
                 nrepsOFF(findex, aindex, dindex)=nrepsOFF(findex, aindex, dindex)+1;
                 M1OFF(findex,aindex,dindex, nrepsOFF(findex, aindex, dindex),:)=scaledtrace(region);
+                M1OFFLaser(findex,aindex,dindex, nrepsOFF(findex, aindex, dindex),:)=Lasertrace(region);
+                M1OFFStim(findex,aindex,dindex, nrepsOFF(findex, aindex, dindex),:)=Stimtrace(region);
             end
-            %             end
         end
     end
 end
@@ -406,13 +453,21 @@ else
                 end
                 if nrepsON(findex, aindex, dindex)>0
                     mM1ON(findex, aindex, dindex,:)=mean(M1ON(findex, aindex, dindex, 1:nrepsON(findex, aindex, dindex),:), 4);
+                    mM1ONStim(findex, aindex, dindex,:)=mean(M1ONStim(findex, aindex, dindex, 1:nrepsON(findex, aindex, dindex),:), 4);
+                    mM1ONLaser(findex, aindex, dindex,:)=mean(M1ONLaser(findex, aindex, dindex, 1:nrepsON(findex, aindex, dindex),:), 4);
                 else %no reps for this stim, since rep=0
                     mM1ON(findex, aindex, dindex,:)=zeros(size(region));
+                    mM1ONStim(findex, aindex, dindex,:)=zeros(size(region));
+                    mM1ONLaser(findex, aindex, dindex,:)=zeros(size(region));
                 end
                 if nrepsOFF(findex, aindex, dindex)>0
                     mM1OFF(findex, aindex, dindex,:)=mean(M1OFF(findex, aindex, dindex, 1:nrepsOFF(findex, aindex, dindex),:), 4);
-                else %no reps for this stim, since rep=0
+                    mM1OFFStim(findex, aindex, dindex,:)=mean(M1OFFStim(findex, aindex, dindex, 1:nrepsOFF(findex, aindex, dindex),:), 4);
+                    mM1OFFLaser(findex, aindex, dindex,:)=mean(M1OFFLaser(findex, aindex, dindex, 1:nrepsOFF(findex, aindex, dindex),:), 4);
+ else %no reps for this stim, since rep=0
                     mM1OFF(findex, aindex, dindex,:)=zeros(size(region));
+                    mM1OFFStim(findex, aindex, dindex,:)=zeros(size(region));
+                    mM1OFFLaser(findex, aindex, dindex,:)=zeros(size(region));
                 end
                 
             end
@@ -433,42 +488,24 @@ if ylimits<0
     end
 end
 
-%%
-% added by ira 09-17-13
-% this way there is only one outfile that can be used for PlotTC and
-% PlotTC_psth
-% high_pass_cutoff=300; %Hz
-%     fprintf('\nhigh-pass filtering at %d Hz', high_pass_cutoff);
-%     [b,a]=butter(1, high_pass_cutoff/(samprate/2), 'high');
-%     filteredtrace=filtfilt(b,a,scaledtrace);
-%
-%             nstd=thresh/std(filteredtrace);
-%             fprintf('\nusing absolute spike detection threshold of %.2f mV (%.2f sd)', thresh, nstd);
-%         thresh=nstd*std(filteredtrace);
-%         if thresh>1
-%             fprintf('\nusing spike detection threshold of %.2f mV (%.2f sd)', thresh, nstd);
-%         elseif thresh<=1
-%             fprintf('\nusing spike detection threshold of %.2f mV (%.2f sd)', thresh, nstd);
-%         end
-%         refract=15;
-%     fprintf('\nusing refractory period of %.1f ms (%d samples)', 1000*refract/samprate,refract );
-%     spikes=find(abs(filteredtrace)>thresh);
-%     dspikes=spikes(1+find(diff(spikes)>refract));
-%     try dspikes=[spikes(1) dspikes'];
-%     catch
-%         fprintf('\n\ndspikes is empty; either the cell never spiked or the nstd is set too high\n. Ingore if plotting LFPs');
-%
-%     end
 
 
-%%
+
 %assign outputs
 out.scaledtrace=scaledtrace;
 out.M1=M1;
 out.M1ON=M1ON;
-out.M1OFF=M1OFF;
+out.M1ONStim=M1ONStim;
+out.M1ONLaser=M1ONLaser;
 out.mM1ON=mM1ON;
+out.mM1ONStim=mM1ONStim;
+out.mM1ONLaser=mM1ONLaser;
+out.M1OFF=M1OFF;
+out.M1OFFStim=M1OFFStim;
+out.M1OFFLaser=M1OFFLaser;
 out.mM1OFF=mM1OFF;
+out.mM1OFFStim=mM1OFFStim;
+out.mM1OFFLaser=mM1OFFLaser;
 out.M1stim=M1stim;
 out.mM1stim=mM1stim;
 out.mM1=mM1;

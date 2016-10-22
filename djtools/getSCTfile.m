@@ -3,6 +3,12 @@ function [ fname ] = getSCTfile( datadir )
 %was recorded on, and hence what the filename is
 cd(datadir)
 settings=xml2struct('settings.xml');
+SCTchannel=2; %filenames and ADClines are both 1-indexed
+
+% ADC1: sound monitor
+% ADC2: soundcard trigger monitor
+% ADC3: laser monitor
+
 
 if (0)
 %this helpfully prints out all the nodes and their names
@@ -64,7 +70,7 @@ for i=1:length(signalchain)
     end
 end
 
-filename=sprintf('%s_ADC1.continuous', NodeId);
+filename=sprintf('%s_ADC%d.continuous', NodeId, SCTchannel);
 absfilename=fullfile(datadir, filename);
 if exist(absfilename,'file')
 fname=filename;

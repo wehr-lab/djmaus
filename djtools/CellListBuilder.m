@@ -31,6 +31,10 @@ switch action
     case 'Close'
         delete(P.fig)
         clear global P
+    case 'CreateNewCellList'
+        CreateNewCellList
+    case 'SelectExistingCellList'
+        SelectExistingCellList
     case 'AddCurrentDir'
         AddCurrentDir
     case 'BrowseAndAdd'
@@ -43,7 +47,7 @@ end
 function out = me
 out = mfilename;
 
-function TargetCellList
+function CreateNewCellList
 global P
 [fname, path] = uiputfile('*.txt', 'Select cell list');
 if fname
@@ -51,7 +55,16 @@ if fname
     set(P.TargetCellListDisplay, 'string', {'cell list:',path, fname});
     set([P.BrowseAndAddh P.AddCurrentDirh], 'enable', 'on')
 end
-    
+
+function SelectExistingCellList
+global P
+[fname, path] = uigetfile('*.txt', 'Select cell list');
+if fname
+    P.TargetCellList=fullfile(path, fname);
+    set(P.TargetCellListDisplay, 'string', {'cell list:',path, fname});
+    set([P.BrowseAndAddh P.AddCurrentDirh], 'enable', 'on')
+end
+
 function AddCurrentDir
 global P
 if get(P.recursive, 'value')
@@ -67,7 +80,7 @@ end
 
 function SelectCells(d)
     [liststr{1:length(d)}]=deal(d.name);
-    [selection, ok, ClustQual, PVcell]=listdlg2('ListString', liststr, 'InitialValue', 1:length(d), 'PromptString', 'select which files to include');
+    [selection, ok, ClustQual, PVcell]=CellListdlg('ListString', liststr, 'InitialValue', 1:length(d), 'PromptString', 'select which files to include');
     if ok
         WriteToCellList(d(selection), ClustQual, PVcell)
     end
@@ -122,7 +135,7 @@ P.fig=fig;
 set(fig,'visible','off');
 set(fig,'visible','off','numbertitle','off','name','cell list builder',...
     'doublebuffer','on','menubar','none','closerequestfcn','CellListBuilder(''Close'')')
-height=200; width=350; e=2; H=e;
+height=220; width=350; e=2; H=e;
 w=200; h=25;
 set(fig,'pos',[1200 900         width         height],'visible','on');
 
@@ -133,9 +146,16 @@ P.TargetCellListDisplay= uicontrol('parent',fig,'string','','tag','TargetCellLis
     'fontweight','bold','horiz', 'left',...
     'style','text');
 
-%TargetCellList button
+%CreateNewCellList button
 H=H+2*h+e;
-uicontrol('parent',fig,'string','Select Cell List','tag','TargetCellList','units','pixels',...
+uicontrol('parent',fig,'string','Create New Cell List','tag','CreateNewCellList','units','pixels',...
+    'position',[e H w h],'enable','on',...
+    'fontweight','bold',...
+    'style','pushbutton','callback',[me ';']);
+
+%SelectExistingCellList button
+H=H+1*h+e;
+uicontrol('parent',fig,'string','Select Existing Cell List','tag','SelectExistingCellList','units','pixels',...
     'position',[e H w h],'enable','on',...
     'fontweight','bold',...
     'style','pushbutton','callback',[me ';']);

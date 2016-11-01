@@ -45,7 +45,7 @@ out = mfilename;
 
 function TargetCellList
 global P
-[fname, path] = uiputfile('*.m', 'Select cell list');
+[fname, path] = uiputfile('*.txt', 'Select cell list');
 if fname
     P.TargetCellList=fullfile(path, fname);
     set(P.TargetCellListDisplay, 'string', {'cell list:',path, fname});
@@ -62,12 +62,16 @@ end
 if isempty(d)
     h = errordlg('no clustered cells found in this directory.', 'no cells');
 else
-    [liststr{1:length(d)}]=deal(d.name);
-    [selection, ok]=listdlg('ListString', liststr, 'InitialValue', 1:length(d), 'PromptString', 'select which files to include');
-    if ok
-        WriteToCellList(d(selection))
-    end
+    SelectCells(d)
 end
+
+function SelectCells(d)
+    [liststr{1:length(d)}]=deal(d.name);
+    [selection, ok, ClustQual, PVcell]=listdlg2('ListString', liststr, 'InitialValue', 1:length(d), 'PromptString', 'select which files to include');
+    if ok
+        WriteToCellList(d(selection), ClustQual, PVcell)
+    end
+
 
 function BrowseAndAdd
 d = uigetdir(pwd, 'choose directory to scan')
@@ -76,20 +80,26 @@ if d
     AddCurrentDir
 end
 
-function WriteToCellList(d)
+function WriteToCellList(d, ClustQual, PVcell)
 global P
 str='';
 for s=1:length(d)
-    str=sprintf('%s\n%s',str, pwd);
-    str=sprintf('%s\n%s:',str,  d(s).name);
+    str=sprintf('%s\n\ncell',str);
+    str=sprintf('%s\nPath: %s',str, pwd);
+    str=sprintf('%s\nFilename: %s',str,  d(s).name);
+    str=sprintf('%s\nCluster Quality: %d',str,  ClustQual(s));
+    str=sprintf('%s\nPV cell: %d',str,  PVcell(s));
+    
      wd=pwd;
      [dd, ff]=fileparts(fullfile(pwd,(d(s).name)));
     cd(dd)
-    nb=load('notebook.mat');
+    try
+        nb=load('notebook.mat');
+        %here we can write out any additional stimulus or notebook info we want
+        str=sprintf('%s\n%s',str, nb.stimlog(1).protocol_name);
+        str=sprintf('%s\n', str);
+    end
     cd(wd)
-    %here we can write out any additional stimulus or notebook info we want
-    str=sprintf('%s\n%s',str, nb.stimlog(1).protocol_name);
-    str=sprintf('%s\n', str);
 end
 response=questdlg(str, 'Write selected cells to file?', 'Write', 'Cancel', 'Write');
 switch response

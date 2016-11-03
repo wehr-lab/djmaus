@@ -19,7 +19,8 @@ typedef struct {
     const char *connect_url;
     DWORD   dwThread;
     bool thread_running;
-    const char *reply;
+   // const char *reply;
+     char *reply;
 } ThreadData;
 
 DWORD WINAPI MyThreadFunction( LPVOID lpParam );
@@ -81,7 +82,6 @@ DWORD WINAPI MyThreadFunction( LPVOID lpParam )
             zmq_msg_t reply;
             zmq_msg_init (&reply);
             zmq_msg_recv (&reply, requester, 0);
-//          printf ("Received World %d\n", request_nbr);
             
             //djmaus stuff:
 //           if   (strncmp(command.c_str(), "ChangeDirectory", 15) == 0)  {
@@ -106,10 +106,10 @@ DWORD WINAPI MyThreadFunction( LPVOID lpParam )
                 
                 size_t mymsgsize=zmq_msg_size(&reply);
                 //char mymsg[mymsgsize]; bad idea
-                if (pData->reply==NULL) { //it should be empty
-                    pData->reply= new char[mymsgsize + 1]; //+1 = room for termination
-                    pData->reply[mymsgsize]='\0'; //terminate
+                if (pData->reply == NULL) { //it should be empty
+                    pData->reply = new char[mymsgsize + 1]; //+1 = room for termination
                     memcpy (pData->reply, zmq_msg_data (&reply) , mymsgsize);
+                    pData->reply[mymsgsize] = '\0'; //terminate
                     
 //                 FILE *fp;
 //                 fp=fopen("RecordingPath.txt", "w");
@@ -119,7 +119,7 @@ DWORD WINAPI MyThreadFunction( LPVOID lpParam )
 //
 //                 fclose(fp);
                     
-                    mexPrintf("\nzmq wrapper: GetRecordingPath returned %s \n", mymsg);
+                    mexPrintf("\nzmq wrapper: GetRecordingPath returned %s \n", pData->reply);
                     
                     //put mymsg in plhs somehow?;
                 }
@@ -130,7 +130,7 @@ DWORD WINAPI MyThreadFunction( LPVOID lpParam )
             zmq_msg_close (&reply);
         } else {
             // Be nice and sleep
-            Sleep(1);
+            Sleep(.1);
         }
     }
     zmq_close (requester);
@@ -207,15 +207,15 @@ void mexFunction( int nlhs, mxArray *plhs[],
         
     }
     if   (strcmp(Command, "GetReply") == 0)  { //get reply from ThreadData and put in plhs
+        double* Tmp= (double*)mxGetPr(prhs[1]); //get handle
+        ThreadData* sd;
+        memcpy(&sd, Tmp, 8);
         if (sd->reply!=NULL) {//there is a reply waiting
-            double* Tmp= (double*)mxGetPr(prhs[1]); //get handle
-            ThreadData* sd;
-            memcpy(&sd, Tmp, 8);
             
             plhs[0] = mxCreateString(sd->reply); //put reply in plhs
             mexPrintf("\nzmq wrapper: mexFunction main putting %s in plhs\n", sd->reply);
             
-//now clear reply and deallocate
+            //now clear reply and deallocate
             delete[] sd->reply;
             sd->reply = NULL;
         }

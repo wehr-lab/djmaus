@@ -654,24 +654,43 @@ function InitNotebookFile
 global SP nb pref
 
 % find active OE data directory and cd into it
-try
-    zeroMQwrapper('Send',SP.zhandle ,sprintf('ChangeDirectory %s', pref.root))
-    pause(.2)
+if(1)%try
+%    zeroMQwrapper('Send',SP.zhandle ,sprintf('ChangeDirectory %s', pref.root))
+%    pause(.2)
     zeroMQwrapper('Send',SP.zhandle ,'GetRecordingPath');
-    pause(.2)
-    cd(pref.root)
-    fid=fopen('RecordingPath.txt', 'r');
-    RecordingPath=fgetl(fid);
-    RecordingPathSize=str2num(fgetl(fid));
-    fclose(fid);
-    %hack: on windows I am still getting extra characters -> trim to size
-    RecordingPath=RecordingPath(1:RecordingPathSize);
-    fprintf('\ndjmaus: read this Recording Path from file:%s', RecordingPath)
+    pause(1)
+    RecordingPath = zeroMQwrapper('GetReply',SP.zhandle )
+    
+%     cd(pref.root)
+%     fid=fopen('RecordingPath.txt', 'r');
+%     RecordingPath=fgetl(fid);
+%     RecordingPathSize=str2num(fgetl(fid));
+%     fclose(fid);
+%     %hack: on windows I am still getting extra characters -> trim to size
+%     RecordingPath=RecordingPath(1:RecordingPathSize);
+%     fprintf('\ndjmaus: read this Recording Path from file:%s', RecordingPath)
     
     %     SP.activedir=RecordingPath;
     SP.activedir=fullfile(pref.datahost, RecordingPath);
     SP.activedir=strrep(SP.activedir, ':', '');
+    
+    d=dir(SP.activedir);
+    if isempty(d)
+        w=0;
+        wb=waitbar(0, 'waiting for data directory to mount...');
+        set(wb, 'units', 'pixels');
+        pos=get(wb, 'pos');
+        set(wb, 'pos', [pref.windowpos(1),pref.windowpos(2)+pref.windowpos(4)-2*pos(4), pos(3), pos(4)]);
+        while isempty(d)
+            d=dir(SP.activedir);
+            pause(.1)
+            w=w+.1;
+            waitbar(mod(w, 1),wb)
+        end
+        close(wb)
+    end
     cd(SP.activedir)
+    
     set(SP.pathh, 'string', {SP.datapath, [SP.activedir, ' recording...']})
     
     %future directions: use hdf5 files for this
@@ -692,7 +711,7 @@ try
     
     save('notebook.mat', 'nb')
     fprintf('\ncreated notebook file in %s', nb.activedir)
-catch
+else%catch
     fprintf('\nCould not create notebook file in active data directory')
     %ask user if they want to manually save notebook file
     ButtonName = questdlg('Could not create notebook file in active data directory. Do you want to manually save the notebook file?');

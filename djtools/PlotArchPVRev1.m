@@ -66,12 +66,12 @@ if isempty(clust)
     d=dir(basefn);
     numclusters=size(d, 1);
     if numclusters==0
-        ProcessTC_PSTH(datadir,  channel, xlimits, ylimits);
+        ProcessArchPVRev1(datadir,  channel, xlimits, ylimits);
         basefn=sprintf('outPSTH_ch%dc*.mat',channel);
         d=dir(basefn);
         numclusters=size(d, 1);
         if numclusters==0
-            error('ProcessTC_PSTH: no cluster files found');
+            error('PlotArchPVRev1: no cluster files found');
         end
     else fprintf('\nno cluster specified\n%d outfiles found', numclusters)
         if numclusters>1 fprintf(' -  will plot all of them');end
@@ -89,7 +89,7 @@ for clustindex=1:length(outfilename) %main cluster loop
     if exist(outfilename{clustindex},'file')
         load(outfilename{clustindex})
     else
-        ProcessTC_PSTH(datadir,  channel, xlimits, ylimits);
+        ProcessArchPVRev1(datadir,  channel, xlimits, ylimits);
         load(outfilename{clustindex});
     end
     

@@ -137,7 +137,7 @@ set(fig,'visible','off','numbertitle','off','name','cell list builder',...
     'doublebuffer','on','menubar','none','closerequestfcn','CellListBuilder(''Close'')')
 height=220; width=350; e=2; H=e;
 w=200; h=25;
-set(fig,'pos',[1200 900         width         height],'visible','on');
+set(fig,'pos',[1200 800         width         height],'visible','on');
 
 
 %TargetCellList display

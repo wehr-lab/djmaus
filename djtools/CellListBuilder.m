@@ -79,11 +79,24 @@ else
 end
 
 function SelectCells(d)
-    [liststr{1:length(d)}]=deal(d.name);
-    [selection, ok, ClustQual, PVcell]=CellListdlg('ListString', liststr, 'InitialValue', 1:length(d), 'PromptString', 'select which files to include');
-    if ok
-        WriteToCellList(d(selection), ClustQual, PVcell)
+listsize=25;
+if length(d)<=listsize
+    [selection, ok, ClustQual, PVcell]=myCellListDlg(d);
+else %break up into chunks
+    selection=[];  ClustQual=[]; PVcell=[];
+    uiwait(msgbox(sprintf('there are %d cells in this directory, so breaking into %d chunks of %d', length(d), ceil(length(d)/listsize), listsize), 'modal'));
+    for i=1:ceil(length(d)/listsize)
+        range=1+(i-1)*listsize:i*listsize;
+        range=range(range<length(d));
+        [selectionchunk, ok, ClustQualchunk, PVcellchunk]=myCellListDlg(d(range));
+        if ~ok break, end
+        selection=[selection selectionchunk];  ClustQual=[ClustQual ClustQualchunk]; PVcell=[PVcell PVcellchunk];
     end
+end
+
+if ok
+    WriteToCellList(d(find(selection)), ClustQual(find(selection)), PVcell(find(selection)))
+end
 
 
 function BrowseAndAdd
@@ -103,8 +116,8 @@ for s=1:length(d)
     str=sprintf('%s\nCluster Quality: %d',str,  ClustQual(s));
     str=sprintf('%s\nPV cell: %d',str,  PVcell(s));
     
-     wd=pwd;
-     [dd, ff]=fileparts(fullfile(pwd,(d(s).name)));
+    wd=pwd;
+    [dd, ff]=fileparts(fullfile(pwd,(d(s).name)));
     cd(dd)
     try
         nb=load('notebook.mat');
@@ -178,4 +191,112 @@ P.AddCurrentDirh=uicontrol('parent',fig,'string','Add Current Dir','tag','AddCur
 H=H+h+e;
 P.recursive=uicontrol('parent',fig,'string','Recursive Scan','tag','Recursive','units','pixels',...
     'position',[e H w h],'enable','on',...
-'style','checkbox');
+    'style','checkbox');
+
+
+function doOK(src, evt, IncludeCellcheckbox, sl, pvcheckbox)
+
+for i=1:length(sl)
+    IncludeCell(i)=get(IncludeCellcheckbox(i), 'value');
+    ClustQual(i)=get(sl(i), 'value');
+    PVcell(i)=get(pvcheckbox(i), 'value');
+end
+delete(gcbf);
+global P
+P.ok=1;
+P.IncludeCell=IncludeCell;
+P.ClustQual=ClustQual;
+P.PVcell=PVcell;
+
+
+function doCancel(src, evt)
+% ad.selection = [];
+% ad.ClustQual=[];
+% ad.PVcell=[];
+% setappdata(0,'ListDialogAppData__',ad)
+delete(gcbf);
+global P
+P.ok=0;
+
+% slider callback
+function doSlider(sliderh, evd, sliderstrh) %#ok
+set(sliderstrh, 'string', get(sliderh, 'value'))
+
+
+
+function [selection, ok, ClustQual, PVcell]=myCellListDlg(d)
+global P
+
+fig=figure;
+set(fig, 'pos',[1000 400 500 800] )
+
+selection=[];
+ClustQual=[];
+PVcell=[];
+P.ok=0;
+
+btn_wid=50;
+btn_ht=25;
+
+%     top=ffs+uh+4*fus+(smode==2)*(fus+uh)+listsize(2);
+fontsize=12;
+linesize = fontsize*1.4;  % height extent per line of uicontrol text (approx)
+linespacing=linesize*1.5;
+pos=get(fig, 'pos');
+width=pos(3);
+top=pos(4);
+col1width=150; %cell name
+col2width=50; %include cell checkbox
+col3width=120; %cluster quality slider
+col4width=50; %cluster quality numeric indicator
+col5width=50; %pv cell checkbox
+sliderwidth=col3width;
+
+uicontrol('style', 'text', 'pos', [0, top-linesize, col1width, linesize], 'string', 'cell', ...
+    'horizontalalignment', 'center', 'fontsize', fontsize)
+uicontrol('style', 'text', 'pos', [col1width, top-linesize, col2width, linesize], 'string', 'include?', ...
+    'horizontalalignment', 'center', 'fontsize', fontsize)
+uicontrol('style', 'text', 'pos', [col1width+col2width, top-linesize, sliderwidth, linesize],...
+    'string', 'cluster quality', 'fontsize', fontsize)
+uicontrol('style', 'text', 'pos', [col1width+col2width+col3width+col4width, top-linesize, 50, linesize], ...
+    'string', 'PV cell?', 'fontsize', fontsize, 'horizontalalign', 'left')    
+
+for i=1:length(d)
+    if ~mod(i,3)
+    u=uipanel('units', 'pixels', 'pos',[ 0,top-(i+2)*linespacing-3, width, 2]); 
+    end
+    cellstr(i)=uicontrol('style', 'text', 'pos',[2, top-(i+2)*linespacing, col1width, linesize],...
+         'horizontalalignment', 'right','fontsize', fontsize,'string', d(i).name); %cell name
+    IncludeCellcheckbox(i)=uicontrol('style', 'checkbox', 'pos', ...
+        [col1width, top-(i+2)*linespacing, 30, linesize]); %include cell checkbox
+    slstr(i)=uicontrol('style', 'text', 'pos', ...
+        [col1width+col2width+col3width+2, top-(i+2)*linespacing, 10, linesize], 'string', 0); %cluster quality numeric indicator
+    sl(i)=uicontrol('style', 'slider', 'pos', [col1width+col2width, top-(i+2)*linespacing, sliderwidth, linesize], ...
+        'min', 0, 'max', 5, 'sliderstep', [.2 .2], 'value', 0, 'callback', {@doSlider, slstr(i)} ); %cluster quality slider
+    pvcheckbox(i)=uicontrol('style', 'checkbox', 'pos', ...
+        [col1width+col2width+col3width+col4width, top-(i+2)*linespacing, 30, linesize]); %pvcheckbox
+end
+
+ok_btn = uicontrol('Style','pushbutton',...
+    'String','OK',...
+    'Position',[10 10 btn_wid btn_ht],...
+    'Tag','ok_btn',...
+    'Callback',{@doOK,IncludeCellcheckbox, sl, pvcheckbox });
+
+cancel_btn = uicontrol('Style','pushbutton',...
+    'String','Cancel',...
+    'Position',[20+btn_wid 10 btn_wid btn_ht],...
+    'Tag','cancel_btn',...
+    'Callback',@doCancel);
+
+ uiwait(fig)
+ ok=P.ok;
+ if ok
+     selection=P.IncludeCell;
+     ClustQual=P.ClustQual;
+     PVcell=P.PVcell;
+else
+    selection=[];
+    ClustQual=[];
+    PVcell=[];
+end

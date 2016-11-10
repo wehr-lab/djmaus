@@ -6,10 +6,10 @@
 
 %0:2:50 relative to tone onset
 
-amp=60;
+amp=80;
 dur=25;
 
-name='ArchPVRev1';
+name='ArchPVRev2_80dB';
 description='custom protocol for reviewer#1 on Allie''s paper';
 nn=0;
 
@@ -29,7 +29,9 @@ for rep=1:50
     stimuli(nn).protocol_description=description;
     stimuli(nn).version='djmaus';
     
-    for laserstart=-50:2:50
+%    for laserstart=-50:2:50
+     for laserstart=[-50:4:-2 0:2:34 38:5:50]
+        
         nn=nn+1;
         stimuli(nn).type='whitenoise'; %use nn because stimuli(1) is name/description
         stimuli(nn).param.amplitude=amp;

@@ -1,14 +1,15 @@
-function PlotTC_PSTH(varargin)
+function PlotArchPVRev1(varargin)
 
 %plots clustered spiking tuning curve data from djmaus
 %
-% usage: PlotTC_PSTH(datapath, [channel], [clust], [xlimits],[ylimits], [binwidth])
+% usage: PlotArchPVRev1(datapath, [channel], [clust], [xlimits],[ylimits], [binwidth])
 % (channel, clust, xlimits, ylimits are optional)
 % xlimits default to [0 200]
 % channel number should be an integer
 % clust can be an integer or an array of integers, or defaults to all clusts
 %
 %Processes data if outfile is not found;
+
 
 rasters=1;
 

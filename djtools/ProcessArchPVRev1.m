@@ -6,10 +6,16 @@ function ProcessArchPVRev1(varargin)
 %processes clustered spiking tuning curve data from djmaus
 %
 % usage: ProcessTC_PSTH(datadir, channel, [xlimits],[ylimits])
+%   OR
+%        ProcessTC_PSTH(datadir, filename, [xlimits],[ylimits])
+%       
 % (xlimits, ylimits are optional)
 % xlimits default to [0 200]
 % channel (tetrode) number should be an integer, if omitted you will be prompted for it
 % automatically processes data for all cells clustered for that tetrode
+% or you can pass an explicit filename instead of channel (example: 'ch1_simpleclust_01.t')
+% then it only processes that file
+% 
 % saves to outfile
 
 
@@ -18,7 +24,7 @@ if nargin==0
     return;
 end
 datadir=varargin{1};
-xlimits=[]
+xlimits=[];
 try
     xlimits=varargin{3};
 end
@@ -36,17 +42,28 @@ catch
     prompt=('please enter channel number: ');
     channel=input(prompt);
 end
-if strcmp('char',class(channel))
-    channel=str2num(channel);
+if ischar(channel)
+    %either user accidentally passed a string like '2', or it's a filename
+    [p,f,ext]=fileparts(channel);
+    if strcmp(ext, '.t')
+        filename=channel;
+        split=strsplit(f, '_');
+        ch=strsplit(split{1}, 'ch');
+        channel=str2num(ch{2});
+        clust=str2num(split{end});
+    else
+        channel=str2num(channel);
+        filename=[];
+    end
 end
-try
-    cell=varargin{3};
-catch
-    cell=[];
-end
-if strcmp('char',class(cell))
-    cell=str2num(cell);
-end
+% try
+%     cell=varargin{3};
+% catch
+%     cell=[];
+% end
+% if strcmp('char',class(cell))
+%     cell=str2num(cell);
+% end
 
 
 fprintf('\nprocessing with xlimits [%d-%d]', xlimits(1), xlimits(2))
@@ -135,7 +152,9 @@ end
 fprintf('\nNumber of sound events (from network messages): %d', length(Events));
 fprintf('\nNumber of hardware triggers (soundcardtrig TTLs): %d', length(all_SCTs));
 if length(Events) ~=  length(all_SCTs)
-    error('ProcessTC_PSTH: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
+        warning('ProcessArchPVRev1: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
+    [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog  );
+
 end
 
 if exist('check1', 'var') & exist('check2', 'var')
@@ -143,29 +162,40 @@ if exist('check1', 'var') & exist('check2', 'var')
     if check1==check2    fprintf(' Good.'), end
 end
 
-
-basefn=sprintf('ch%d_simpleclust_*.t', channel);
-d=dir(basefn);
-numclusters=size(d, 1);
-if numclusters==0 error('ProcessTC_PSTH: no cluster files found');
-else fprintf('\n%d cluster files found - will process all of them', numclusters)
-end
-for clustnum=1:numclusters
-    if clustnum<10
-        fn=sprintf('ch%d_simpleclust_0%d.t', channel, clustnum);
-    else
-        fn=sprintf('ch%d_simpleclust_%d.t', channel, clustnum);
+if isempty(filename) %we were passed a channel and [clust], not a filename
+    basefn=sprintf('ch%d_simpleclust_*.t', channel);
+    d=dir(basefn);
+    numclusters=size(d, 1);
+    if numclusters==0 error('ProcessTC_PSTH: no cluster files found');
+    else fprintf('\n%d cluster files found - will process all of them', numclusters)
     end
-    fprintf('\nreading MClust output file %s cluster %d', fn, clustnum)
-    spiketimes(clustnum).spiketimes=read_MClust_output(fn)'/10000; %spiketimes now in seconds
-    %correct for OE start time, so that time starts at 0
-    spiketimes(clustnum).spiketimes=spiketimes(clustnum).spiketimes-StartAcquisitionSec;
     
-    totalnumspikes(clustnum)=length(spiketimes(clustnum).spiketimes);
+    for clustnum=1:numclusters
+        if clustnum<10
+            fn=sprintf('ch%d_simpleclust_0%d.t', channel, clustnum);
+        else
+            fn=sprintf('ch%d_simpleclust_%d.t', channel, clustnum);
+        end
+        fprintf('\nreading MClust output file %s cluster %d', fn, clustnum)
+        spiketimes(clustnum).spiketimes=read_MClust_output(fn)'/10000; %spiketimes now in seconds
+        %correct for OE start time, so that time starts at 0
+        spiketimes(clustnum).spiketimes=spiketimes(clustnum).spiketimes-StartAcquisitionSec;
+        
+        totalnumspikes(clustnum)=length(spiketimes(clustnum).spiketimes);
+    end
+    fprintf('\nsuccessfully loaded MClust spike data')
+    Nclusters=numclusters;
+else
+    fprintf('\nreading MClust output file %s', filename)
+    spiketimes(1).spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
+    %correct for OE start time, so that time starts at 0
+    spiketimes(1).spiketimes=spiketimes(1).spiketimes-StartAcquisitionSec;
+    
+    totalnumspikes(1)=length(spiketimes(1).spiketimes);
+    fprintf('\nsuccessfully loaded MClust spike data')
+    Nclusters=1;
+    
 end
-fprintf('\nsuccessfully loaded MClust spike data')
-Nclusters=numclusters;
-
 
 monitor = 0;
 if monitor

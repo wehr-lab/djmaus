@@ -74,6 +74,14 @@ elseif strcmp(stimlog(1).protocol_name(1:5), 'GPIAS')
         warning(sprintf('\nIt looks like Recording was stopped before all GPIAS stimuli finished playing. Mismatch possibly resolved by discarding extra Events. \nFurther investigation is highly recommended!!!!!!!'))
         Events=Events(1:length(all_SCTs));
     end
+elseif  nstimlog==nEvents & nSCTs== nEvents -1
+    if strcmp(stimlog(1).protocol_name, 'ArchPVRev1')
+        %initially with this stimulus type we had some problems with java heap memory and file not
+        %finishing or something like that?
+        warning(sprintf('\nMismatch possibly resolved by discarding extra (last) Event. \nFurther investigation is highly recommended!!!!!!!'))
+        Events=Events(1:nSCTs);
+        stimlog=stimlog(1:nSCTs);
+    end
 else
     error('ResolveEventMismatch: this case is not handled yet')
 end
@@ -111,7 +119,7 @@ if 0
         plot(Events(i).message_timestamp_sec, .25, 'ro');
         plot(Events(i).soundcard_trigger_timestamp_sec, 1, 'g*');
         text(Events(i).message_timestamp_sec, .5, sprintf('network message #%d', i))
-        text(Events(i).soundcard_trigger_timestamp_sec, .5, sprintf('SCT #%d', i))
+        text(Events(i).soundcard_trigger_timestamp_sec, .75, sprintf('SCT #%d', i))
     end
     
     %all_channels_info.eventType(i) = 3 for digital line in (TTL), 5 for network Events

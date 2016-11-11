@@ -28,8 +28,8 @@ cd('D:\lab\djmaus\')
 %GUIfolder = 'C:\Users\Shay\Documents\GitHub\GUI';
 %GUIfolder = '/home/jsiegle/Programming/GUI/';
 %GUIfolder = '/Users/mikewehr/Documents/Analysis/plugin GUI';
-%GUIfolder = 'D:\lab\plugin-GUI'; 
-GUIfolder = 'C:\lab\plugin-GUI';
+GUIfolder = 'D:\lab\plugin-GUI'; %wehrrig1
+%GUIfolder = 'C:\lab\plugin-GUI';
 
 
 headerFolder = [GUIfolder, '\Resources\windows-libs\ZeroMQ\include'];

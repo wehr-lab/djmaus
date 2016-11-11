@@ -92,6 +92,7 @@ switch action
             end
         catch
             djMessage('ppatimer could not check status', 'append')
+            h=SP.PPAactive;
             set(h, 'string', '', 'backgroundcolor', [.4 .4 .4])
 
         end

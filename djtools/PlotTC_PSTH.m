@@ -140,16 +140,25 @@ for clustindex=1:length(outfilename) %main cluster loop
                     N=1000*N./binwidth; %normalize to spike rate in Hz
                     ymax= max(ymax,max(N));
                     
-                    try
-                    st=mM1ON(findex, aindex, dindex).spiketimes;
-                    catch
-                        st=[];
+%                     try
+%                     st=mM1ON(findex, aindex, dindex).spiketimes;
+%                     catch
+%                         st=[];
+%                     end
+%                     X=xlimits(1):binwidth:xlimits(2); %specify bin centers
+%                     [N, x]=hist(st, X);
+%                     N=N./nreps(findex, aindex, dindex); %normalize to spike rate (averaged across trials)
+%                     N=1000*N./binwidth; %normalize to spike rate in Hz
+%                     ymax= max(ymax,max(N));
+
+                    if IL
+                        st=mM1ON(findex, aindex, dindex).spiketimes;
+                        X=xlimits(1):binwidth:xlimits(2); %specify bin centers
+                        [N, x]=hist(st, X);
+                        N=N./nreps(findex, aindex, dindex); %normalize to spike rate (averaged across trials)
+                        N=1000*N./binwidth; %normalize to spike rate in Hz
+                        ymax= max(ymax,max(N));
                     end
-                    X=xlimits(1):binwidth:xlimits(2); %specify bin centers
-                    [N, x]=hist(st, X);
-                    N=N./nreps(findex, aindex, dindex); %normalize to spike rate (averaged across trials)
-                    N=1000*N./binwidth; %normalize to spike rate in Hz
-                    ymax= max(ymax,max(N));
                 end
             end
         end

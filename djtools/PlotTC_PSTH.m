@@ -117,6 +117,14 @@ for clustindex=1:length(outfilename) %main cluster loop
     LaserWidth=out.LaserWidth;
     LaserNumPulses=out.LaserNumPulses;
     LaserISI=out.LaserISI;
+    M1ONStim=out.M1ONStim;
+    M1ONLaser=out.M1ONLaser;
+    mM1ONStim=out.mM1ONStim;
+    mM1ONLaser=out.mM1ONLaser;
+    M1OFFStim=out.M1OFFStim;
+    M1OFFLaser=out.M1OFFLaser;
+    mM1OFFStim=out.mM1OFFStim;
+    mM1OFFLaser=out.mM1OFFLaser;
     fs=10; %fontsize
     
     % %find optimal axis limits
@@ -132,7 +140,11 @@ for clustindex=1:length(outfilename) %main cluster loop
                     N=1000*N./binwidth; %normalize to spike rate in Hz
                     ymax= max(ymax,max(N));
                     
+                    try
                     st=mM1ON(findex, aindex, dindex).spiketimes;
+                    catch
+                        st=[];
+                    end
                     X=xlimits(1):binwidth:xlimits(2); %specify bin centers
                     [N, x]=hist(st, X);
                     N=N./nreps(findex, aindex, dindex); %normalize to spike rate (averaged across trials)
@@ -188,9 +200,30 @@ for clustindex=1:length(outfilename) %main cluster loop
                         h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k');
                     end
                 end
-                bar(x, N,1);
-                line([0 0+durs(dindex)], [-.2 -.2], 'color', 'm', 'linewidth', 4)
-                line(xlimits, [0 0], 'color', 'k')
+                bar(x,N,1);
+                
+%             Lasertrace=squeeze(mM1OFFLaser(findex, aindex, dindex, :));
+%             Lasertrace=Lasertrace -mean(Lasertrace(1:100));
+%             Lasertrace=.05*diff(ylimits)*Lasertrace;
+            Stimtrace=squeeze(mM1OFFStim(findex, aindex, dindex, :));
+            Stimtrace=Stimtrace -mean(Stimtrace(1:100));
+            Stimtrace=.05*diff(ylimits)*Stimtrace;
+            
+            t=1:length(Stimtrace);
+            t=1000*t/out.samprate; %convert to ms
+            t=t+out.xlimits(1); %correct for xlim in original processing call
+            line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
+            offset=ylimits(1)+.1*diff(ylimits);
+            plot(t, Stimtrace+offset, 'm')
+                
+              for rep=1:nrepsOFF(findex, aindex, dindex)
+                    Lasertrace=squeeze(M1OFFLaser(findex, aindex, dindex,rep, :));
+                    Lasertrace=Lasertrace -mean(Lasertrace(1:100));
+                    Lasertrace=.05*diff(ylimits)*Lasertrace;
+                    plot( t, Lasertrace+offset, 'c')
+                end
+%                 line([0 0+durs(dindex)], [-.2 -.2], 'color', 'm', 'linewidth', 4)
+%                 line(xlimits, [0 0], 'color', 'k')
                 ylimits2(2)=ylimits(2)*3;
                 ylimits2(1)=-2;
                 ylim(ylimits2)
@@ -277,6 +310,13 @@ for clustindex=1:length(outfilename) %main cluster loop
                     ylimits2(2)=ylimits(2)*3;
                     ylimits2(1)=-2;
                     ylim(ylimits2(:))
+                
+                for rep=1:nrepsON(findex, aindex, dindex)
+                    Lasertrace=squeeze(M1ONLaser(findex, aindex, dindex,rep, :));
+                    Lasertrace=Lasertrace -mean(Lasertrace(1:100));
+                    Lasertrace=.05*diff(ylimits)*Lasertrace;
+                    plot( t, Lasertrace+offset, 'c')
+                end
                     
                     %this should plot a cyan line at the unique Laser
                     %params - not sure what will happen if not scalar

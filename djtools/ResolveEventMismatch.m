@@ -82,6 +82,24 @@ elseif  nstimlog==nEvents & nSCTs== nEvents -1
         Events=Events(1:nSCTs);
         stimlog=stimlog(1:nSCTs);
     end
+elseif nstimlog==nEvents & nSCTs < nEvents
+    %maybe user stopped open-ephys recording manually but djmaus was still running
+    %this happened spuriously at least once - when Aldis came in to check,
+    %open-ephys had stopped itself but djmaus was still running. Not sure
+    %how this could happen, but investigation confirms everything is fine up until the last soundcard trigger
+    
+    %adding special case
+    [p,n,e]=fileparts(pwd);
+    switch n
+        case '2016-11-10_09-14-26_mouse-7093'
+            Events=Events(1:nSCTs);
+            stimlog=stimlog(1:nSCTs);
+        otherwise
+            fprintf('\n maybe user stopped open-ephys recording manually but djmaus was still running')
+            fprintf('\n investigate, and if this appears to be so, add a special case')
+            error('ResolveEventMismatch: this case is not handled yet')
+    end
+    
 else
     error('ResolveEventMismatch: this case is not handled yet')
 end
@@ -91,6 +109,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %if you want to investigate the situation, here are some things to try:
 if 0
+    %look for StartAcquisitionSec = xxx in command window and execute to set StartAcquisitionSec 
     SCTfname=getSCTfile(pwd);
     if isempty(SCTfname)
         warning('could not find soundcard trigger file')
@@ -118,8 +137,8 @@ if 0
     for i=1:length(Events)
         plot(Events(i).message_timestamp_sec, .25, 'ro');
         plot(Events(i).soundcard_trigger_timestamp_sec, 1, 'g*');
-        text(Events(i).message_timestamp_sec, .5, sprintf('network message #%d', i))
-        text(Events(i).soundcard_trigger_timestamp_sec, .75, sprintf('SCT #%d', i))
+        text(Events(i).message_timestamp_sec, .35, sprintf('network message #%d', i),'color', 'r')
+        text(Events(i).soundcard_trigger_timestamp_sec, .95, sprintf('SCT #%d', i), 'color','g')
     end
     
     %all_channels_info.eventType(i) = 3 for digital line in (TTL), 5 for network Events

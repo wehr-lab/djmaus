@@ -65,8 +65,28 @@ switch action
     case 'Stop'
         %stop acquisition, i.e. like clicking the > button on the
         %open-ephys GUI
-        zeroMQwrapper('Send',SP.zhandle ,'StopAcquisition'); %shouldn't need to do this unless user stopped acquisition, doesn't hurt anyway
-
+        
+        %courtesy message if continuous stimuli haven't finished yet
+        try
+            PPAhandle=SP.PPAhandle;
+            status = PsychPortAudio('GetStatus', PPAhandle);
+            
+            if  status.Active==1; %device running
+                protocol=SP.ProtocolIndex;
+                current=SP.CurrentStimulus(protocol);
+                inQueue=current-status.SchedulePosition-SP.CurrStimatPPAstart;
+                Question=sprintf('stimuli have not finished playing yet (%d remaining).\nDo you really wnat to stop acquisition?', inQueue)
+                
+                ButtonName = questdlg(Question, 'Are you sure?', 'Cancel', 'Really Stop', 'Cancel');
+                if strcmp(ButtonName, 'Cancel')
+                    return
+                end
+                
+            end
+        end
+            
+        zeroMQwrapper('Send',SP.zhandle ,'StopAcquisition'); 
+        
     case 'launchOE'
         djMessage('launching OE', 'append')
         OEpath=pref.OEpath;

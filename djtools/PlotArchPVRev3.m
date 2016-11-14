@@ -1,5 +1,8 @@
-function PlotArchPVRev2(varargin)
+function PlotArchPVRev3(varargin)
 
+%like PlotArchPVRev3 but only plots smoothed firing rate curves with
+%different colors for laser start times
+%
 %plots clustered spiking tuning curve data from djmaus
 %same as PlotArchPVRev1 but takes a single filename as input (instead of channel &
 %clust)
@@ -55,7 +58,7 @@ cd(datadir)
 
 d=dir(outfilename);
 if isempty(d)
-    ProcessArchPVRev2(newdatadir, filename, xlimits)
+    ProcessArchPVRev2(datadir, t_filename, xlimits)
 end
 
 load(outfilename)

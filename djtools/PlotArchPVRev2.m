@@ -1,8 +1,9 @@
 function PlotArchPVRev2(varargin)
 
-%plots clustered spiking tuning curve data from djmaus
 %same as PlotArchPVRev1 but takes a single filename as input (instead of channel &
 %clust)
+%plots clustered spiking tuning curve data from djmaus
+%
 % usage: PlotArchPVRev1(datapath, t_filename, [xlimits],[ylimits], [binwidth])
 % ( xlimits, ylimits are optional)
 % xlimits default to [0 200]
@@ -52,11 +53,12 @@ djPrefs;
 global pref
 cd(datadir)
 
-        
-    
 
-
-        load(outfilename)
+d=dir(outfilename);
+if isempty(d)
+    ProcessArchPVRev2(datadir, t_filename, xlimits)
+end
+load(outfilename)
     
     IL=out.IL; %whether there are any interleaved laser trials
     freqs=out.freqs;
@@ -290,4 +292,6 @@ cd(datadir)
         end
     end
     
+    orient tall
+
 end %main cluster loop

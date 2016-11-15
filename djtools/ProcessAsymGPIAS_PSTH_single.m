@@ -1,25 +1,10 @@
-function ProcessArchPVRev2(varargin)
+function ProcessAsymGPIAS_PSTH_single(varargin)
 
-%same as ProcessArchPVRev1, but you pass in a directory and .t filename for
-%a single cell, rather than channel/clust and processing potentially
-%multiple cells
-%in other words, this is easier to call from a cell list
+%processes a single .t file of clustered spiking AsymGPIAS data from djmaus
 %
-%customized for an experiment asked for by reviewer 1 on Allie's ArchPV
-%paper, in which we vary laser onset time
-%
-%processes clustered spiking tuning curve data from djmaus
-%
-% usage: 
-%        ProcessTC_PSTH(datadir, filename, [xlimits],[ylimits])
-%       
+% usage: ProcessAsymGPIAS_PSTH_single(datadir, t_filename, [xlimits],[ylimits])
 % (xlimits, ylimits are optional)
 % xlimits default to [0 200]
-% channel (tetrode) number should be an integer, if omitted you will be prompted for it
-% automatically processes data for all cells clustered for that tetrode
-% or you can pass an explicit filename instead of channel (example: 'ch1_simpleclust_01.t')
-% then it only processes that file
-% 
 % saves to outfile
 
 
@@ -28,12 +13,14 @@ if nargin==0
     return;
 end
 datadir=varargin{1};
-xlimits=[];
+
 try
     xlimits=varargin{3};
+catch
+    xlimits=[];
 end
 if isempty(xlimits)
-    xlimits=[0 200];
+    xlimits=[];
 end
 try
     ylimits=varargin{4};
@@ -51,6 +38,9 @@ clust=str2num(split{end});
 fprintf('\nchannel %d, cluster %d', channel, clust)
 fprintf('\nprocessing with xlimits [%d-%d]', xlimits(1), xlimits(2))
 
+
+
+
 djPrefs;
 global pref
 cd (pref.datapath);
@@ -64,12 +54,14 @@ end
 
 %read messages
 messagesfilename='messages.events';
+if exist(messagesfilename, 'file')~=2
+    error('Could not find messages.events file. Is this the right data directory?')
+end
 [messages] = GetNetworkEvents(messagesfilename);
 
 
 %read digital Events
 Eventsfilename='all_channels.events';
-fprintf('\n')
 [all_channels_data, all_channels_timestamps, all_channels_info] = load_open_ephys_data(Eventsfilename);
 sampleRate=all_channels_info.header.sampleRate; %in Hz
 
@@ -89,6 +81,8 @@ sampleRate=all_channels_info.header.sampleRate; %in Hz
 %for example, in the test data file I'm working with, 100 is the Rhythm
 %FPGA, and 102 is the bandpass filter.
 
+% get all SCT timestamps
+
 sound_index=0;
 for i=1:length(messages)
     str=messages{i};
@@ -100,10 +94,12 @@ for i=1:length(messages)
         %for some reason not always present, though
         StartAcquisitionSamples=timestamp;
         StartAcquisitionSec=timestamp/sampleRate;
+        fprintf('\nStartAcquisitionSec=%g', StartAcquisitionSec)
         check1=StartAcquisitionSamples;
     elseif strcmp(deblank(Events_type), 'Software')
         StartAcquisitionSamples=timestamp;
         StartAcquisitionSec=timestamp/sampleRate;
+        fprintf('\nStartAcquisitionSec=%g', StartAcquisitionSec)
         check2=StartAcquisitionSamples;
     elseif strcmp(Events_type, 'TrialType')
         sound_index=sound_index+1;
@@ -112,12 +108,16 @@ for i=1:length(messages)
             str3=strsplit(str2{j}, ':');
             fieldname=str3{1};
             value=str2num(str3{2});
+            if isempty(value) %this happens if it's a real string (like soaflag), not a 'num'
+                value=str3{2}; %just use the string. E.g. 'soa' or 'isi'
+            end
             Events(sound_index).(fieldname)= value;
         end
+        
         Events(sound_index).message_timestamp_samples=timestamp - StartAcquisitionSamples;
         Events(sound_index).message_timestamp_sec=timestamp/sampleRate - StartAcquisitionSec;
         
-        %get corresponding SCT TTL timestamp and assign to Event
+        
         all_SCTs=[];
         for k=1:length(all_channels_timestamps)
             if all_channels_info.eventType(k)==3 & all_channels_info.eventId(k)==1 & all_channels_data(k)==2
@@ -125,44 +125,55 @@ for i=1:length(messages)
                 all_SCTs=[all_SCTs corrected_SCT];
             end
         end
-        [idx]=find(all_SCTs>Events(sound_index).message_timestamp_sec, 1); %find first SCT after the message timestamp
-        SCTtime_sec=all_SCTs(idx);
-        %         SCTtime_sec=SCTtime_sec-StartAcquisitionSec; %correct for open-ephys not starting with time zero
-        Events(sound_index).soundcard_trigger_timestamp_sec=SCTtime_sec;
+        
+        %get corresponding SCT TTL timestamp and assign to Event
+        %old way (from TC) won't work, since the network events get ahead of the SCTs.
+        %another way (dumb and brittle) is to just use the corresponding
+        %index, assuming they occur in the proper order with no drops or
+        %extras
+        try
+            SCTtime_sec=all_SCTs(sound_index);
+            Events(sound_index).soundcard_trigger_timestamp_sec=SCTtime_sec;
+        catch
+            %     one reason this won't work is if you stop recording during the
+            %     play-out, i.e. stimuli were logged (to stimlog and network events)
+            %     but never played before recording was stopped
+            if sound_index>length(all_SCTs)
+                Events(sound_index).soundcard_trigger_timestamp_sec=nan;
+            end
+        end
         
     end
 end
 
 fprintf('\nNumber of sound events (from network messages): %d', length(Events));
 fprintf('\nNumber of hardware triggers (soundcardtrig TTLs): %d', length(all_SCTs));
+fprintf('\nNumber of logged stimuli in notebook: %d', length(stimlog));
 if length(Events) ~=  length(all_SCTs)
-        warning('ProcessArchPVRev1: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
-   fprintf('\nStartAcquisitionSec = %.4f\n', StartAcquisitionSec);
+    warning('ProcessAsymGPIAS_PSTH: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
+    [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog  );
+end
 
-        [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog  );
-
+if length(Events) ~=  length(stimlog)
+    warning('ProcessAsymGPIAS_PSTH: Number of sound events (from network messages) does not match Number of stimuli logged to notebook)')
+    [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog  );
 end
 
 if exist('check1', 'var') & exist('check2', 'var')
     fprintf('start acquisition method agreement check: %d, %d', check1, check2);
-    if check1==check2    fprintf(' Good.'), end
 end
 
 %read MClust .t file
 fprintf('\nreading MClust output file %s', filename)
-spiketimes.spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
+spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
 %correct for OE start time, so that time starts at 0
-spiketimes.spiketimes=spiketimes.spiketimes-StartAcquisitionSec;
-
-totalnumspikes=length(spiketimes.spiketimes);
+spiketimes=spiketimes-StartAcquisitionSec;
+totalnumspikes=length(spiketimes);
 fprintf('\nsuccessfully loaded MClust spike data')
 Nclusters=1;
-    
-
 
 monitor = 0;
 if monitor
-    
     %   I'm running the soundcard trigger (SCT) into ai1 as another sanity check.
     SCTfname=getSCTfile(datadir);
     if isempty(SCTfname)
@@ -171,12 +182,11 @@ if monitor
         [SCTtrace, SCTtimestamps, SCTinfo] =load_open_ephys_data(SCTfname);
     end
     
-    %here I'm loading a data channel to get good timestamps - the ADC timestamps are screwed up
-    datafname=getContinuousFilename( pwd, 1 );
-    [scaledtrace, datatimestamps, datainfo] =load_open_ephys_data(datafname);
+    %     %here I'm loading a data channel to get good timestamps - the ADC timestamps are screwed up
+    %     datafname=getContinuousFilename( pwd, 1 );
+    %     [scaledtrace, datatimestamps, datainfo] =load_open_ephys_data(datafname);
     
     SCTtimestamps=SCTtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
-    datatimestamps=datatimestamps-StartAcquisitionSec;
     
     
     %sanity check
@@ -213,9 +223,9 @@ if monitor
     hold on
     %set(gcf, 'pos', [-1853 555 1818 420]);
     SCTtrace=SCTtrace./max(abs(SCTtrace));
-    scaledtrace=scaledtrace./max(abs(scaledtrace));
-    plot(datatimestamps, SCTtrace) %plotting with data timestamps to work around wierd bug in ADC timestamps
-    plot(datatimestamps, scaledtrace, 'm') %plotting with data timestamps to work around wierd bug in ADC timestamps
+    %     scaledtrace=scaledtrace./max(abs(scaledtrace));
+    plot(SCTtimestamps, SCTtrace) %plotting with data timestamps to work around wierd bug in ADC timestamps
+    % plot(datatimestamps, scaledtrace, 'm') %plotting with data timestamps to work around wierd bug in ADC timestamps
     
     hold on
     %plot "software trigs" i.e. network messages in red o's
@@ -223,7 +233,8 @@ if monitor
         plot(Events(i).message_timestamp_sec, .25, 'ro');
         plot(Events(i).soundcard_trigger_timestamp_sec, 1, 'g*');
         text(Events(i).message_timestamp_sec, .5, sprintf('network message #%d', i))
-        text(Events(i).soundcard_trigger_timestamp_sec, .5, sprintf('SCT #%d', i))
+        text(Events(i).message_timestamp_sec, .75, sprintf('%s', Events(i).type))
+        text(Events(i).soundcard_trigger_timestamp_sec, 1.25, sprintf('SCT #%d', i))
     end
     
     %all_channels_info.eventType(i) = 3 for digital line in (TTL), 5 for network Events
@@ -243,9 +254,9 @@ if monitor
     
     
     for i=1:length(Events)
-        xlim([Events(i).message_timestamp_sec-.02 Events(i).message_timestamp_sec+.5])
+        xlim([Events(i).message_timestamp_sec-2 Events(i).message_timestamp_sec+3])
         ylim([-5 2])
-        pause(.1)
+        pause(.01)
     end
 end %if monitor
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -258,31 +269,58 @@ samprate=sampleRate;
 %get freqs/amps
 j=0;
 for i=1:length(Events)
-    if strcmp(Events(i).type, '2tone') |strcmp(Events(i).type, 'tone') ...
-            |strcmp(Events(i).type, 'fmtone') | strcmp(Events(i).type, 'whitenoise')| strcmp(Events(i).type, 'grating')
+    if strcmp(Events(i).type, 'AsymGPIAS')
         j=j+1;
-        alldurs(j)=Events(i).duration;
-        if strcmp(Events(i).type, 'tone') | strcmp(Events(i).type, '2tone')
-            allamps(j)=Events(i).amplitude;
-            allfreqs(j)=Events(i).frequency;
-        elseif strcmp(Events(i).type, 'whitenoise')
-            if Events(i).laser
-                
-            allamps(j)=Events(i).VarLaserstart;
-            else
-                allamps(j)=Events(i).amplitude;
-            end
-            allfreqs(j)=-1;
-   
-        end
+        allsoas(j)=Events(i).soa;
+        allgapdurs(j)=Events(i).gapdur;
+        allgapdelays(j)=Events(i).gapdelay;
+        allpulseamps(j)=Events(i).pulseamp;
+        allpulsedurs(j)=Events(i).pulsedur;
+        allnoiseamps(j)=Events(i).amplitude;
+        allonramps(j)=Events(i).onramp;
+        allofframps(j)=Events(i).offramp;
+        allpulseramps(j)=Events(i).pulseramp;
     end
+    
 end
-freqs=unique(allfreqs);
-amps=unique(allamps);
-durs=unique(alldurs);
-numfreqs=length(freqs);
-numamps=length(amps);
-numdurs=length(durs);
+soas=unique(allsoas);
+gapdurs=unique(allgapdurs);
+gapdelays=unique(allgapdelays);
+pulseamps=unique(allpulseamps);
+pulsedurs=unique(allpulsedurs);
+noiseamps=unique(allnoiseamps);
+onramps=unique(allonramps);
+offramps=unique(allofframps);
+pulseramps=unique(allpulseramps);
+
+numgapdurs=length(gapdurs);
+numpulseamps=length(pulseamps);
+numonramps=length(onramps);
+numofframps=length(offramps);
+numpulseramps=length(pulseramps);
+
+if length(numofframps)~=length(numonramps)
+    error('number of on ramps should be same as number of off ramps')
+end
+numgapramps=numofframps;
+
+
+if length(noiseamps)~=1
+    error('not able to handle multiple noiseamps')
+end
+if length(gapdelays)~=1
+    error('not able to handle multiple gapdelays')
+end
+if length(pulsedurs)~=1
+    error('not able to handle multiple pulsedurs')
+end
+if length(soas)~=1
+    error('not able to handle multiple soas')
+end
+noiseamp=noiseamps;
+soa=soas;
+pulsedur=pulsedurs;
+gapdelay=gapdelays;
 
 %check for laser in Events
 for i=1:length(Events)
@@ -295,18 +333,6 @@ for i=1:length(Events)
             LaserWidth(i)=nan;
             LaserNumPulses(i)=nan;
             LaserISI(i)=nan;
-        elseif isfield(stimlog(i).param, 'VarLaser')
-            if stimlog(i).param.VarLaser
-            LaserStart(i)=stimlog(i).param.VarLaserstart;
-            LaserWidth(i)=stimlog(i).param.VarLaserpulsewidth;
-            LaserNumPulses(i)=stimlog(i).param.VarLasernumpulses;
-            LaserISI(i)=stimlog(i).param.VarLaserisi;
-            else %varlaser exists but is 0
-                LaserStart(i)=nan;
-                LaserWidth(i)=nan;
-                LaserNumPulses(i)=nan;
-                LaserISI(i)=nan;
-            end
         else
             LaserStart(i)=stimlog(i).LaserStart;
             LaserWidth(i)=stimlog(i).LaserWidth;
@@ -316,7 +342,7 @@ for i=1:length(Events)
         
     elseif isfield(Events(i), 'laser') & ~isfield(Events(i), 'LaserOnOff')
         %Not sure about this one. Assume no laser for now, but investigate.
-        warning('ProcessTC_LFP: Cannot tell if laser button was turned on in djmaus GUI');
+        warning('ProcessAsymGPIAS_PSTH: Cannot tell if laser button was turned on in djmaus GUI');
         LaserTrials(i)=0;
         Events(i).laser=0;
     elseif ~isfield(Events(i), 'laser') & ~isfield(Events(i), 'LaserOnOff')
@@ -340,127 +366,92 @@ else
 end
 %if lasers were used, we'll un-interleave them and save ON and OFF data
 
-M1=[];M1ON=[];M1OFF=[];
-nreps=zeros(numfreqs, numamps, numdurs);
-nrepsON=zeros(numfreqs, numamps, numdurs);
-nrepsOFF=zeros(numfreqs, numamps, numdurs);
+M1ON=[];M1OFF=[];
+nrepsON=zeros(numgapdurs, numonramps, numofframps);
+nrepsOFF=zeros(numgapdurs, numonramps, numofframps);
+
+% %find optimal axis limits
+if isempty(xlimits)
+    xlimits(1)=-1.5*max(gapdurs);
+    xlimits(2)=2*soa;
+end
 
 %extract the traces into a big matrix M
 j=0;
 inRange=0;
 for i=1:length(Events)
-    if strcmp(Events(i).type, 'tone') | strcmp(Events(i).type, 'whitenoise') | ...
-            strcmp(Events(i).type, 'fmtone') | strcmp(Events(i).type, '2tone')| strcmp(Events(i).type, 'grating')
-        if  isfield(Events(i), 'soundcard_trigger_timestamp_sec')
-            pos=Events(i).soundcard_trigger_timestamp_sec;
-        else
-            error('???')
-            pos=Events(i).soundcard_trigger_timestamp_sec; %pos is in seconds
-        end
+    if strcmp(Events(i).type, 'AsymGPIAS')
+        
+        pos=Events(i).soundcard_trigger_timestamp_sec; %pos is in seconds
         laser=LaserTrials(i);
-        start=(pos+xlimits(1)*1e-3);
-        stop=(pos+xlimits(2)*1e-3);
+        start=pos + gapdelay/1000 +xlimits(1)/1000; %start is in seconds
+        stop=pos+ gapdelay/1000 + xlimits(2)/1000; %stop is in seconds
         if start>0 %(disallow negative or zero start times)
-            %             if stop>lostat
-            %                 fprintf('\ndiscarding trace (after lostat)')
-            %             elseif start<gotat
-            %                fprintf('\ndiscarding trace (before gotat)')
-            %                %commented out by ira 09-05-2013
-            %             else
-            switch Events(i).type
-                case {'tone', '2tone'}
-                    freq=Events(i).frequency;
-                    amp=Events(i).amplitude;
-                case 'fmtone'
-                    freq=Events(i).carrier_frequency;
-                    amp=Events(i).amplitude;
-                case 'whitenoise'
-                    freq=-1;
-                    amp=Events(i).amplitude;
-                    
-                    if Events(i).laser
-                        
-                        amp=Events(i).VarLaserstart;
-                    else
-                        amp=Events(i).amplitude;
-                    end
-
+            gapdur=Events(i).gapdur;
+            gdindex= find(gapdur==gapdurs);
+            pulseamp=Events(i).pulseamp;
+            paindex= find(pulseamp==pulseamps);
+            onramp=Events(i).onramp;
+            onrampindex= find(onramp==onramps);
+            offramp=Events(i).offramp;
+            offrampindex= find(offramp==offramps);
             
-                case 'grating'
-                    amp=Events(i).spatialfrequency;
-                    freq=Events(i).angle*1000;
+            st=spiketimes; %are in seconds
+            st_inrange=st(st>start & st<stop); % spiketimes in region, in seconds relative to start of acquisition
+            spikecount=length(st_inrange); % No. of spikes fired in response to this rep of this stim.
+            inRange=inRange+ spikecount; %accumulate total spikecount in region
+            spiketimes1=st_inrange*1000 - pos*1000 - gapdelay;%covert to ms after gap termination
+            spont_spikecount=length(find(st<start & st>(start-(stop-start)))); % No. spikes in a region of same length preceding response window
+            
+            if laser
+                nrepsON(gdindex,onrampindex, offrampindex)=nrepsON(gdindex,onrampindex, offrampindex)+1;
+                M1ON( gdindex,onrampindex, offrampindex, nrepsON(gdindex,onrampindex, offrampindex)).spiketimes=spiketimes1; % Spike times
+                M1ONspikecounts( gdindex,onrampindex, offrampindex,nrepsON(gdindex,onrampindex, offrampindex))=spikecount; % No. of spikes
+                M1spontON( gdindex,onrampindex, offrampindex, nrepsON(gdindex,onrampindex, offrampindex))=spont_spikecount; % No. of spikes in spont window, for each presentation.
+            else
+                nrepsOFF(gdindex,onrampindex, offrampindex)=nrepsOFF(gdindex,onrampindex, offrampindex)+1;
+                M1OFF( gdindex,onrampindex, offrampindex, nrepsOFF(gdindex,onrampindex, offrampindex)).spiketimes=spiketimes1;
+                M1OFFspikecounts( gdindex,onrampindex, offrampindex,nrepsOFF(gdindex,onrampindex, offrampindex))=spikecount;
+                M1spontOFF( gdindex,onrampindex, offrampindex, nrepsOFF(gdindex,onrampindex, offrampindex))=spont_spikecount;
             end
-            
-            
-            dur=Events(i).duration;
-            findex= find(freqs==freq);
-            aindex= find(amps==amp);
-            dindex= find(durs==dur);
-            nreps(findex, aindex, dindex)=nreps(findex, aindex, dindex)+1;
-                st=spiketimes.spiketimes; %are in seconds
-                spiketimes1=st(st>start & st<stop); % spiketimes in region
-                spikecount=length(spiketimes1); % No. of spikes fired in response to this rep of this stim.
-                inRange=inRange+ spikecount; %accumulate total spikecount in region
-                spiketimes1=(spiketimes1-pos)*1000;%covert to ms after tone onset
-                spont_spikecount=length(find(st<start & st>(start-(stop-start)))); % No. spikes in a region of same length preceding response window
-                
-                if laser
-                        nrepsON(findex, aindex, dindex)=nrepsON(findex, aindex, dindex)+1;
-                    
-                    M1ON( findex,aindex,dindex, nrepsON(findex, aindex, dindex)).spiketimes=spiketimes1; % Spike times
-                    M1ONspikecounts( findex,aindex,dindex,nrepsON(findex, aindex, dindex))=spikecount; % No. of spikes
-                    M1spontON( findex,aindex,dindex, nrepsON(findex, aindex, dindex))=spont_spikecount; % No. of spikes in spont window, for each presentation.
-                    M_LaserStart( findex,aindex,dindex, nrepsON(findex, aindex, dindex))=LaserStart(i);
-                    M_LaserWidth( findex,aindex,dindex, nrepsON(findex, aindex, dindex))= LaserWidth(i);
-                    M_LaserNumPulses( findex,aindex,dindex, nrepsON(findex, aindex, dindex))= LaserNumPulses(i);
-                    M_LaserISI( findex,aindex,dindex, nrepsON(findex, aindex, dindex))= LaserISI(i);
-                else
-                        nrepsOFF(findex, aindex, dindex)=nrepsOFF(findex, aindex, dindex)+1;
-                    
-                    M1OFF( findex,aindex,dindex, nrepsOFF(findex, aindex, dindex)).spiketimes=spiketimes1;
-                    M1OFFspikecounts( findex,aindex,dindex,nrepsOFF(findex, aindex, dindex))=spikecount;
-                    M1spontOFF( findex,aindex,dindex, nrepsOFF(findex, aindex, dindex))=spont_spikecount;
-                end
-            
         end
     end
 end
 
 fprintf('\nmin num ON reps: %d\nmax num ON reps: %d', min(nrepsON(:)), max(nrepsON(:)))
 fprintf('\nmin num OFF reps: %d\nmax num OFF reps: %d',min(nrepsOFF(:)), max(nrepsOFF(:)))
-    fprintf('\ncell %d:', clust)
-    fprintf('\ntotal num spikes: %d', length(spiketimes.spiketimes))
-    fprintf('\nIn range: %d', inRange)
+fprintf('\ntotal num spikes: %d', length(spiketimes)
+fprintf('\nIn range: %d', inRange)
 
-
-mM1ON=[];
-mM1OFF=[];
 
 % Accumulate spiketimes across trials, for psth...
-for dindex=1:length(durs); % Hardcoded.
-    for aindex=[numamps:-1:1]
-        for findex=1:numfreqs
+for gdindex=1:numgapdurs; % Hardcoded.
+    for onrampindex=1:numonramps
+        for offrampindex=1:numofframps
+            for clust=1:Nclusters
                 
                 % on
                 spiketimesON=[];
                 spikecountsON=[];
-                for rep=1:nrepsON(findex, aindex, dindex)
-                    spiketimesON=[spiketimesON M1ON( findex, aindex, dindex, rep).spiketimes];
+                for rep=1:nrepsON(gdindex,onrampindex, offrampindex)
+                    spiketimesON=[spiketimesON M1ON(gdindex,onrampindex, offrampindex, rep).spiketimes];
                 end
                 
                 % All spiketimes for a given f/a/d combo, for psth:
-                mM1ON( findex, aindex, dindex).spiketimes=spiketimesON;
+                mM1ON(gdindex,onrampindex, offrampindex).spiketimes=spiketimesON;
                 
                 % off
                 spiketimesOFF=[];
                 spikecountsOFF=[];
-                for rep=1:nrepsOFF(findex, aindex, dindex)
-                    spiketimesOFF=[spiketimesOFF M1OFF( findex, aindex, dindex, rep).spiketimes];
+                for rep=1:nrepsOFF(gdindex,onrampindex, offrampindex)
+                    spiketimesOFF=[spiketimesOFF M1OFF(gdindex,onrampindex, offrampindex, rep).spiketimes];
                 end
-                mM1OFF( findex, aindex, dindex).spiketimes=spiketimesOFF;
+                mM1OFF(gdindex,onrampindex, offrampindex).spiketimes=spiketimesOFF;
             end
         end
     end
+end
+
 
 if ~IL %no laser pulses in this file
     mM1ONspikecount=[];
@@ -470,14 +461,15 @@ if ~IL %no laser pulses in this file
 else
     mM1ONspikecount=mean(M1ONspikecounts,4); % Mean spike count
     sM1ONspikecount=std(M1ONspikecounts,[],4); % Std of the above
-    semM1ONspikecount=sM1ONspikecount./sqrt(max(nrepsON(:))); % Sem of the above
+    semM1ONspikecount( :,:)=squeeze(sM1ONspikecount( :,:))./sqrt(max(nrepsON(:))); % Sem of the above
     
     % Spont
     mM1spontON=mean(M1spontON,4);
     sM1spontON=std(M1spontON,[],4);
-    semM1spontON=sM1spontON./sqrt(max(nrepsON(:)));
+    semM1spontON( :,:)=squeeze(sM1spontON( :,:))./sqrt(max(nrepsON(:)));
+    
 end
-if isempty(mM1OFF) %no laser-off trials in this file
+if isempty(M1OFF) %only laser pulses in this file
     mM1OFFspikecount=[];
     sM1OFFspikecount=[];
     semM1OFFspikecount=[];
@@ -485,23 +477,24 @@ if isempty(mM1OFF) %no laser-off trials in this file
 else
     mM1OFFspikecount=mean(M1OFFspikecounts,4); % Mean spike count
     sM1OFFspikecount=std(M1OFFspikecounts,[],4); % Std of the above
-        semM1OFFspikecount=sM1OFFspikecount./sqrt(max(nrepsOFF(:))); % Sem of the above
-
-        % Spont
+    semM1OFFspikecount( :,:)=squeeze(sM1OFFspikecount( :,:))./sqrt(max(nrepsOFF(:))); % Sem of the above
+    
+    % Spont
     mM1spontOFF=mean(M1spontOFF,4);
     sM1spontOFF=std(M1spontOFF,[],4);
-        semM1spontOFF=sM1spontOFF./sqrt(max(nrepsOFF(:)));
+    semM1spontOFF( :,:)=squeeze(sM1spontOFF( :,:))./sqrt(max(nrepsOFF(:)));
+    
 end
 
 %save to outfiles
-%one outfile because there is only one cell
+%one outfile for each cell
 %all previously existing outfiles for this tetrode will be deleted, to
 %avoid duplicated or mismatched outfiles when reclustering
 
-%saves with the following dimensions:
-% M1ON(findex,aindex,dindex, nrepsON).spiketimes
-% mM1ON(findex,aindex,dindex).spiketimes
-% mM1ONspikecount(findex,aindex,dindex)
+%after squeezing cluster, saves with the following dimensions:
+% M1ON(numgapdurs, numpulseamps, nrepsON).spiketimes
+% mM1ON(numgapdurs, numpulseamps).spiketimes
+% mM1ONspikecount(numgapdurs, numpulseamps)
 
     out.IL=IL;
     out.Nclusters=Nclusters;
@@ -509,11 +502,6 @@ end
     out.channel=channel;
     out.cluster=clust; %there are some redundant names here
     out.cell=clust;
-    out.LaserStart=unique(LaserStart); %only saving one value here, assuming it's constant
-    out.LaserWidth=unique(LaserWidth);
-    out.LaserNumPulses=unique(LaserNumPulses);
-    out.LaserISI=unique(LaserISI);
-    
     if IL
         out.M1ON=M1ON; %isn't this so much easier?
         out.mM1ON=mM1ON;
@@ -527,7 +515,6 @@ end
         out.M_LaserWidth=M_LaserWidth;
         out.M_LaserNumPulses=M_LaserNumPulses;
         out.M_LaserISI=M_LaserISI;
-        
         
     else
         out.M1ON=[];
@@ -545,23 +532,37 @@ end
         out.M_LaserWidth=[];
         out.M_LaserNumPulses=[];
         out.M_LaserISI=[];
+    end
+    if isempty(M1OFF)
+        out.M1OFF=[];
+        out.mM1OFF=[];
+        out.mM1OFFspikecount=[];
+        out.sM1OFFspikecount=[];
+        out.semM1OFFspikecount=[];
+        out.mM1spontOFF=[];
+        out.sM1spontOFF=[];
+        out.semM1spontOFF=[];
+    else
+        out.M1OFF=M1OFF;
+        out.mM1OFF=mM1OFF;
+        out.mM1OFFspikecount=mM1OFFspikecount;
+        out.sM1OFFspikecount=sM1OFFspikecount;
+        out.semM1OFFspikecount=semM1OFFspikecount;
+        out.mM1spontOFF=mM1spontOFF;
+        out.sM1spontOFF=sM1spontOFF;
+        out.semM1spontOFF=semM1spontOFF;
         
     end
-    out.M1OFF=M1OFF;
-    out.mM1OFF=mM1OFF;
-    out.mM1OFFspikecount=mM1OFFspikecount;
-    out.sM1OFFspikecount=sM1OFFspikecount;
-    out.semM1OFFspikecount=semM1OFFspikecount;
-    out.mM1spontOFF=mM1spontOFF;
-    out.sM1spontOFF=sM1spontOFF;
-    out.semM1spontOFF=semM1spontOFF;
-    out.amps=amps;
-    out.freqs=freqs;
-    out.durs=durs;
-    out.numamps=numamps;
-    out.numfreqs=numfreqs;
-    out.numdurs=numdurs;
-    out.nreps=nreps;
+    out.numpulseamps = numpulseamps;
+    out.numonramps = numonramps;
+    out.numofframps = numofframps;
+    out.numgapdurs = numgapdurs;
+    out.pulseamps = pulseamps;
+    out.gapdurs = gapdurs;
+    out.gapdelay = gapdelay;
+    out.soa=soa;
+    out.onramps=onramps;
+    out.offramps=offramps;
     out.nrepsON=nrepsON;
     out.nrepsOFF=nrepsOFF;
     out.xlimits=xlimits;
@@ -579,9 +580,7 @@ end
     end
     outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
     save (outfilename, 'out')
-    fprintf('\nwrote to %s', outfilename)
-
-    
+end
 
 
 

@@ -48,6 +48,18 @@ cd(datadir)
 
 try
     load notebook.mat
+    %check if nb and stimlog are actually there
+    if ~exist('stimlog','var')
+        stimlog=[];
+        fprintf('\nfound notebook file but there was no stimlog in it!!!');
+        fprintf('\n in principle it should be possible to reconstruct all stimuli\nfrom network events, but that would take a lot of coding, does this problem happen often enough to be worth the effort???');
+        
+        error('found notebook file but there was no stimlog in it!!!');
+    end
+    if ~exist('nb','var')
+        nb=[];
+        warning('found notebook file but there was no nb notebook information in it!!!');
+    end
 catch
     warning('could not find notebook file')
 end
@@ -148,7 +160,12 @@ end
 
 fprintf('\nNumber of sound events (from network messages): %d', length(Events));
 fprintf('\nNumber of hardware triggers (soundcardtrig TTLs): %d', length(all_SCTs));
-fprintf('\nNumber of logged stimuli in notebook: %d', length(stimlog));
+try
+    fprintf('\nNumber of logged stimuli in notebook: %d', length(stimlog));
+catch
+    fprintf('\nCould not find stimlog, no logged stimuli in notebook!!');
+
+end
 if length(Events) ~=  length(all_SCTs)
     warning('ProcessAsymGPIAS_PSTH: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
     [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog  );
@@ -420,7 +437,7 @@ end
 
 fprintf('\nmin num ON reps: %d\nmax num ON reps: %d', min(nrepsON(:)), max(nrepsON(:)))
 fprintf('\nmin num OFF reps: %d\nmax num OFF reps: %d',min(nrepsOFF(:)), max(nrepsOFF(:)))
-fprintf('\ntotal num spikes: %d', length(spiketimes)
+fprintf('\ntotal num spikes: %d', length(spiketimes))
 fprintf('\nIn range: %d', inRange)
 
 

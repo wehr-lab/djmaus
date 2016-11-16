@@ -150,7 +150,7 @@ set(fig,'visible','off','numbertitle','off','name','cell list builder',...
     'doublebuffer','on','menubar','none','closerequestfcn','CellListBuilder(''Close'')')
 height=220; width=350; e=2; H=e;
 w=200; h=25;
-set(fig,'pos',[1200 800         width         height],'visible','on');
+set(fig,'pos',[1000 800         width         height],'visible','on');
 
 
 %TargetCellList display
@@ -228,7 +228,7 @@ function [selection, ok, ClustQual, PVcell]=myCellListDlg(d)
 global P
 
 fig=figure;
-set(fig, 'pos',[1000 400 500 800] )
+set(fig, 'pos',[800 400 500 800] )
 
 selection=[];
 ClustQual=[];

@@ -25,7 +25,16 @@ if isempty(action)
     action='Init';
 end
 
-%fprintf('\naction: %s', action)
+% %fprintf('\naction: %s', action)
+% [uv, sv]=memory;
+% jhm = java.lang.Runtime.getRuntime.freeMemory;
+% fid=fopen('D:\lab\djmaus\memlog.txt', 'a');
+% fprintf(fid, '\n%.8f %d %d %d %d %d %d %d', ...
+%     datenum(now), ...
+%     uv.MaxPossibleArrayBytes, uv.MemAvailableAllArrays, uv.MemUsedMATLAB, ...
+%     sv.VirtualAddressSpace.Available, sv.SystemMemory.Available, sv.PhysicalMemory.Available, ...
+%     jhm);
+% fclose(fid);
 
 switch action
     case 'Init'
@@ -674,7 +683,8 @@ function InitNotebookFile
 global SP nb pref
 
 % find active OE data directory and cd into it
-if(1)%try
+SP.activedir='unknown';
+try
 %    zeroMQwrapper('Send',SP.zhandle ,sprintf('ChangeDirectory %s', pref.root))
 %    pause(.2)
     zeroMQwrapper('Send',SP.zhandle ,'GetRecordingPath');
@@ -731,7 +741,7 @@ if(1)%try
     
     save('notebook.mat', 'nb')
     fprintf('\ncreated notebook file in %s', nb.activedir)
-else%catch
+    catch
     fprintf('\nCould not create notebook file in active data directory')
     %ask user if they want to manually save notebook file
     ButtonName = questdlg('Could not create notebook file in active data directory. Do you want to manually save the notebook file?');
@@ -772,9 +782,9 @@ if SP.Record
         cd(SP.activedir)
         SP.stimlog(SP.stimcounter)=stimulus;
         stimlog=SP.stimlog;
-        save('notebook.mat', '-append', 'stimlog')
+        save('notebook.mat', '-append', 'stimlog');
     catch
-        fprintf('\nCould not update stimlog in notebook file in active data directory')
+        fprintf('\nCould not update stimlog in notebook file in active data directory');
     end
 end
 

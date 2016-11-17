@@ -27,15 +27,6 @@ try
     end
 catch
     channel=[];     %default to all tetrodes
-    %    d=dir('*.t');
-    %    for i=1:length(d)
-    %        fn=d(i).name;
-    %        ch=strsplit(fn , '_');
-    %        c=strsplit(ch{1} , 'ch');
-    %        chs(i)=str2num(c{2});
-    %    end
-    %    channel=unique(chs);
-    %
 end
 
 try
@@ -76,8 +67,7 @@ else %user specified a channel
         if cluster<10
             fn=sprintf('ch%d_simpleclust_%0d.t', channel, cluster);
             ProcessAsymGPIAS_PSTH_single(datadir, fn, xlimits, ylimits)
-            
-        else
+                    else
             fn=sprintf('ch%d_simpleclust_%d.t', channel, cluster);
             ProcessAsymGPIAS_PSTH_single(datadir, fn, xlimits, ylimits)
             

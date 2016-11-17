@@ -2046,7 +2046,7 @@ for i=1:length(Events)
         end
     end
 end
-end
+
 
 fprintf('\nmin num ON reps: %d\nmax num ON reps: %d', min(nrepsON(:)), max(nrepsON(:)))
 fprintf('\nmin num OFF reps: %d\nmax num OFF reps: %d',min(nrepsOFF(:)), max(nrepsOFF(:)))
@@ -2119,10 +2119,17 @@ end
 %all previously existing outfiles for this tetrode will be deleted, to
 %avoid duplicated or mismatched outfiles when reclustering
 
-%after squeezing cluster, saves with the following dimensions:
+% saves with the following dimensions:
 % M1ON(findex,aindex,dindex, nrepsON).spiketimes
 % mM1ON(findex,aindex,dindex).spiketimes
 % mM1ONspikecount(findex,aindex,dindex)
+
+%I still need to extract the stimulus traces, for now leaving them blank
+M1ONStim=[];
+mM1ONStim=[];
+M1OFFStim=[];
+mM1OFFStim=[];
+
 
 out.IL=IL;
 out.Nclusters=Nclusters;
@@ -2149,6 +2156,8 @@ if IL
     out.M_LaserWidth=M_LaserWidth;
     out.M_LaserNumPulses=M_LaserNumPulses;
     out.M_LaserISI=M_LaserISI;
+    out.M1ONStim=M1ONStim;
+    out.mM1ONStim=mM1ONStim;
     
     
 else
@@ -2167,8 +2176,15 @@ else
     out.M_LaserWidth=[];
     out.M_LaserNumPulses=[];
     out.M_LaserISI=[];
+    out.M1ONStim=[];
+    out.mM1ONStim=[];
     
 end
+
+
+out.M1OFFStim=M1OFFStim;
+out.mM1OFFStim=mM1OFFStim;
+
 out.M1OFF=M1OFF;
 out.mM1OFF=mM1OFF;
 out.mM1OFFspikecount=mM1OFFspikecount;

@@ -424,7 +424,7 @@ SP.samples= samples; %store samples for re-buffering if we're looping (used only
 
 if isfield(param, 'seamless')
     if param.seamless==1;
-        seamless=param.seamless;pref.num_soundcard_outputchannels
+        seamless=param.seamless;
         status = PsychPortAudio('GetStatus', PPAhandle);
         if debugging
             str=sprintf('PositionSecs=%g\tdur:%g', status.PositionSecs, param.duration);

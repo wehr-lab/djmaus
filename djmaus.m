@@ -74,26 +74,8 @@ switch action
     case 'Stop'
         %stop acquisition, i.e. like clicking the > button on the
         %open-ephys GUI
-        
-        %courtesy message if continuous stimuli haven't finished yet
-        try
-            PPAhandle=SP.PPAhandle;
-            status = PsychPortAudio('GetStatus', PPAhandle);
-            
-            if  status.Active==1; %device running
-                protocol=SP.ProtocolIndex;
-                current=SP.CurrentStimulus(protocol);
-                inQueue=current-status.SchedulePosition-SP.CurrStimatPPAstart;
-                Question=sprintf('stimuli have not finished playing yet (%d remaining).\nDo you really wnat to stop acquisition?', inQueue)
+        % This button is currently disabled
                 
-                ButtonName = questdlg(Question, 'Are you sure?', 'Cancel', 'Really Stop', 'Cancel');
-                if strcmp(ButtonName, 'Cancel')
-                    return
-                end
-                
-            end
-        end
-            
         zeroMQwrapper('Send',SP.zhandle ,'StopAcquisition'); 
         
     case 'launchOE'
@@ -569,7 +551,7 @@ stimulus.param=CalibrateSound(stimulus.param, stimulus.type);
 samples=feval(fcn,stimulus.param,SP.SoundFs);
 
 %LoadPPA(type,where,param)
-PPAdj('load', 'var', samples, stimulus.param)
+PPAdj('load', 'var', samples, stimulus.param);
 str=sprintf('TrialType %s', stimulus.stimulus_description);
 %append a field saying whether the LaserON/OFF button is clicked or not:
 str=sprintf('%s %s:%g', str, 'LaserOnOff', SP.LaserOnOff);
@@ -577,8 +559,8 @@ if ~isempty(SP.zhandle)
     zeroMQwrapper('Send', SP.zhandle, str)
 end
 PPAdj('playsound')
-UpdateStimlog(stimulus)
-djMessage(stimulus.stimulus_description, 'append')
+UpdateStimlog(stimulus);
+djMessage(stimulus.stimulus_description, 'append');
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -648,6 +630,27 @@ fprintf('\n')
 
 if SP.Record
     %we want to stop recording
+    %courtesy message if continuous stimuli haven't finished yet
+    try
+        PPAhandle=SP.PPAhandle;
+        status = PsychPortAudio('GetStatus', PPAhandle);
+        
+        if  status.Active==1; %device running
+            protocol=SP.ProtocolIndex;
+            current=SP.CurrentStimulus(protocol);
+            inQueue=current-status.SchedulePosition-SP.CurrStimatPPAstart;
+            Question=sprintf('stimuli have not finished playing yet (%d remaining).\nDo you really wnat to stop acquisition?', inQueue)
+            
+            ButtonName = questdlg(Question, 'Are you sure?', 'Cancel', 'Really Stop', 'Cancel');
+            if strcmp(ButtonName, 'Cancel')
+                %unclick the record button
+                set(findobj('Tag', 'Record'), 'Value', 1);
+                return
+            end
+            
+        end
+    end
+    
     zeroMQwrapper('Send',SP.zhandle ,'StopRecord');
     set(SP.Recordh,'backgroundcolor',[0 0.9 0],'String','Record');
     SP.Record=0;

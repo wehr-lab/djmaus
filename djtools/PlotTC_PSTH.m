@@ -72,7 +72,7 @@ else %user specified a channel
             PlotTC_PSTH_single(datadir, fn, xlimits, ylimits)
         end
     else %user specified a channel and a cluster
-        if cluster<10
+        if clust<10
             fn=sprintf('ch%d_simpleclust_%0d.t', channel, cluster);
             PlotTC_PSTH_single(datadir, fn, xlimits, ylimits)
         else

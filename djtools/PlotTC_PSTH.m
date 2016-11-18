@@ -65,7 +65,7 @@ if isempty(channel)     %default to all tetrodes
         PlotTC_PSTH_single(datadir, fn, xlimits, ylimits)
     end
 else %user specified a channel
-    if isempty(cluster) % default to all clusters
+    if isempty(clust) % default to all clusters
         d=dir(sprintf('ch%d*.t', channel));
         for i=1:length(d)
             fn=d(i).name;

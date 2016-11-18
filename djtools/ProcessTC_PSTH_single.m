@@ -332,25 +332,43 @@ else
 end
 %if lasers were used, we'll un-interleave them and save ON and OFF data
 
-% I'm not sure why we load this here or what it is, but we use it as a dummy at least
-[scaledtrace, datatimestamps, datainfo] =load_open_ephys_data('100_ADC3.continuous');
 
 %try to load laser and stimulus monitor
-Lasertrace=0*scaledtrace;
-Stimtrace=0*scaledtrace;
-try
-    [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data(getLaserfile('.'));
-    Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
-    Lasertrace=Lasertrace./max(abs(Lasertrace));
-    fprintf('\nsuccessfully loaded laser trace')
+if isempty(getLaserfile('.'))
+    LaserRecorded=0;
+else
+    LaserRecorded=1;
 end
-try
-    [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(getStimfile('.'));
-    Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
-    Stimtrace=Stimtrace./max(abs(Stimtrace));
-    fprintf('\nsuccessfully loaded stim trace')
+if isempty(getStimfile('.'))
+    StimRecorded=0;
+else
+    StimRecorded=1;
 end
 
+if LaserRecorded
+    try
+        [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data(getLaserfile('.'));
+        Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+        Lasertrace=Lasertrace./max(abs(Lasertrace));
+        fprintf('\nsuccessfully loaded laser trace')
+    catch
+        fprintf('\nfound laser file %s but could not load laser trace', getLaserfile('.'))
+    end
+else
+    fprintf('\nLaser trace not recorded')
+end
+if StimRecorded
+    try
+        [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(getStimfile('.'));
+        Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+        Stimtrace=Stimtrace./max(abs(Stimtrace));
+        fprintf('\nsuccessfully loaded stim trace')
+    catch
+        fprintf('\nfound stim file %s but could not load stim trace', getStimfile('.'))
+    end
+else
+    fprintf('\nSound stimulus trace not recorded')
+end
 
 M1=[];M1ON=[];M1OFF=[];
 nreps=zeros(numfreqs, numamps, numdurs);
@@ -372,6 +390,7 @@ for i=1:length(Events)
         laser=LaserTrials(i);
         start=(pos+xlimits(1)*1e-3);
         stop=(pos+xlimits(2)*1e-3);
+        region=round(start*samprate)+1:round(stop*samprate);
         if start>0 %(disallow negative or zero start times)
             %             if stop>lostat
             %                 fprintf('\ndiscarding trace (after lostat)')
@@ -417,20 +436,28 @@ for i=1:length(Events)
                 M_LaserWidth(findex,aindex,dindex, nrepsON(findex, aindex, dindex))= LaserWidth(i);
                 M_LaserNumPulses(findex,aindex,dindex, nrepsON(findex, aindex, dindex))= LaserNumPulses(i);
                 M_LaserISI(findex,aindex,dindex, nrepsON(findex, aindex, dindex))= LaserISI(i);
-                               M1ONLaser(findex,aindex,dindex, nrepsON(findex, aindex, dindex),:)=Lasertrace(region);
+                if LaserRecorded
+                    M1ONLaser(findex,aindex,dindex, nrepsON(findex, aindex, dindex),:)=Lasertrace(region);
+                end
+                if StimRecorded
                     M1ONStim(findex,aindex,dindex, nrepsON(findex, aindex, dindex),:)=Stimtrace(region);
- else
+                end
+            else
                 nrepsOFF(findex, aindex, dindex)=nrepsOFF(findex, aindex, dindex)+1;
                 M1OFF(findex,aindex,dindex, nrepsOFF(findex, aindex, dindex)).spiketimes=spiketimes1;
                 M1OFFspikecounts(findex,aindex,dindex,nrepsOFF(findex, aindex, dindex))=spikecount;
                 M1spontOFF(findex,aindex,dindex, nrepsOFF(findex, aindex, dindex))=spont_spikecount;
-                         M1OFFLaser(findex,aindex,dindex, nrepsOFF(findex, aindex, dindex),:)=Lasertrace(region);
+                if LaserRecorded
+                    M1OFFLaser(findex,aindex,dindex, nrepsOFF(findex, aindex, dindex),:)=Lasertrace(region);
+                end
+                if StimRecorded
                     M1OFFStim(findex,aindex,dindex, nrepsOFF(findex, aindex, dindex),:)=Stimtrace(region);
-       end
+                end
+            end
         end
     end
 end
-end
+
 
 fprintf('\nmin num ON reps: %d\nmax num ON reps: %d', min(nrepsON(:)), max(nrepsON(:)))
 fprintf('\nmin num OFF reps: %d\nmax num OFF reps: %d',min(nrepsOFF(:)), max(nrepsOFF(:)))
@@ -468,29 +495,38 @@ for dindex=1:length(durs); % Hardcoded.
 end
 
 %average laser and stimulus monitor M matrices across trials
+if LaserRecorded
     for aindex=1:numamps
         for findex=1:numfreqs
             for dindex=1:numdurs
-                if nreps(findex, aindex, dindex)>0
-                    mM1stim(findex, aindex, dindex,:)=mean(M1stim(findex, aindex, dindex, 1:nreps(findex, aindex, dindex),:), 4);
-                else %no reps for this stim, since rep=0
-                    mM1stim(findex, aindex, dindex,:)=zeros(size(region));
-                end
                 if nrepsON(findex, aindex, dindex)>0
-                    mM1ONStim(findex, aindex, dindex,:)=mean(M1ONStim(findex, aindex, dindex, 1:nrepsON(findex, aindex, dindex),:), 4);
                     mM1ONLaser(findex, aindex, dindex,:)=mean(M1ONLaser(findex, aindex, dindex, 1:nrepsON(findex, aindex, dindex),:), 4);
                 else %no reps for this stim, since rep=0
-                    mM1ONStim(findex, aindex, dindex,:)=zeros(size(region));
                     mM1ONLaser(findex, aindex, dindex,:)=zeros(size(region));
                 end
                 if nrepsOFF(findex, aindex, dindex)>0
-                    mM1OFFStim(findex, aindex, dindex,:)=mean(M1OFFStim(findex, aindex, dindex, 1:nrepsOFF(findex, aindex, dindex),:), 4);
                     mM1OFFLaser(findex, aindex, dindex,:)=mean(M1OFFLaser(findex, aindex, dindex, 1:nrepsOFF(findex, aindex, dindex),:), 4);
                 else %no reps for this stim, since rep=0
-                    mM1OFFStim(findex, aindex, dindex,:)=zeros(size(region));
                     mM1OFFLaser(findex, aindex, dindex,:)=zeros(size(region));
+                end                
+            end
+        end
+    end
+end
+if StimRecorded
+    for aindex=1:numamps
+        for findex=1:numfreqs
+            for dindex=1:numdurs
+                if nrepsON(findex, aindex, dindex)>0
+                    mM1ONStim(findex, aindex, dindex,:)=mean(M1ONStim(findex, aindex, dindex, 1:nrepsON(findex, aindex, dindex),:), 4);
+                else %no reps for this stim, since rep=0
+                    mM1ONStim(findex, aindex, dindex,:)=zeros(size(region));
                 end
-                
+                if nrepsOFF(findex, aindex, dindex)>0
+                    mM1OFFStim(findex, aindex, dindex,:)=mean(M1OFFStim(findex, aindex, dindex, 1:nrepsOFF(findex, aindex, dindex),:), 4);
+                else %no reps for this stim, since rep=0
+                    mM1OFFStim(findex, aindex, dindex,:)=zeros(size(region));
+                end                
             end
         end
     end
@@ -602,15 +638,31 @@ out.samprate=samprate;
 out.datadir=datadir;
 out.spiketimes=spiketimes;
 
-  out.M1ONStim=M1ONStim;
+out.LaserRecorded=LaserRecorded; %whether the laser signal was hooked up and recorded as a continuous channel
+out.StimRecorded=StimRecorded; %%whether the sound stimulus signal was hooked up and recorded as a continuous channel
+if LaserRecorded
     out.M1ONLaser=M1ONLaser;
-    out.mM1ONStim=mM1ONStim;
     out.mM1ONLaser=mM1ONLaser;
-    out.M1OFFStim=M1OFFStim;
     out.M1OFFLaser=M1OFFLaser;
-    out.mM1OFFStim=mM1OFFStim;
     out.mM1OFFLaser=mM1OFFLaser;
-    
+else
+    out.M1ONLaser=[];
+    out.mM1ONLaser=[];
+    out.M1OFFLaser=[];
+    out.mM1OFFLaser=[];
+end
+if StimRecorded
+    out.M1ONStim=M1ONStim;
+    out.mM1ONStim=mM1ONStim;
+    out.M1OFFStim=M1OFFStim;
+    out.mM1OFFStim=mM1OFFStim;
+else
+    out.M1ONStim=[];
+    out.mM1ONStim=[];
+    out.M1OFFStim=[];
+    out.mM1OFFStim=[];
+end
+
 try
     out.nb=nb;
     out.stimlog=stimlog;

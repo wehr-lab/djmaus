@@ -9,7 +9,7 @@ function PlotTC_PSTH_single(varargin)
 
 
 rasters=1;
-force_reprocess=1;
+force_reprocess=0;
 
 if nargin==0
     fprintf('\nno input');
@@ -86,7 +86,10 @@ M1ON=out.M1ON;
 M1OFF=out.M1OFF;
 nrepsON=out.nrepsON;
 nrepsOFF=out.nrepsOFF;
+if isempty(xlimits) xlimits=out.xlimits;end
 
+LaserRecorded=out.LaserRecorded;
+StimRecorded=out.StimRecorded;
 M_LaserStart=out.M_LaserStart;
 M_LaserWidth=out.M_LaserWidth;
 M_LaserNumPulses=out.M_LaserNumPulses;
@@ -96,7 +99,7 @@ LaserWidth=out.LaserWidth;
 LaserNumPulses=out.LaserNumPulses;
 LaserISI=out.LaserISI;
 M1ONStim=out.M1ONStim;
-M1ONLaser=out.M1ONLaser;
+M1ONLaser=out.M1ONLaser; % a crash here means this is an obsolete outfile. Set force_reprocess=1 up at the top of this mfile. (Don't forget to reset it to 0 when you're done)
 mM1ONStim=out.mM1ONStim;
 mM1ONLaser=out.mM1ONLaser;
 M1OFFStim=out.M1OFFStim;
@@ -178,25 +181,25 @@ for windex=1:numw
             end
             bar(x,N,1);
             
-            %             Lasertrace=squeeze(mM1OFFLaser(findex, aindex, dindex, :));
-            %             Lasertrace=Lasertrace -mean(Lasertrace(1:100));
-            %             Lasertrace=.05*diff(ylimits)*Lasertrace;
-            Stimtrace=squeeze(mM1OFFStim(findex, aindex, dindex, :));
-            Stimtrace=Stimtrace -mean(Stimtrace(1:100));
-            Stimtrace=.05*diff(ylimits)*Stimtrace;
-            
-            t=1:length(Stimtrace);
-            t=1000*t/out.samprate; %convert to ms
-            t=t+out.xlimits(1); %correct for xlim in original processing call
-            line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
-            offset=ylimits(1)+.1*diff(ylimits);
-            plot(t, Stimtrace+offset, 'm')
-            
-            for rep=1:nrepsOFF(findex, aindex, dindex)
-                Lasertrace=squeeze(M1OFFLaser(findex, aindex, dindex,rep, :));
-                Lasertrace=Lasertrace -mean(Lasertrace(1:100));
-                Lasertrace=.05*diff(ylimits)*Lasertrace;
-                plot( t, Lasertrace+offset, 'c')
+            if StimRecorded
+                Stimtrace=squeeze(mM1OFFStim(findex, aindex, dindex, :));
+                Stimtrace=Stimtrace -mean(Stimtrace(1:100));
+                Stimtrace=.05*diff(ylimits)*Stimtrace;
+                t=1:length(Stimtrace);
+                t=1000*t/out.samprate; %convert to ms
+                t=t+out.xlimits(1); %correct for xlim in original processing call
+                offset=ylimits(1)+.1*diff(ylimits);
+                plot(t, Stimtrace+offset, 'm')
+            else
+                line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
+            end
+            if LaserRecorded
+                for rep=1:nrepsOFF(findex, aindex, dindex)
+                    Lasertrace=squeeze(M1OFFLaser(findex, aindex, dindex,rep, :));
+                    Lasertrace=Lasertrace -mean(Lasertrace(1:100));
+                    Lasertrace=.05*diff(ylimits)*Lasertrace;
+                    plot( t, Lasertrace+offset, 'c')
+                end
             end
             %                 line([0 0+durs(dindex)], [-.2 -.2], 'color', 'm', 'linewidth', 4)
             %                 line(xlimits, [0 0], 'color', 'k')
@@ -256,17 +259,31 @@ if IL
                 bar(x, N,1);
                 line(xlimits, [0 0], 'color', 'k')
                 
+                if StimRecorded
+                    Stimtrace=squeeze(mM1OFFStim(findex, aindex, dindex, :));
+                    Stimtrace=Stimtrace -mean(Stimtrace(1:100));
+                    Stimtrace=.05*diff(ylimits)*Stimtrace;
+                    t=1:length(Stimtrace);
+                    t=1000*t/out.samprate; %convert to ms
+                    t=t+out.xlimits(1); %correct for xlim in original processing call
+                    offset=ylimits(1)+.1*diff(ylimits);
+                    plot(t, Stimtrace+offset, 'm')
+                else
+                    line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
+                end
+                
                 ylimits2(2)=ylimits(2)*3;
                 ylimits2(1)=-2;
                 ylim(ylimits2(:))
                 
-                for rep=1:nrepsON(findex, aindex, dindex)
-                    Lasertrace=squeeze(M1ONLaser(findex, aindex, dindex,rep, :));
-                    Lasertrace=Lasertrace -mean(Lasertrace(1:100));
-                    Lasertrace=.05*diff(ylimits)*Lasertrace;
-                    plot( t, Lasertrace+offset, 'c')
+                if LaserRecorded
+                    for rep=1:nrepsON(findex, aindex, dindex)
+                        Lasertrace=squeeze(M1ONLaser(findex, aindex, dindex,rep, :));
+                        Lasertrace=Lasertrace -mean(Lasertrace(1:100));
+                        Lasertrace=.05*diff(ylimits)*Lasertrace;
+                        plot( t, Lasertrace+offset, 'c')
+                    end
                 end
-                
                 %this should plot a cyan line at the unique Laser
                 %params - not sure what will happen if not scalar
                 for np=1:LaserNumPulses

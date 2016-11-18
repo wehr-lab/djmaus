@@ -17,8 +17,6 @@ function PlotTC_PSTH(varargin)
 %Processes data if outfile is not found;
 
 rasters=1;
-force_reprocess=0;
-
 
 try
     datadir=varargin{1};

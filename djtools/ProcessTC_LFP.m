@@ -148,9 +148,10 @@ for i=1:length(messages)
             fieldname=str3{1};
             value=str2num(str3{2});
             Events(sound_index).(fieldname)= value;
+        end
             Events(sound_index).message_timestamp_samples=timestamp - StartAcquisitionSamples;
             Events(sound_index).message_timestamp_sec=timestamp/sampleRate - StartAcquisitionSec;
-        end
+        
         
         %get corresponding SCT TTL timestamp and assign to Event
         %first get all the soundcard triggers
@@ -162,7 +163,7 @@ for i=1:length(messages)
             end
         end
         %find closest SCT by finding first before and first after, and
-        %choosing whichever is closerstimtrace
+        %choosing whichever is closer
         [idx_after]=find(all_SCTs>Events(sound_index).message_timestamp_sec, 1); %find first SCT after the message timestamp
         [idx_before]=find(all_SCTs<=Events(sound_index).message_timestamp_sec, 1, 'last'); %find first SCT before the message timestamp
        

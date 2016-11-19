@@ -201,7 +201,7 @@ for windex=1:numw
                     plot( t, Lasertrace+offset, 'c')
                 end
             end
-            %                 line([0 0+durs(dindex)], [-.2 -.2], 'color', 'm', 'linewidth', 4)
+            line([0 0+durs(dindex)], [-.2 -.2], 'color', 'm', 'linewidth', 4)
             %                 line(xlimits, [0 0], 'color', 'k')
             ylimits2(2)=ylimits(2)*3;
             ylimits2(1)=-2;
@@ -250,9 +250,9 @@ if IL
                         MLaserWidth=M_LaserWidth(findex,aindex,dindex, n);
                         MLaserNumPulses=M_LaserNumPulses(findex,aindex,dindex, n);
                         MLaserISI=M_LaserISI(findex,aindex,dindex, n);
-                        for np=1:MLaserNumPulses
-                            plot([MLaserStart+(np-1)*(MLaserWidth+MLaserISI) MLaserStart+(np-1)*(MLaserWidth+MLaserISI)+MLaserWidth], [1 1]+yl(2)+offset, 'c')
-                        end
+%                         for np=1:MLaserNumPulses
+%                             plot([MLaserStart+(np-1)*(MLaserWidth+MLaserISI) MLaserStart+(np-1)*(MLaserWidth+MLaserISI)+MLaserWidth], [1 1]+yl(2)+offset, 'c')
+%                         end
                         h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k');
                     end
                 end
@@ -286,9 +286,9 @@ if IL
                 end
                 %this should plot a cyan line at the unique Laser
                 %params - not sure what will happen if not scalar
-                for np=1:LaserNumPulses
-                    plot([LaserStart+(np-1)*(LaserWidth+LaserISI) LaserStart+(np-1)*(LaserWidth+LaserISI)+LaserWidth], [-2 -2], 'c', 'linewidth', 2)
-                end
+%                 for np=1:LaserNumPulses
+%                     plot([LaserStart+(np-1)*(LaserWidth+LaserISI) LaserStart+(np-1)*(LaserWidth+LaserISI)+LaserWidth], [-2 -2], 'c', 'linewidth', 2)
+%                 end
                 line([0 0+durs(dindex)], [-.2 -.2], 'color', 'm', 'linewidth', 4)
                 
                 xlim(xlimits)

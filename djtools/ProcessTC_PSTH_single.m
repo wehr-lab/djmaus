@@ -158,7 +158,6 @@ for i=1:length(messages)
     end
 end
 
-fprintf('\nNumber of stimuli logged (from stimlog): %d', length(stimlog));
 fprintf('\nNumber of sound events (from network messages): %d', length(Events));
 fprintf('\nNumber of hardware triggers (soundcardtrig TTLs): %d', length(all_SCTs));
 if length(Events) ~=  length(all_SCTs)
@@ -180,7 +179,7 @@ totalnumspikes=length(spiketimes);
 fprintf('\nsuccessfully loaded MClust spike data')
 Nclusters=1;
 
-monitor = 1;
+monitor = 0;
 if monitor
     
     %   I'm running the soundcard trigger (SCT) into ai1 as another sanity check.

@@ -220,13 +220,13 @@ stimtrace=0*scaledtrace;
 try
     [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data(getLaserfile('.'));
     Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
-    Lasertrace=Lasertrace./max(abs(Lasertrace));
+   % Lasertrace=Lasertrace./max(abs(Lasertrace));
     fprintf('\nsuccessfully loaded laser trace')
 end
 try
     [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(getStimfile('.'));
     Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
-    Stimtrace=Stimtrace./max(abs(Stimtrace));
+  %  Stimtrace=Stimtrace./max(abs(Stimtrace));
     fprintf('\nsuccessfully loaded stim trace')
 end
 

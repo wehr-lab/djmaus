@@ -135,9 +135,24 @@ for i=1:length(messages)
                 all_SCTs=[all_SCTs corrected_SCT];
             end
         end
-        [idx]=find(all_SCTs>Events(sound_index).message_timestamp_sec, 1); %find first SCT after the message timestamp
-        SCTtime_sec=all_SCTs(idx);
-        %         SCTtime_sec=SCTtime_sec-StartAcquisitionSec; %correct for open-ephys not starting with time zero
+        %find closest SCT by finding first before and first after, and
+        %choosing whichever is closerstimtrace
+        [idx_after]=find(all_SCTs>Events(sound_index).message_timestamp_sec, 1); %find first SCT after the message timestamp
+        [idx_before]=find(all_SCTs<=Events(sound_index).message_timestamp_sec, 1, 'last'); %find first SCT before the message timestamp
+        
+        if isempty(idx_after)
+            SCTtime_sec=all_SCTs(idx_before);
+        elseif isempty(idx_before)
+            SCTtime_sec=all_SCTs(idx_after);
+        elseif abs(diff([all_SCTs(idx_before), Events(sound_index).message_timestamp_sec])) <= abs(diff([all_SCTs(idx_after), Events(sound_index).message_timestamp_sec]))
+            %before is closer
+            SCTtime_sec=all_SCTs(idx_before);
+        elseif abs(diff([all_SCTs(idx_before), Events(sound_index).message_timestamp_sec])) > abs(diff([all_SCTs(idx_after), Events(sound_index).message_timestamp_sec]))
+            %after is closer
+            SCTtime_sec=all_SCTs(idx_after);
+        else
+            error('WTF how can this happen')
+        end
         Events(sound_index).soundcard_trigger_timestamp_sec=SCTtime_sec;
         
     end
@@ -176,13 +191,7 @@ if monitor
         [SCTtrace, SCTtimestamps, SCTinfo] =load_open_ephys_data(SCTfname);
     end
     
-    %here I'm loading a data channel to get good timestamps - the ADC timestamps are screwed up
-    datafname=getContinuousFilename( pwd, 1 );
-    [scaledtrace, datatimestamps, datainfo] =load_open_ephys_data(datafname);
-    
     SCTtimestamps=SCTtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
-    datatimestamps=datatimestamps-StartAcquisitionSec;
-    
     
     %sanity check
     % fid=fopen('temp.txt', 'w');
@@ -218,17 +227,15 @@ if monitor
     hold on
     %set(gcf, 'pos', [-1853 555 1818 420]);
     SCTtrace=SCTtrace./max(abs(SCTtrace));
-    scaledtrace=scaledtrace./max(abs(scaledtrace));
-    plot(datatimestamps, SCTtrace) %plotting with data timestamps to work around wierd bug in ADC timestamps
-    plot(datatimestamps, scaledtrace, 'm') %plotting with data timestamps to work around wierd bug in ADC timestamps
+    plot(SCTtimestamps, SCTtrace) %plotting with data timestamps to work around wierd bug in ADC timestamps
     
     hold on
     %plot "software trigs" i.e. network messages in red o's
     for i=1:length(Events)
         plot(Events(i).message_timestamp_sec, .25, 'ro');
-        plot(Events(i).soundcard_trigger_timestamp_sec, 1, 'g*');
-        text(Events(i).message_timestamp_sec, .5, sprintf('network message #%d', i))
-        text(Events(i).soundcard_trigger_timestamp_sec, .5, sprintf('SCT #%d', i))
+        plot(Events(i).soundcard_trigger_timestamp_sec, .8, 'g*');
+        text(Events(i).message_timestamp_sec, .35, sprintf('network message #%d', i))
+        text(Events(i).soundcard_trigger_timestamp_sec, .7, sprintf('SCT #%d', i), 'color', 'g')
     end
     
     %all_channels_info.eventType(i) = 3 for digital line in (TTL), 5 for network Events
@@ -289,10 +296,10 @@ numfreqs=length(freqs);
 numamps=length(amps);
 numdurs=length(durs);
 
-%check for laser in Events
+%check for laser in Eventsdjtools/ProcessTC_PSTH_single.m
 for i=1:length(Events)
     if isfield(Events(i), 'laser') & isfield(Events(i), 'LaserOnOff')
-        LaserScheduled(i)=Events(i).laser; %whether the stim protocol scheduled a laser for this stim
+        LaserScheduled(i)=Events(i).laser; %whether the stim protocol schdjtools/ProcessTC_PSTH_single.meduled a laser for this stim
         LaserOnOffButton(i)=Events(i).LaserOnOff; %whether the laser button was turned on
         LaserTrials(i)=LaserScheduled(i) & LaserOnOffButton(i);
         if isempty(stimlog(i).LaserStart)
@@ -379,6 +386,9 @@ nrepsOFF=zeros(numfreqs, numamps, numdurs);
 %extract the traces into a big matrix M
 j=0;
 inRange=0;
+
+M1ONLaser=[];
+M1ONStim=[];
 for i=1:length(Events)
     if strcmp(Events(i).type, 'tone') | strcmp(Events(i).type, 'whitenoise') | ...
             strcmp(Events(i).type, 'fmtone') | strcmp(Events(i).type, '2tone')| strcmp(Events(i).type, 'grating')
@@ -454,6 +464,7 @@ for i=1:length(Events)
                 if StimRecorded
                     M1OFFStim(findex,aindex,dindex, nrepsOFF(findex, aindex, dindex),:)=Stimtrace(region);
                 end
+                
             end
         end
     end
@@ -509,7 +520,7 @@ if LaserRecorded
                     mM1OFFLaser(findex, aindex, dindex,:)=mean(M1OFFLaser(findex, aindex, dindex, 1:nrepsOFF(findex, aindex, dindex),:), 4);
                 else %no reps for this stim, since rep=0
                     mM1OFFLaser(findex, aindex, dindex,:)=zeros(size(region));
-                end                
+                end
             end
         end
     end
@@ -527,7 +538,7 @@ if StimRecorded
                     mM1OFFStim(findex, aindex, dindex,:)=mean(M1OFFStim(findex, aindex, dindex, 1:nrepsOFF(findex, aindex, dindex),:), 4);
                 else %no reps for this stim, since rep=0
                     mM1OFFStim(findex, aindex, dindex,:)=zeros(size(region));
-                end                
+                end
             end
         end
     end

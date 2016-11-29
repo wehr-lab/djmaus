@@ -179,7 +179,7 @@ totalnumspikes=length(spiketimes);
 fprintf('\nsuccessfully loaded MClust spike data')
 Nclusters=1;
 
-monitor = 1;
+monitor = 0;
 if monitor
     
     %   I'm running the soundcard trigger (SCT) into ai1 as another sanity check.
@@ -190,7 +190,7 @@ if monitor
         [SCTtrace, SCTtimestamps, SCTinfo] =load_open_ephys_data(SCTfname);
     end
     
-    SCTtimestamps=SCTtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition    
+    SCTtimestamps=SCTtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
     
     %sanity check
     % fid=fopen('temp.txt', 'w');
@@ -385,6 +385,9 @@ nrepsOFF=zeros(numfreqs, numamps, numdurs);
 %extract the traces into a big matrix M
 j=0;
 inRange=0;
+
+M1ONLaser=[];
+M1ONStim=[];
 for i=1:length(Events)
     if strcmp(Events(i).type, 'tone') | strcmp(Events(i).type, 'whitenoise') | ...
             strcmp(Events(i).type, 'fmtone') | strcmp(Events(i).type, '2tone')| strcmp(Events(i).type, 'grating')
@@ -460,6 +463,7 @@ for i=1:length(Events)
                 if StimRecorded
                     M1OFFStim(findex,aindex,dindex, nrepsOFF(findex, aindex, dindex),:)=Stimtrace(region);
                 end
+                
             end
         end
     end
@@ -515,7 +519,7 @@ if LaserRecorded
                     mM1OFFLaser(findex, aindex, dindex,:)=mean(M1OFFLaser(findex, aindex, dindex, 1:nrepsOFF(findex, aindex, dindex),:), 4);
                 else %no reps for this stim, since rep=0
                     mM1OFFLaser(findex, aindex, dindex,:)=zeros(size(region));
-                end                
+                end
             end
         end
     end
@@ -533,7 +537,7 @@ if StimRecorded
                     mM1OFFStim(findex, aindex, dindex,:)=mean(M1OFFStim(findex, aindex, dindex, 1:nrepsOFF(findex, aindex, dindex),:), 4);
                 else %no reps for this stim, since rep=0
                     mM1OFFStim(findex, aindex, dindex,:)=zeros(size(region));
-                end                
+                end
             end
         end
     end

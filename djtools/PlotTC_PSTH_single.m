@@ -68,9 +68,6 @@ if ~isempty(xlimits)
 end
 
 
-
-
-
 IL=out.IL; %whether there are any interleaved laser trials
 freqs=out.freqs;
 amps=out.amps;
@@ -184,7 +181,7 @@ for windex=1:numw
             if StimRecorded
                 Stimtrace=squeeze(mM1OFFStim(findex, aindex, dindex, :));
                 Stimtrace=Stimtrace -mean(Stimtrace(1:100));
-                Stimtrace=.05*diff(ylimits)*Stimtrace;
+                Stimtrace=.1*diff(ylimits)*Stimtrace;
                 t=1:length(Stimtrace);
                 t=1000*t/out.samprate; %convert to ms
                 t=t+out.xlimits(1); %correct for xlim in original processing call
@@ -201,7 +198,7 @@ for windex=1:numw
                     plot( t, Lasertrace+offset, 'c')
                 end
             end
-            line([0 0+durs(dindex)], [-.2 -.2], 'color', 'm', 'linewidth', 4)
+            %line([0 0+durs(dindex)], [-.2 -.2], 'color', 'm', 'linewidth', 4)
             %                 line(xlimits, [0 0], 'color', 'k')
             ylimits2(2)=ylimits(2)*3;
             ylimits2(1)=-2;
@@ -211,9 +208,34 @@ for windex=1:numw
             set(gca, 'fontsize', fs)
             %set(gca, 'xticklabel', '')
             %set(gca, 'yticklabel', '')
-            
+       
         end
     end
+         %label amps and freqs
+        p=0;
+        for yindex=ystart:ystep:yend
+            for findex=1:numfreqs
+                p=p+1;
+                subplot1(p)
+                
+                if findex==1
+                    if numamps>=numdurs
+                        text(xlimits(1)-diff(xlimits)/2, mean(ylimits), int2str(amps(yindex)))
+                    else
+                        text(xlimits(1)+diff(xlimits)/20, mean(ylimits), int2str(durs(yindex)))
+                    end
+                end
+                if aindex==1
+                    if mod(findex,2) %odd freq
+                        vpos=ylimits(1)-mean(ylimits);
+                    else
+                        vpos=ylimits(1)-mean(ylimits);
+                    end
+                    text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
+                end
+            end
+        end
+            
 end
 
 
@@ -221,7 +243,7 @@ if IL
     %plot the mean tuning curve ON
     for windex=1:numw
         figure
-        p=0;
+        p=0;end
         subplot1(numy,numfreqs, 'Max', [.95 .9])
         for yindex=ystart:ystep:yend
             for findex=1:numfreqs
@@ -262,7 +284,7 @@ if IL
                 if StimRecorded
                     Stimtrace=squeeze(mM1OFFStim(findex, aindex, dindex, :));
                     Stimtrace=Stimtrace -mean(Stimtrace(1:100));
-                    Stimtrace=.05*diff(ylimits)*Stimtrace;
+                    Stimtrace=.1*diff(ylimits)*Stimtrace;
                     t=1:length(Stimtrace);
                     t=1000*t/out.samprate; %convert to ms
                     t=t+out.xlimits(1); %correct for xlim in original processing call
@@ -289,7 +311,7 @@ if IL
 %                 for np=1:LaserNumPulses
 %                     plot([LaserStart+(np-1)*(LaserWidth+LaserISI) LaserStart+(np-1)*(LaserWidth+LaserISI)+LaserWidth], [-2 -2], 'c', 'linewidth', 2)
 %                 end
-                line([0 0+durs(dindex)], [-.2 -.2], 'color', 'm', 'linewidth', 4)
+                %line([0 0+durs(dindex)], [-.2 -.2], 'color', 'm', 'linewidth', 4)
                 
                 xlim(xlimits)
                 set(gca, 'fontsize', fs)
@@ -301,8 +323,6 @@ if IL
         subplot1(1)
         h=title(sprintf('%s: \ntetrode%d cell%d %dms, nreps: %d-%d, ON',datadir,channel,out.cluster,durs(dindex),min(min(min(nrepsON))),max(max(max(nrepsON)))));
         set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
-        
-        
         
         
         %label amps and freqs

@@ -7,14 +7,7 @@ function PlotTC_PSTH_single(varargin)
 %
 %Processes data if outfile is not found;
 
-<<<<<<< HEAD
-%difference 1
-=======
-%difference 3
-%difference 3
-%difference 3
-%difference 3
->>>>>>> origin/master
+
 
 
 rasters=1;
@@ -43,7 +36,6 @@ catch
     binwidth=5;
 end
 
-%difference 2
 
 if force_reprocess
     fprintf('\nForce re-process\n')
@@ -78,9 +70,6 @@ if ~isempty(xlimits)
     end
 end
 
-%difference 5
-%difference 5
-%difference 5
 
 
 

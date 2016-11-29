@@ -7,7 +7,14 @@ function PlotTC_PSTH_single(varargin)
 %
 %Processes data if outfile is not found;
 
+<<<<<<< HEAD
 %difference 1
+=======
+%difference 3
+%difference 3
+%difference 3
+%difference 3
+>>>>>>> origin/master
 
 
 rasters=1;
@@ -71,6 +78,9 @@ if ~isempty(xlimits)
     end
 end
 
+%difference 5
+%difference 5
+%difference 5
 
 
 

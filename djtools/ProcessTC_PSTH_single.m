@@ -158,15 +158,32 @@ for i=1:length(messages)
     end
 end
 
+fprintf('\nNumber of logged stimuli (from stimlog): %d', length(stimlog));
 fprintf('\nNumber of sound events (from network messages): %d', length(Events));
 fprintf('\nNumber of hardware triggers (soundcardtrig TTLs): %d', length(all_SCTs));
 if length(Events) ~=  length(all_SCTs)
-    error('ProcessTC_PSTH: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
+    warning('ProcessTC_PSTH: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
+    [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog  );
+end
+if length(Events) ~=  length(stimlog)
+    warning('ProcessTC_PSTH: Number of sound events (from network messages) does not match number of logged stimuli (from stimlog) ')
+    [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog  );
 end
 
 if exist('check1', 'var') & exist('check2', 'var')
-    fprintf('start acquisition method agreement check: %d, %d', check1, check2);
-    if check1==check2    fprintf(' Good.'), end
+    fprintf('\nStart acquisition method agreement check: %d, %d', check1, check2);
+    if check1==check2    fprintf(' Good.'),
+        StartAcquisitionSamples_wrong=StartAcquisitionSamples;
+    else
+        StartAcquisitionSamples=check1;
+        StartAcquisitionSec=StartAcquisitionSamples/sampleRate;
+        StartAcquisitionSamples_wrong=check2;
+        StartAcquisitionSec_wrong=StartAcquisitionSamples_wrong/sampleRate;
+        fprintf('\nStart acquisition mismatch. Using %d', StartAcquisitionSamples)
+    end
+else
+        StartAcquisitionSamples_wrong=StartAcquisitionSamples;
+    
 end
 
 
@@ -398,9 +415,11 @@ for i=1:length(Events)
             pos=Events(i).soundcard_trigger_timestamp_sec; %pos is in seconds
         end
         laser=LaserTrials(i);
-        start=(pos+xlimits(1)*1e-3);
+        start=(pos+xlimits(1)*1e-3); %in seconds
         stop=(pos+xlimits(2)*1e-3);
         region=round(start*samprate)+1:round(stop*samprate);
+        %if this wierd case where start was clicked twice
+        region=region+abs(StartAcquisitionSamples-StartAcquisitionSamples_wrong);
         if start>0 %(disallow negative or zero start times)
             %             if stop>lostat
             %                 fprintf('\ndiscarding trace (after lostat)')

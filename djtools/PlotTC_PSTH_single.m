@@ -184,15 +184,15 @@ for windex=1:numw
             end
             bar(x,N,1);
             
+            offsetS=ylimits(1)+.1*diff(ylimits);
             if StimRecorded
                 Stimtrace=squeeze(mM1OFFStim(findex, aindex, dindex, :));
                 Stimtrace=Stimtrace -mean(Stimtrace(1:100));
-                Stimtrace=.05*diff(ylimits)*Stimtrace;
+                Stimtrace=.25*diff(ylimits)*Stimtrace;
                 t=1:length(Stimtrace);
                 t=1000*t/out.samprate; %convert to ms
                 t=t+out.xlimits(1); %correct for xlim in original processing call
-                offset=ylimits(1)+.1*diff(ylimits);
-                plot(t, Stimtrace+offset, 'm')
+                plot(t, Stimtrace+offsetS, 'm')
             else
                 line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
             end
@@ -201,14 +201,17 @@ for windex=1:numw
                     Lasertrace=squeeze(M1OFFLaser(findex, aindex, dindex,rep, :));
                     Lasertrace=Lasertrace -mean(Lasertrace(1:100));
                     Lasertrace=.05*diff(ylimits)*Lasertrace;
-                    plot( t, Lasertrace+offset, 'c')
+                    plot( t, Lasertrace+offsetS, 'c')
                 end
             end
             %                 line([0 0+durs(dindex)], [-.2 -.2], 'color', 'm', 'linewidth', 4)
             %                 line(xlimits, [0 0], 'color', 'k')
-            ylimits2(2)=ylimits(2)*3;
+            ylimits2(2)=ylimits(2)+offset;
+            ylimits2(2)=2*ylimits(2);
             ylimits2(1)=-2;
-            ylim(ylimits2)
+%             ylim([-2 1.1*(yl(2)+offset)])
+                            ylim(ylimits2)
+
             
             xlim(xlimits)
             set(gca, 'fontsize', fs)
@@ -265,7 +268,7 @@ if IL
                 if StimRecorded
                     Stimtrace=squeeze(mM1OFFStim(findex, aindex, dindex, :));
                     Stimtrace=Stimtrace -mean(Stimtrace(1:100));
-                    Stimtrace=.05*diff(ylimits)*Stimtrace;
+                    Stimtrace=.25*diff(ylimits)*Stimtrace;
                     t=1:length(Stimtrace);
                     t=1000*t/out.samprate; %convert to ms
                     t=t+out.xlimits(1); %correct for xlim in original processing call
@@ -275,9 +278,11 @@ if IL
                     line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
                 end
                 
-                ylimits2(2)=ylimits(2)*3;
+            ylimits2(2)=ylimits(2)+offset;
+            ylimits2(2)=2*ylimits(2);
                 ylimits2(1)=-2;
-                ylim(ylimits2(:))
+                ylim(ylimits2)
+%                 ylim([-2 1.1*(yl(2)+offset)])
                 
                 if LaserRecorded
                     for rep=1:nrepsON(findex, aindex, dindex)

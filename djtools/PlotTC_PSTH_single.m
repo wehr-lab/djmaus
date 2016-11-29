@@ -201,7 +201,7 @@ for windex=1:numw
                     plot( t, Lasertrace+offset, 'c')
                 end
             end
-            %                 line([0 0+durs(dindex)], [-.2 -.2], 'color', 'm', 'linewidth', 4)
+                             line([0 0+durs(dindex)], [-.2 -.2], 'color', 'm', 'linewidth', 4)
             %                 line(xlimits, [0 0], 'color', 'k')
             ylimits2(2)=ylimits(2)*3;
             ylimits2(1)=-2;

@@ -7,6 +7,7 @@ function PlotTC_PSTH_single(varargin)
 %
 %Processes data if outfile is not found;
 
+%THIS IS A TEST
 
 rasters=1;
 force_reprocess=1;

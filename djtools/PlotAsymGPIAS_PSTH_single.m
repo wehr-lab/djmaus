@@ -83,7 +83,25 @@ end
     offramps=out.offramps;
     numonramps=out.numonramps;
     numofframps=out.numofframps;
-    
+    if isfield(out, 'LaserRecorded')
+        LaserRecorded=out.LaserRecorded;
+        M1ONLaser=out.M1ONLaser; % a crash here means this is an obsolete outfile. Set force_reprocess=1 up at the top of this mfile. (Don't forget to reset it to 0 when you're done)
+        mM1ONLaser=out.mM1ONLaser;
+        M1OFFLaser=out.M1OFFLaser;
+        mM1OFFLaser=out.mM1OFFLaser;
+    else
+        LaserRecorded=0;
+    end
+    if isfield(out, 'StimRecorded')
+        StimRecorded=out.StimRecorded;
+        M1ONStim=out.M1ONStim;
+        mM1ONStim=out.mM1ONStim;
+        M1OFFStim=out.M1OFFStim;
+        mM1OFFStim=out.mM1OFFStim;
+    else
+        StimRecorded=0;
+    end
+
     
     fs=10; %fontsize
     
@@ -162,7 +180,26 @@ end
                     %set(gca, 'xticklabel', '')
                     %set(gca, 'yticklabel', '')
                     %title(sprintf('onramp: %d, offramp: %d', onramps(onrampindex), offramps(offrampindex)))
-
+                    if StimRecorded
+                        Stimtrace=squeeze(mM1OFFStim(findex, aindex, dindex, :));
+                        Stimtrace=Stimtrace -mean(Stimtrace(1:100));
+                        Stimtrace=.05*diff(ylimits)*Stimtrace;
+                        t=1:length(Stimtrace);
+                        t=1000*t/out.samprate; %convert to ms
+                        t=t+out.xlimits(1); %correct for xlim in original processing call
+                        offset=ylimits(1)+.1*diff(ylimits);
+                        plot(t, Stimtrace+offset, 'm')
+                    else
+                        %do nothing
+                    end
+                    if LaserRecorded
+                        for rep=1:nrepsOFF(findex, aindex, dindex)
+                            Lasertrace=squeeze(M1OFFLaser(findex, aindex, dindex,rep, :));
+                            Lasertrace=Lasertrace -mean(Lasertrace(1:100));
+                            Lasertrace=.05*diff(ylimits)*Lasertrace;
+                            plot( t, Lasertrace+offset, 'c')
+                        end
+                    end
                 end
             end
             
@@ -236,6 +273,28 @@ end
                     %set(gca, 'yticklabel', '')
                     
                   %  title(sprintf('onramp: %d, offramp: %d', onramps(onrampindex), offramps(offrampindex)))
+                  
+                    if StimRecorded
+                        Stimtrace=squeeze(mM1OFFStim(findex, aindex, dindex, :));
+                        Stimtrace=Stimtrace -mean(Stimtrace(1:100));
+                        Stimtrace=.05*diff(ylimits)*Stimtrace;
+                        t=1:length(Stimtrace);
+                        t=1000*t/out.samprate; %convert to ms
+                        t=t+out.xlimits(1); %correct for xlim in original processing call
+                        offset=ylimits(1)+.1*diff(ylimits);
+                        plot(t, Stimtrace+offset, 'm')
+                    else
+                        %do nothing
+                    end
+                    if LaserRecorded
+                        for rep=1:nrepsOFF(findex, aindex, dindex)
+                            Lasertrace=squeeze(M1OFFLaser(findex, aindex, dindex,rep, :));
+                            Lasertrace=Lasertrace -mean(Lasertrace(1:100));
+                            Lasertrace=.05*diff(ylimits)*Lasertrace;
+                            plot( t, Lasertrace+offset, 'c')
+                        end
+                    end
+                    
                 end
             end
             
@@ -266,4 +325,3 @@ end
     
     
     
-end %main cluster loop

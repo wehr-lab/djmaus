@@ -164,7 +164,7 @@ try
     fprintf('\nNumber of logged stimuli in notebook: %d', length(stimlog));
 catch
     fprintf('\nCould not find stimlog, no logged stimuli in notebook!!');
-
+    
 end
 if length(Events) ~=  length(all_SCTs)
     warning('ProcessAsymGPIAS_PSTH: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
@@ -382,6 +382,42 @@ else
     IL=0;
 end
 %if lasers were used, we'll un-interleave them and save ON and OFF data
+%try to load laser and stimulus monitor
+if isempty(getLaserfile('.'))
+    LaserRecorded=0;
+else
+    LaserRecorded=1;
+end
+if isempty(getStimfile('.'))
+    StimRecorded=0;
+else
+    StimRecorded=1;
+end
+
+if LaserRecorded
+    try
+        [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data(getLaserfile('.'));
+        Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+        Lasertrace=Lasertrace./max(abs(Lasertrace));
+        fprintf('\nsuccessfully loaded laser trace')
+    catch
+        fprintf('\nfound laser file %s but could not load laser trace', getLaserfile('.'))
+    end
+else
+    fprintf('\nLaser trace not recorded')
+end
+if StimRecorded
+    try
+        [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(getStimfile('.'));
+        Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+        Stimtrace=Stimtrace./max(abs(Stimtrace));
+        fprintf('\nsuccessfully loaded stim trace')
+    catch
+        fprintf('\nfound stim file %s but could not load stim trace', getStimfile('.'))
+    end
+else
+    fprintf('\nSound stimulus trace not recorded')
+end
 
 M1ON=[];M1OFF=[];
 nrepsON=zeros(numgapdurs, numonramps, numofframps);
@@ -403,6 +439,7 @@ for i=1:length(Events)
         laser=LaserTrials(i);
         start=pos + gapdelay/1000 +xlimits(1)/1000; %start is in seconds
         stop=pos+ gapdelay/1000 + xlimits(2)/1000; %stop is in seconds
+        region=round(start*samprate)+1:round(stop*samprate);
         if start>0 %(disallow negative or zero start times)
             gapdur=Events(i).gapdur;
             gdindex= find(gapdur==gapdurs);
@@ -425,11 +462,23 @@ for i=1:length(Events)
                 M1ON( gdindex,onrampindex, offrampindex, nrepsON(gdindex,onrampindex, offrampindex)).spiketimes=spiketimes1; % Spike times
                 M1ONspikecounts( gdindex,onrampindex, offrampindex,nrepsON(gdindex,onrampindex, offrampindex))=spikecount; % No. of spikes
                 M1spontON( gdindex,onrampindex, offrampindex, nrepsON(gdindex,onrampindex, offrampindex))=spont_spikecount; % No. of spikes in spont window, for each presentation.
+                if LaserRecorded
+                    M1ONLaser(gdindex,onrampindex, offrampindex, nrepsON(gdindex,onrampindex, offrampindex),:)=Lasertrace(region);
+                end
+                if StimRecorded
+                    M1ONStim(gdindex,onrampindex, offrampindex, nrepsON(gdindex,onrampindex, offrampindex),:)=Stimtrace(region);
+                end
             else
                 nrepsOFF(gdindex,onrampindex, offrampindex)=nrepsOFF(gdindex,onrampindex, offrampindex)+1;
                 M1OFF( gdindex,onrampindex, offrampindex, nrepsOFF(gdindex,onrampindex, offrampindex)).spiketimes=spiketimes1;
                 M1OFFspikecounts( gdindex,onrampindex, offrampindex,nrepsOFF(gdindex,onrampindex, offrampindex))=spikecount;
                 M1spontOFF( gdindex,onrampindex, offrampindex, nrepsOFF(gdindex,onrampindex, offrampindex))=spont_spikecount;
+                if LaserRecorded
+                    M1OFFLaser(gdindex,onrampindex, offrampindex, nrepsOFF(gdindex,onrampindex, offrampindex),:)=Lasertrace(region);
+                end
+                if StimRecorded
+                    M1OFFStim(gdindex,onrampindex, offrampindex, nrepsOFF(gdindex,onrampindex, offrampindex),:)=Stimtrace(region);
+                end
             end
         end
     end
@@ -499,8 +548,45 @@ else
     % Spont
     mM1spontOFF=mean(M1spontOFF,4);
     sM1spontOFF=std(M1spontOFF,[],4);
-    semM1spontOFF( :,:)=squeeze(sM1spontOFF( :,:))./sqrt(max(nrepsOFF(:)));
-    
+    semM1spontOFF( :,:)=squeeze(sM1spontOFF( :,:))./sqrt(max(nrepsOFF(:))); 
+end
+
+%average laser and stimulus monitor M matrices across trials
+if LaserRecorded
+    for gdindex=1:numgapdurs
+        for onrampindex =1:numonramps
+            for offrampindex=1:numofframps
+                if nrepsON(gdindex,onrampindex, offrampindex)>0
+                    mM1ONLaser(gdindex,onrampindex, offrampindex,:)=mean(M1ONLaser(gdindex,onrampindex, offrampindex, 1:nrepsON(gdindex,onrampindex, offrampindex),:), 4);
+                else %no reps for this stim, since rep=0
+                    mM1ONLaser(gdindex,onrampindex, offrampindex,:)=zeros(size(region));
+                end
+                if nrepsOFF(gdindex,onrampindex, offrampindex)>0
+                    mM1OFFLaser(gdindex,onrampindex, offrampindex,:)=mean(M1OFFLaser(gdindex,onrampindex, offrampindex, 1:nrepsOFF(gdindex,onrampindex, offrampindex),:), 4);
+                else %no reps for this stim, since rep=0
+                    mM1OFFLaser(gdindex,onrampindex, offrampindex,:)=zeros(size(region));
+                end
+            end
+        end
+    end
+end
+if StimRecorded
+    for gdindex=1:numgapdurs
+        for onrampindex =1:numonramps
+            for offrampindex=1:numofframps
+                if nrepsON(gdindex,onrampindex, offrampindex)>0
+                    mM1ONStim(gdindex,onrampindex, offrampindex,:)=mean(M1ONStim(gdindex,onrampindex, offrampindex, 1:nrepsON(gdindex,onrampindex, offrampindex),:), 4);
+                else %no reps for this stim, since rep=0
+                    mM1ONStim(gdindex,onrampindex, offrampindex,:)=zeros(size(region));
+                end
+                if nrepsOFF(gdindex,onrampindex, offrampindex)>0
+                    mM1OFFStim(gdindex,onrampindex, offrampindex,:)=mean(M1OFFStim(gdindex,onrampindex, offrampindex, 1:nrepsOFF(gdindex,onrampindex, offrampindex),:), 4);
+                else %no reps for this stim, since rep=0
+                    mM1OFFStim(gdindex,onrampindex, offrampindex,:)=zeros(size(region));
+                end
+            end
+        end
+    end
 end
 
 %save to outfiles
@@ -513,91 +599,118 @@ end
 % mM1ON(numgapdurs, numpulseamps).spiketimes
 % mM1ONspikecount(numgapdurs, numpulseamps)
 
-    out.IL=IL;
-    out.Nclusters=Nclusters;
-    out.tetrode=channel;
-    out.channel=channel;
-    out.cluster=clust; %there are some redundant names here
-    out.cell=clust;
-    if IL
-        out.M1ON=M1ON; %isn't this so much easier?
-        out.mM1ON=mM1ON;
-        out.mM1ONspikecount=mM1ONspikecount;
-        out.sM1ONspikecount=sM1ONspikecount;
-        out.semM1ONspikecount=semM1ONspikecount;
-        out.mM1spontON=mM1spontON;
-        out.sM1spontON=sM1spontON;
-        out.semM1spontON=semM1spontON;
-        out.M_LaserStart=M_LaserStart;
-        out.M_LaserWidth=M_LaserWidth;
-        out.M_LaserNumPulses=M_LaserNumPulses;
-        out.M_LaserISI=M_LaserISI;
-        
-    else
-        out.M1ON=[];
-        out.mM1ONspikecount=[];
-        out.sM1ONspikecount=[];
-        out.semM1ONspikecount=[];
-        out.mM1ON=[];
-        out.mM1spontON=[];
-        out.sM1spontON=[];
-        out.semM1spontON=[];
-        out.LaserStart=[];
-        out.LaserWidth=[];
-        out.Lasernumpulses=[];
-        out.M_LaserStart=[];
-        out.M_LaserWidth=[];
-        out.M_LaserNumPulses=[];
-        out.M_LaserISI=[];
-    end
-    if isempty(M1OFF)
-        out.M1OFF=[];
-        out.mM1OFF=[];
-        out.mM1OFFspikecount=[];
-        out.sM1OFFspikecount=[];
-        out.semM1OFFspikecount=[];
-        out.mM1spontOFF=[];
-        out.sM1spontOFF=[];
-        out.semM1spontOFF=[];
-    else
-        out.M1OFF=M1OFF;
-        out.mM1OFF=mM1OFF;
-        out.mM1OFFspikecount=mM1OFFspikecount;
-        out.sM1OFFspikecount=sM1OFFspikecount;
-        out.semM1OFFspikecount=semM1OFFspikecount;
-        out.mM1spontOFF=mM1spontOFF;
-        out.sM1spontOFF=sM1spontOFF;
-        out.semM1spontOFF=semM1spontOFF;
-        
-    end
-    out.numpulseamps = numpulseamps;
-    out.numonramps = numonramps;
-    out.numofframps = numofframps;
-    out.numgapdurs = numgapdurs;
-    out.pulseamps = pulseamps;
-    out.gapdurs = gapdurs;
-    out.gapdelay = gapdelay;
-    out.soa=soa;
-    out.onramps=onramps;
-    out.offramps=offramps;
-    out.nrepsON=nrepsON;
-    out.nrepsOFF=nrepsOFF;
-    out.xlimits=xlimits;
-    out.samprate=samprate;
-    out.datadir=datadir;
-    out.spiketimes=spiketimes;
-    try
-        out.nb=nb;
-        out.stimlog=stimlog;
-        out.user=nb.user;
-    catch
-        out.nb='notebook file missing';
-        out.stimlog='notebook file missing';
-        out.user='unknown';
-    end
-    outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
-    save (outfilename, 'out')
+out.IL=IL;
+out.Nclusters=Nclusters;
+out.tetrode=channel;
+out.channel=channel;
+out.cluster=clust; %there are some redundant names here
+out.cell=clust;
+if IL
+    out.M1ON=M1ON; %isn't this so much easier?
+    out.mM1ON=mM1ON;
+    out.mM1ONspikecount=mM1ONspikecount;
+    out.sM1ONspikecount=sM1ONspikecount;
+    out.semM1ONspikecount=semM1ONspikecount;
+    out.mM1spontON=mM1spontON;
+    out.sM1spontON=sM1spontON;
+    out.semM1spontON=semM1spontON;
+    out.M_LaserStart=M_LaserStart;
+    out.M_LaserWidth=M_LaserWidth;
+    out.M_LaserNumPulses=M_LaserNumPulses;
+    out.M_LaserISI=M_LaserISI;
+    
+else
+    out.M1ON=[];
+    out.mM1ONspikecount=[];
+    out.sM1ONspikecount=[];
+    out.semM1ONspikecount=[];
+    out.mM1ON=[];
+    out.mM1spontON=[];
+    out.sM1spontON=[];
+    out.semM1spontON=[];
+    out.LaserStart=[];
+    out.LaserWidth=[];
+    out.Lasernumpulses=[];
+    out.M_LaserStart=[];
+    out.M_LaserWidth=[];
+    out.M_LaserNumPulses=[];
+    out.M_LaserISI=[];
 end
+if isempty(M1OFF)
+    out.M1OFF=[];
+    out.mM1OFF=[];
+    out.mM1OFFspikecount=[];
+    out.sM1OFFspikecount=[];
+    out.semM1OFFspikecount=[];
+    out.mM1spontOFF=[];
+    out.sM1spontOFF=[];
+    out.semM1spontOFF=[];
+else
+    out.M1OFF=M1OFF;
+    out.mM1OFF=mM1OFF;
+    out.mM1OFFspikecount=mM1OFFspikecount;
+    out.sM1OFFspikecount=sM1OFFspikecount;
+    out.semM1OFFspikecount=semM1OFFspikecount;
+    out.mM1spontOFF=mM1spontOFF;
+    out.sM1spontOFF=sM1spontOFF;
+    out.semM1spontOFF=semM1spontOFF;
+    
+end
+out.numpulseamps = numpulseamps;
+out.numonramps = numonramps;
+out.numofframps = numofframps;
+out.numgapdurs = numgapdurs;
+out.pulseamps = pulseamps;
+out.gapdurs = gapdurs;
+out.gapdelay = gapdelay;
+out.soa=soa;
+out.onramps=onramps;
+out.offramps=offramps;
+out.nrepsON=nrepsON;
+out.nrepsOFF=nrepsOFF;
+out.xlimits=xlimits;
+out.samprate=samprate;
+out.datadir=datadir;
+out.spiketimes=spiketimes;
+
+out.LaserRecorded=LaserRecorded; %whether the laser signal was hooked up and recorded as a continuous channel
+out.StimRecorded=StimRecorded; %%whether the sound stimulus signal was hooked up and recorded as a continuous channel
+if LaserRecorded
+    out.M1ONLaser=M1ONLaser;
+    out.mM1ONLaser=mM1ONLaser;
+    out.M1OFFLaser=M1OFFLaser;
+    out.mM1OFFLaser=mM1OFFLaser;
+else
+    out.M1ONLaser=[];
+    out.mM1ONLaser=[];
+    out.M1OFFLaser=[];
+    out.mM1OFFLaser=[];
+end
+if StimRecorded
+    out.M1ONStim=M1ONStim;
+    out.mM1ONStim=mM1ONStim;
+    out.M1OFFStim=M1OFFStim;
+    out.mM1OFFStim=mM1OFFStim;
+else
+    out.M1ONStim=[];
+    out.mM1ONStim=[];
+    out.M1OFFStim=[];
+    out.mM1OFFStim=[];
+end
+
+
+try
+    out.nb=nb;
+    out.stimlog=stimlog;
+    out.user=nb.user;
+catch
+    out.nb='notebook file missing';
+    out.stimlog='notebook file missing';
+    out.user='unknown';
+end
+outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
+save (outfilename, 'out')
+
 
 
 

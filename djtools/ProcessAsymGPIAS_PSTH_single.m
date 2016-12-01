@@ -36,7 +36,6 @@ channel=str2num(ch{2});
 clust=str2num(split{end});
 
 fprintf('\nchannel %d, cluster %d', channel, clust)
-fprintf('\nprocessing with xlimits [%d-%d]', xlimits(1), xlimits(2))
 
 
 
@@ -370,7 +369,7 @@ for i=1:length(Events)
         error('wtf?')
     end
 end
-fprintf('\n%d laser pulses in this Events file', sum(LaserTrials))
+fprintf('\n%d laser pulses in this Events file\n', sum(LaserTrials))
 try
     if sum(LaserOnOffButton)==0
         fprintf('\nLaser On/Off button remained off for entire file.')
@@ -399,7 +398,7 @@ if LaserRecorded
         [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data(getLaserfile('.'));
         Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
         Lasertrace=Lasertrace./max(abs(Lasertrace));
-        fprintf('\nsuccessfully loaded laser trace')
+        fprintf('\nsuccessfully loaded laser trace\n')
     catch
         fprintf('\nfound laser file %s but could not load laser trace', getLaserfile('.'))
     end
@@ -428,6 +427,7 @@ if isempty(xlimits)
     xlimits(1)=-1.5*max(gapdurs);
     xlimits(2)=2*soa;
 end
+fprintf('\nprocessing with xlimits [%d-%d]', xlimits(1), xlimits(2))
 
 %extract the traces into a big matrix M
 j=0;
@@ -676,10 +676,20 @@ out.spiketimes=spiketimes;
 out.LaserRecorded=LaserRecorded; %whether the laser signal was hooked up and recorded as a continuous channel
 out.StimRecorded=StimRecorded; %%whether the sound stimulus signal was hooked up and recorded as a continuous channel
 if LaserRecorded
-    out.M1ONLaser=M1ONLaser;
-    out.mM1ONLaser=mM1ONLaser;
-    out.M1OFFLaser=M1OFFLaser;
-    out.mM1OFFLaser=mM1OFFLaser;
+    if exist('M1ONLaser')
+        out.M1ONLaser=M1ONLaser;
+        out.mM1ONLaser=mM1ONLaser;
+    else
+        out.M1ONLaser=[];
+        out.mM1ONLaser=[];
+    end
+    if exist('M1OFFLaser')
+        out.M1OFFLaser=M1OFFLaser;
+        out.mM1OFFLaser=mM1OFFLaser;
+    else
+        out.M1OFFLaser=[];
+        out.mM1OFFLaser=[];
+    end
 else
     out.M1ONLaser=[];
     out.mM1ONLaser=[];
@@ -687,10 +697,20 @@ else
     out.mM1OFFLaser=[];
 end
 if StimRecorded
-    out.M1ONStim=M1ONStim;
-    out.mM1ONStim=mM1ONStim;
-    out.M1OFFStim=M1OFFStim;
-    out.mM1OFFStim=mM1OFFStim;
+    if exist('M1ONStim')
+        out.M1ONStim=M1ONStim;
+        out.mM1ONStim=mM1ONStim;
+    else
+        out.M1ONStim=[];
+        out.mM1ONStim=[];
+    end
+    if exist('M1OFFStim')
+        out.M1OFFStim=M1OFFStim;
+        out.mM1OFFStim=mM1OFFStim;
+    else
+        out.M1OFFStim=[];
+        out.mM1OFFStim=[];
+    end
 else
     out.M1ONStim=[];
     out.mM1ONStim=[];

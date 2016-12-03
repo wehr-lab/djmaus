@@ -54,7 +54,9 @@ cd(datadir)
 
 if exist(outfilename,'file')
     load(outfilename)
+    fprintf('\nloaded outfile')
 else
+    fprintf('\ncould not find outfile, calling ProcessAsymGPIAS_PSTH_single...')
     ProcessAsymGPIAS_PSTH_single(datadir,  t_filename, xlimits, ylimits);
     load(outfilename);
 end
@@ -62,6 +64,8 @@ end
 %if xlimits don't match, force preprocess
 if ~isempty(xlimits)
     if out.xlimits(1)>xlimits(1) | out.xlimits(2)<xlimits(2) %xlimits in outfile are too narrow, so reprocess
+    fprintf('\nPlot called with xlimits [%d %d] but xlimits in outfile are [%d %d], calling ProcessAsymGPIAS_PSTH_single...', xlimits(1), xlimits(2), out.xlimits(1), out.xlimits(2))
+
         ProcessAsymGPIAS_PSTH_single(datadir,  t_filename, xlimits, ylimits);
         load(outfilename);
     end

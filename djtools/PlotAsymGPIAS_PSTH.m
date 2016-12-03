@@ -64,18 +64,18 @@ if isempty(channel)     %default to all tetrodes
         PlotAsymGPIAS_PSTH_single(datadir, fn, xlimits, ylimits)
     end
 else %user specified a channel
-    if isempty(cluster) % default to all clusters
+    if isempty(clust) % default to all clusters
         d=dir(sprintf('ch%d*.t', channel));
         for i=1:length(d)
             fn=d(i).name;
             PlotAsymGPIAS_PSTH_single(datadir, fn, xlimits, ylimits)
         end
     else %user specified a channel and a cluster
-        if cluster<10
-            fn=sprintf('ch%d_simpleclust_%0d.t', channel, cluster);
+        if clust<10
+            fn=sprintf('ch%d_simpleclust_0%d.t', channel, clust);
             PlotAsymGPIAS_PSTH_single(datadir, fn, xlimits, ylimits)
                     else
-            fn=sprintf('ch%d_simpleclust_%d.t', channel, cluster);
+            fn=sprintf('ch%d_simpleclust_%d.t', channel, clust);
             PlotAsymGPIAS_PSTH_single(datadir, fn, xlimits, ylimits)
             
         end

@@ -907,7 +907,7 @@ logspacedfreqs=userdata.logspacedfreqs;
 atten=userdata.atten;
 if tonefreq==-1 findex=1;
 else
-    findex=find(logspacedfreqs<=tonefreq, 1, 'last');
+    findex=1+find(logspacedfreqs<=tonefreq, 1, 'last');
 end
 if isempty(atten)
     attenuation=0;

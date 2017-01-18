@@ -5,7 +5,7 @@ global exper pref
 % Creates a click train
 % Input
 %   nclicks         -   number of clicks
-%   isi             -   inter-stimulus interval, i.e. interval between the
+%   ici             -   inter-click interval, i.e. interval between the
 %                       start of previous click and start of the next click
 %   clickduration   -   duration of an individual click (ms)
 %   amplitude       -   click amplitude (dB)

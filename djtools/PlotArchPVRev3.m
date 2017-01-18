@@ -1,4 +1,4 @@
-function PlotArchPVRev3(varargin)
+function Durn=PlotArchPVRev3(varargin)
 
 %like PlotArchPVRev3 but only plots smoothed firing rate curves with
 %different colors for laser start times
@@ -114,21 +114,27 @@ if isempty(ylimits)
     ylimits=[-.3 ymax];
 end
 
-if numamps>=numdurs
-    %plot freqs x amps, with each dur in a separate window
-    numy=numamps;
-    ystep=-1;
-    ystart=numy;
-    yend=1;
-    numw=numdurs;
-elseif numdurs>numamps
-    %plot freqs x durs, with each amp in a separate window
-    numw=numamps;
-    numy=numdurs;
-    ystart=1;
-    ystep=1;
-    yend=numy;
-end
+% if numamps>=numdurs
+%     %plot freqs x amps, with each dur in a separate window
+%     numy=numamps;
+%     ystep=-1;
+%     ystart=numy;
+%     yend=1;
+%     numw=numdurs;
+% elseif numdurs>numamps
+%     %plot freqs x durs, with each amp in a separate window
+%     numw=numamps;
+%     numy=numdurs;
+%     ystart=1;
+%     ystep=1;
+%     yend=numy;
+% end
+
+ystart=1;
+yend=numamps;
+numy=numamps;
+ystep=1;
+numw=1;
 
 %plot the mean tuning curve OFF
 if(0)
@@ -205,9 +211,62 @@ if(0)
     end
 end
 
-cmap=colormap(jet(numy));
+%do a little test to see if the WN response is significant
+for rep=1:median(out.nrepsON) %was min, but there is a zero rep condition that's irksome
+    spiketimes=out.M1ON(1,:,1,rep).spiketimes;
+    WNresponse(rep)=length(find(spiketimes>0 & spiketimes<100));
+    spont(rep)=length(find(spiketimes>-100 & spiketimes<0));
+end
+[ptest,htest]=ranksum(WNresponse, spont, 'tail', 'right');
+fprintf('\nIs there a significant WN response? h=%d, p=%.4f', htest, ptest)
+
+htest=1; %HACK
+
+if ~htest
+    Durn=nan;
+    return
+end
+
+%do a little test to see if the laser has a significant effect on th eWN response 
+%for this I compare FR in 0-100 ms for laserstart=-50 (ON) to OFF 
+for rep=1:median(out.nrepsON)
+    spiketimesON=out.M1ON(1,1,1,rep).spiketimes;
+    WNresponseON(rep)=length(find(spiketimesON>0 & spiketimesON<100));
+end
+for rep=1:median(out.nrepsOFF(find(out.nrepsOFF))) %was min, but there is are many zero rep conditions that're irksome
+    condition=find(out.nrepsOFF); %find the "laserstart" or "aindex" that is actually populated in M1OFF
+    spiketimesOFF=out.M1OFF(1,condition,1,rep).spiketimes;
+    WNresponseOFF(rep)=length(find(spiketimesOFF>0 & spiketimesOFF<100));
+end
+
+[ptestArcheffect,htestArcheffect]=ranksum(WNresponseON, WNresponseOFF, 'tail', 'right');
+fprintf('\nDoes laser have an effect on WN response? h=%d, p=%.4f', htestArcheffect, ptestArcheffect)
+fprintf('\n')
+
+htestArcheffect=1; %HACK
+
+if ~htestArcheffect
+    Durn=nan;
+    return
+end
+
+% cmap=colormap(jet(numy));
+cmap=colormap(cool(numy));
 PH2=[];
 if IL
+%     get a max firing rate for normalization purposes
+
+maxFR=0;
+for y=1:numy
+    spiketimes1=mM1ON(1, y, 1).spiketimes;
+    sigma=10;
+    [t, fr]=GaussSmooth(spiketimes1, sigma, xlimits);
+    fr=fr./nreps(findex, aindex, dindex); %normalize to spike rate (averaged across trials)
+    if max(fr)>maxFR
+        maxFR=max(fr);
+    end
+end
+
     %plot the mean tuning curve ON
     for windex=1:numw
         figure
@@ -247,12 +306,44 @@ if IL
                 %                             h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k');
                 %                         end
                 %                     end
+                
+          
+                
                 sigma=10;
                 [t, fr]=GaussSmooth(spiketimes1, sigma, xlimits);
                 fr=fr./nreps(findex, aindex, dindex); %normalize to spike rate (averaged across trials)
-                ph=plot(t(150:end), fr(150:end)); %crop first 10ms
+                ph=plot(t(150:end), fr(150:end)); %crop first 15ms
                 c=cmap(yindex,:);
                 set(ph, 'color', c)
+                fig=gcf;
+                
+                %extract some estimate of duration or integrated FR
+                Intg(p)=sum(fr(1000:2000));
+%                 nfr=fr./max(fr);
+                nfr=fr./maxFR; %global normalization
+                t_poststim=find(t>0);
+                THRESH=.25;
+                above=find(nfr(t_poststim)>THRESH);
+                if ~isempty(above)
+                    upcross=min(above); %index within t_poststim
+                    d_above=diff(above);
+                    if all(d_above==1) %unimodal
+                        downcross=max(above); %index within t_poststim
+                    else
+                        downcross=upcross+find(d_above>1, 1, 'first');
+                    end
+                    
+                    Durn(p)=(downcross-upcross)/10;
+                else
+                    Durn(p)=nan;
+                end
+                %                 figure(100)
+                %                 hold on
+%                 plot(t, nfr, 'k')
+%                 plot(t(t_poststim), nfr(t_poststim), 'r')
+%                 plot(t(t_poststim(upcross)), nfr(t_poststim(upcross)), 'o')
+%                 plot(t(t_poststim(downcross)), nfr(t_poststim(downcross)), 'o')
+%                 figure(fig)
                 
                 if aindex<=size(M_LaserStart, 2)
                     MLaserStart=M_LaserStart(findex,aindex,dindex, 1);
@@ -316,4 +407,22 @@ if IL
     end
 end
 
-end %main cluster loop
+laserstarts=squeeze(M_LaserStart(1,:,1,1));
+if length(laserstarts) ~= length(Intg)
+    %working through some special cases here
+    if length(laserstarts) == length(Intg) -1 & Intg(end)==0
+        Intg=Intg(1:end-1);
+        Durn=Durn(1:end-1);
+    end
+end
+figure
+plot(laserstarts, Intg)
+xlabel('laser start relative to tone onset')
+ylabel('integrated FR 0-100 ms')
+
+figure
+plot(laserstarts, Durn)
+xlabel('laser start relative to tone onset')
+ylabel('duration, ms')
+title(sprintf('%s %s', datadir, outfilename), 'interpreter', 'none')
+

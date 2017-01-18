@@ -41,7 +41,7 @@ start=0;
     
     sampled_duration=round(clickduration*samplerate);
     sampled_start=floor(start*samplerate);
-    sampled_ici=round(isi*samplerate);
+    sampled_ici=round(ici*samplerate);
 
     click=randn(1,sampled_duration);       % corresponds to t=0:1/samplerate:duration;
     if ramp>0
@@ -51,7 +51,7 @@ start=0;
     end
     click_starts=[0:(nclicks-1)]';
     sampled_start=max(1,sampled_start); % if sampled_start==0, we would have problems with indices below
-    click_starts=sampled_start+click_starts*(sampled_isi);
+    click_starts=sampled_start+click_starts*(sampled_ici);
     
     widths=0:sampled_duration-1;
     

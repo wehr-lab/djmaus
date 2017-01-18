@@ -46,7 +46,7 @@ numicis=length(icis);
 icistring=sprintf('%d-', icis);icistring=icistring(1:end-1);
 
 name= sprintf('Clicktrain, %ddB%.1fms/%sms/d=%d', amplitude ,clickduration, icistring, trainduration);
-description=sprintf('Clicktrain, %d dB, %dms clickduration, %.1fms ramp, %d repeats, %d ms trainduration, %d ICIs (%sms), %ds duration per repeat', amplitude, clickduration, ramp, nrepeats, trainduration, numicis, icistring);
+description=sprintf('Clicktrain, %d dB, %.1fms clickduration, %.1fms ramp, %d repeats, %d ms trainduration, %d ICIs (%sms), %ds duration per repeat', amplitude, clickduration, ramp, nrepeats, trainduration, numicis, icistring);
 filename=sprintf('Clicktrain-%ddB-%.1fms-%sms-d%d.mat',amplitude,clickduration, icistring,trainduration);
 
 nn=0;

@@ -617,7 +617,9 @@ switch type
     case 'GPIAS'
         fcn='MakeGPIAS';
     case 'noise'
-        fcn='MakeNoise';
+        fcn='MakeNoise';   
+    case 'clicktrain'
+        fcn='MakeClickTrain';
     case 'silentsound'
         fcn='MakeSilentSound';
 end

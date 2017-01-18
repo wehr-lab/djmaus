@@ -25,57 +25,56 @@ function MakeClicktraindjProtocol(amplitude, trainduration, icis, clickduration,
 %       djprefs.stimuli/ClicktrainProtocols
 %
 %
-%example calls: 
-%MakeClicktraindjProtocol(80, 10e3, [1 2 4 8 16 32 64 128 256], .5, 3000, 0, 20) 
+%example calls:
+%MakeClicktraindjProtocol(80, 10e3, [1 2 4 8 16 32 64 128 256], .5, 3000, 0, 20)
 numicis=length(icis);
 
 
 % % % neworder=randperm( numicis );
 % % % interclickintervals=zeros(size(neworder*nrepeats));
-% % % 
+% % %
 % % % tdur=0;
 % % % total_trainduration=trainduration;
 % % % tdur=numicis*(total_trainduration)/1000;%duration per repeat
 
 
-for nn=1:nrepeats
-    neworder=randperm( numicis );
-    interclickintervals(  icis( neworder );
-end
+% % % for nn=1:nrepeats
+% % %     neworder=randperm( numicis );
+% % %     interclickintervals(  icis( neworder );
+% % % end
 
 icistring=sprintf('%d-', icis);icistring=icistring(1:end-1);
-%put into stimuli structure
-stimuli(1).type='exper2 stimulus protocol';
 
-stimuli(1).param.name= sprintf('WNTrain2, %da/min%d,max%ddB%dms/%sms/d=%d', numamplitudes,minamplitude,maxamplitude ,clickduration, isistring, trainduration);
-stimuli(1).param.description=sprintf('White noise train2, %d ampl. (%d-%d dB SPL), %dms clickduration, %.1fms ramp, %d repeats, %d ms trainduration, %d ISIs (%sms), %ds duration per repeat', numamplitudes,minamplitude, maxamplitude, clickduration, ramp, nrepeats, trainduration, numicis, isistring, round(tdur));
-filename=sprintf('WNTrain2-%da-%ddB-%ddB-%dms-%sms-d%d.mat',numamplitudes,minamplitude,maxamplitude,clickduration, isistring,trainduration);
+name= sprintf('Clicktrain, %ddB%.1fms/%sms/d=%d', amplitude ,clickduration, icistring, trainduration);
+description=sprintf('Clicktrain, %d dB, %dms clickduration, %.1fms ramp, %d repeats, %d ms trainduration, %d ICIs (%sms), %ds duration per repeat', amplitude, clickduration, ramp, nrepeats, trainduration, numicis, icistring);
+filename=sprintf('Clicktrain-%ddB-%.1fms-%sms-d%d.mat',amplitude,clickduration, icistring,trainduration);
 
 nn=0;
 for rep=1:nrepeats
     for n=1:numicis
         nn=nn+1;
-    stimuli(nn).type='clicktrain';
-    stimuli(nn).param.amplitude=amplitude;
-   
-    nclicks=floor(trainduration/icis(n));
-    
-    stimuli(nn).param.nclicks=nclicks;
-    stimuli(nn).param.isi=interclickintervals(nn-1);
-    stimuli(nn).param.clickduration=clickduration;
-    stimuli(nn).param.start=start;
-    stimuli(nn).param.next=next;
-    stimuli(nn).param.ramp=ramp;
-    stimuli(nn).param.duration=total_trainduration;
+        stimuli(nn).type='clicktrain';
+        stimuli(nn).param.amplitude=amplitude;
+        nclicks=floor(trainduration/icis(n));
+        stimuli(nn).param.nclicks=nclicks;
+        stimuli(nn).param.ici=icis(n);
+        stimuli(nn).param.clickduration=clickduration;
+        stimuli(nn).param.next=next;
+        stimuli(nn).param.ramp=ramp;
+        stimuli(nn).param.duration=trainduration;
+        stimuli(nn).stimulus_description=GetParamStr(stimuli(nn));
+        stimuli(nn).protocol_name=name;
+        stimuli(nn).protocol_description=description;
+        stimuli(nn).version='djmaus';
+    end
 end
 
-
 global pref
-Prefs
+if isempty(pref) djPrefs;end
 cd(pref.stimuli)
-cd ('WNTrain2 Protocols')
-
+warning off MATLAB:MKDIR:DirectoryExists
+mkdir('ClicktrainProtocols')
+cd ('ClicktrainProtocols')
+path=pwd;
 save(filename, 'stimuli')
-
-
-% keyboard
+fprintf('\ncreated file %s \nin directory %s\n\n', filename, path);

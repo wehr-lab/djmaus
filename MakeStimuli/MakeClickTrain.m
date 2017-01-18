@@ -27,27 +27,28 @@ end
 
 params=varargin{1};
 samplerate=varargin{2};
-start           =params.start/1000;              % in s
 clickduration   =params.clickduration/1000;      % in s
 amplitude       =params.amplitude;
 nclicks         =params.nclicks;
-isi             =params.isi/1000;                % in s
+ici             =params.ici/1000;                % in s
 ramp            =params.ramp;    
+start=0;
 
-    train_length=(start+clickduration+(nclicks-1)*isi); % in s
+    train_length=(start+clickduration+(nclicks-1)*ici); % in s
     
     %prepare the samples
     clicktrain=zeros(ceil(train_length*samplerate),1);
     
     sampled_duration=round(clickduration*samplerate);
     sampled_start=floor(start*samplerate);
-    sampled_isi=round(isi*samplerate);
+    sampled_ici=round(isi*samplerate);
 
     click=randn(1,sampled_duration);       % corresponds to t=0:1/samplerate:duration;
-    [edge,ledge]=MakeEdge(ramp,samplerate);         % and add the edge
-    click(1:ledge)=click(1:ledge).*fliplr(edge);
-    click((end-ledge+1):end)=click((end-ledge+1):end).*edge;
-    
+    if ramp>0
+        [edge,ledge]=MakeEdge(ramp,samplerate);         % and add the edge
+        click(1:ledge)=click(1:ledge).*fliplr(edge);
+        click((end-ledge+1):end)=click((end-ledge+1):end).*edge;
+    end
     click_starts=[0:(nclicks-1)]';
     sampled_start=max(1,sampled_start); % if sampled_start==0, we would have problems with indices below
     click_starts=sampled_start+click_starts*(sampled_isi);

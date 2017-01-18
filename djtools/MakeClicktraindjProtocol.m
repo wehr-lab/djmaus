@@ -14,35 +14,19 @@ function MakeClicktraindjProtocol(amplitude, trainduration, icis, clickduration,
 %                       start of previous click and start of the next click
 %                       (use an array for multiple ICIs)
 %   clickduration   -   duration of an individual click (ms)
-%   start           -   start of the first click after the trigger (ms)
 %   next            -   inter-click-train-interval, i.e. when the next
 %                       click train should follow the previous one (ms)
 %   ramp            -   rising/falling edge of individual clicks (can be zero)
 %   nrepeats: number of repetitions (different pseudorandom orders)
 %
 % outputs:
-%       - creates a suitably named stimulus protocol in
-%       djprefs.stimuli/ClicktrainProtocols
+%       - creates a suitably named stimulus protocol in djprefs.stimuli/ClicktrainProtocols
 %
 %
 %example calls:
 %MakeClicktraindjProtocol(80, 10e3, [1 2 4 8 16 32 64 128 256], .5, 3000, 0, 20)
+
 numicis=length(icis);
-
-
-% % % neworder=randperm( numicis );
-% % % interclickintervals=zeros(size(neworder*nrepeats));
-% % %
-% % % tdur=0;
-% % % total_trainduration=trainduration;
-% % % tdur=numicis*(total_trainduration)/1000;%duration per repeat
-
-
-% % % for nn=1:nrepeats
-% % %     neworder=randperm( numicis );
-% % %     interclickintervals(  icis( neworder );
-% % % end
-
 icistring=sprintf('%d-', icis);icistring=icistring(1:end-1);
 
 name= sprintf('Clicktrain, %ddB%.1fms/%sms/d=%d', amplitude ,clickduration, icistring, trainduration);

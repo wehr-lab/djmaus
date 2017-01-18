@@ -665,6 +665,9 @@ if SP.Record
     end
 else
     %we want to start recording;
+    %try stopping
+    %zeroMQwrapper('Send',SP.zhandle ,'StopRecord');
+
     startstr=sprintf('StartRecord');
     if ~isfield(SP, 'mouseID')
         SP.mouseID='none';

@@ -25,8 +25,6 @@ typedef struct {
     const char *connect_url;
     unsigned long dwThread;
 	bool thread_running;
-   const  char *reply;
-
 } ThreadData;
 
 void* MyThreadFunction( void* lpParam ); 
@@ -113,30 +111,20 @@ void* MyThreadFunction( void* lpParam )
             if   (strcmp(command.c_str(), "GetRecordingPath") == 0)  {
                 //a way for calling function to learn the reply we get from GetRecordingPath
 
-               // printf ("\nzmq wrapper: I will now attempt to write to RecordingPath.txt...");
-            //    size_t mymsgsize=zmq_msg_size(&reply);
-               //  char mymsg[mymsgsize]; bad idea
-            //    memcpy (mymsg, zmq_msg_data (&reply) , mymsgsize);
+                printf ("\nzmq wrapper: I will now attempt to write to RecordingPath.txt...");
+                size_t mymsgsize=zmq_msg_size(&reply);
+                char mymsg[mymsgsize];
+                memcpy (mymsg, zmq_msg_data (&reply) , mymsgsize);
 
-//here's the new way to do it:
-   size_t mymsgsize=zmq_msg_size(&reply);
-                if (pData->reply == NULL) { //it should be empty
-                    pData->reply = new char[mymsgsize + 1]; //+1 = room for termination
-                    memcpy (pData->reply, zmq_msg_data (&reply) , mymsgsize);
-                    pData->reply[mymsgsize] = '\0'; //terminate
-                                       
-                    mexPrintf("\nzmq wrapper: GetRecordingPath returned %s \n", pData->reply);
-             }
-                else //if pData->reply is not NULL, something is wrong
-                    mexErrMsgIdAndTxt("\nzmq wrapper: GetRecordingPath reply was not null??", "\nzmq wrapper: GetRecordingPath reply was not null??");
+                FILE *fp;
+                fp=fopen("RecordingPath.txt", "w");
+                fprintf (fp, "%s", mymsg);
+                fprintf (fp, "\n%d", mymsgsize);
+                fclose(fp);
 
-           //     FILE *fp;
-            //    fp=fopen("RecordingPath.txt", "w");
-             //   fprintf (fp, "%s", mymsg);
-              //  fprintf (fp, "\n%d", mymsgsize);
-              //  fclose(fp);
-              //  printf ("\nzmq wrapper:wrote %s to RecordingPath.txt", mymsg);
+                printf ("\nzmq wrapper:wrote %s to RecordingPath.txt", mymsg);
 
+                //put mymsg in plhs somehow?;
 
             }
             
@@ -161,7 +149,7 @@ ThreadData* create_client_thread(const char* connect_url, int n)
 	ThreadData* pData = new ThreadData;
 	pData->connect_url = new char[n];
 	memcpy((char*)pData->connect_url,connect_url,n);
-    pData->reply=NULL; //initialize to null
+
 	pthread_t thread;
 	
 	int retValue = pthread_create(&thread,
@@ -212,25 +200,23 @@ void mexFunction( int nlhs, mxArray* plhs[],
         std::string std_s(s);
         MyQueue.push(std_s);
         
-        
-    }
-    
+      /*  if   (strcmp(std_s.c_str(), "GetRecordingPath") == 0)  {
+            printf ("\nMain %s\n", std_s.c_str());
+            if(nlhs!=1) {
+                mexErrMsgIdAndTxt( "MATLAB:revord:invalidNumInputs",
+                        "One input required.");
+            }
+           // char  *output_buf;
+            char output_buf[10]="fairmont";
+               // memcpy (output_buf, zmq_msg_data (&reply) , 10);
 
-    if   (strcmp(Command, "GetReply") == 0)  { //get reply from ThreadData and put in plhs
-        double* Tmp= (double*)mxGetPr(prhs[1]); //get handle
-        ThreadData* sd;
-        memcpy(&sd, Tmp, 8);
-        if (sd->reply!=NULL) {//there is a reply waiting
-            
-            plhs[0] = mxCreateString(sd->reply); //put reply in plhs
-            mexPrintf("\nzmq wrapper: mexFunction main putting %s in plhs\n", sd->reply);
-            
-            //now clear reply and deallocate
-            delete[] sd->reply;
-            sd->reply = NULL;
+
+            // *output_buf="fairmount";
+            plhs[0] = mxCreateString(output_buf);
+
+
         }
-        else //sd->reply is null so we cannot return a reply as requested
-            mexPrintf("\nzmq wrapper GetReply: there is no reply available\n");
+       */
         
     }
     

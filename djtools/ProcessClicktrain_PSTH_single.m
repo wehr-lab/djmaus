@@ -1,8 +1,8 @@
-function ProcessGPIAS_PSTH_single(varargin)
+function ProcessClicktrain_PSTH_single(varargin)
 
-%processes a single .t file of clustered spiking GPIAS data from djmaus
+%processes a single .t file of clustered spiking Clicktrain data from djmaus
 %
-% usage: ProcessGPIAS_PSTH_single(datadir, t_filename, [xlimits],[ylimits])
+% usage: ProcessClicktrain_PSTH_single(datadir, t_filename, [xlimits],[ylimits])
 % (xlimits, ylimits are optional)
 % xlimits default to [-1.5*max(gapdurs) 2*soa]
 % saves to outfile
@@ -451,6 +451,7 @@ for i=1:length(Events)
             end
         end
     end
+end
 end
 
 fprintf('\nmin num ON reps: %d\nmax num ON reps: %d', min(nrepsON(:)), max(nrepsON(:)))

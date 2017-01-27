@@ -15,10 +15,6 @@ function PlotAsymGPIAS_PSTH(varargin)
 %
 %Processes data if outfile is not found;
 
-rasters=1;
-force_reprocess=0;
-
-
 try
     datadir=varargin{1};
 catch
@@ -37,7 +33,7 @@ try
 catch
     clust=[]; %to plot all clusts
 end
-if strcmp('char',class(clust))
+if ischar(clust)
     clust=str2num(clust);
 end
 try
@@ -61,23 +57,22 @@ if isempty(channel)     %default to all tetrodes
     d=dir('*.t');
     for i=1:length(d)
         fn=d(i).name;
-        PlotAsymGPIAS_PSTH_single(datadir, fn, xlimits, ylimits)
+        PlotAsymGPIAS_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
     end
 else %user specified a channel
     if isempty(clust) % default to all clusters
         d=dir(sprintf('ch%d*.t', channel));
         for i=1:length(d)
             fn=d(i).name;
-            PlotAsymGPIAS_PSTH_single(datadir, fn, xlimits, ylimits)
+            PlotAsymGPIAS_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
         end
     else %user specified a channel and a cluster
         if clust<10
             fn=sprintf('ch%d_simpleclust_0%d.t', channel, clust);
-            PlotAsymGPIAS_PSTH_single(datadir, fn, xlimits, ylimits)
-                    else
+            PlotAsymGPIAS_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
+        else
             fn=sprintf('ch%d_simpleclust_%d.t', channel, clust);
-            PlotAsymGPIAS_PSTH_single(datadir, fn, xlimits, ylimits)
-            
+            PlotAsymGPIAS_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)            
         end
     end
 end

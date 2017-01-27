@@ -36,7 +36,7 @@ end
 
 if force_reprocess
     fprintf('\nForce re-process\n')
-    ProcessAsymGPIAS_PSTH_single(datadir,  t_filename, xlimits, ylimits);
+    ProcessAsymGPIAS_PSTH_single(datadir,  t_filename, xlimits, ylimits, binwidth);
 end
 
 [p,f,ext]=fileparts(t_filename);
@@ -66,7 +66,7 @@ if ~isempty(xlimits)
     if out.xlimits(1)>xlimits(1) | out.xlimits(2)<xlimits(2) %xlimits in outfile are too narrow, so reprocess
     fprintf('\nPlot called with xlimits [%d %d] but xlimits in outfile are [%d %d], calling ProcessAsymGPIAS_PSTH_single...', xlimits(1), xlimits(2), out.xlimits(1), out.xlimits(2))
 
-        ProcessAsymGPIAS_PSTH_single(datadir,  t_filename, xlimits, ylimits);
+        ProcessAsymGPIAS_PSTH_single(datadir,  t_filename, xlimits, ylimits, binwidth);
         load(outfilename);
     end
 end

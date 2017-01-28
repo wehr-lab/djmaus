@@ -1,8 +1,8 @@
-function PlotClicktrain_PSTH_single(varargin)
+function PlotFlashtrain_PSTH_single(varargin)
 
-%plots a single file of clustered spiking Clicktrain data from djmaus
+%plots a single file of clustered spiking Flashtrain data from djmaus
 %
-% usage: PlotClicktrain_PSTH_single(datapath, t_filename, [xlimits],[ylimits], [binwidth])
+% usage: PlotFlashtrain_PSTH_single(datapath, t_filename, [xlimits],[ylimits], [binwidth])
 % (xlimits, ylimits, binwidth are optional)
 %
 %Processes data if outfile is not found;
@@ -37,7 +37,7 @@ end
 
 if force_reprocess
     fprintf('\nForce re-process\n')
-    ProcessClicktrain_PSTH_single(datadir,  t_filename, xlimits, ylimits, binwidth);
+    ProcessFlashtrain_PSTH_single(datadir,  t_filename, xlimits, ylimits, binwidth);
 end
 
 [p,f,ext]=fileparts(t_filename);
@@ -57,8 +57,8 @@ if exist(outfilename,'file')
     load(outfilename)
     fprintf('\nloaded outfile')
 else
-    fprintf('\ncould not find outfile, calling ProcessClicktrain_PSTH_single...')
-    ProcessClicktrain_PSTH_single(datadir,  t_filename, xlimits, ylimits, binwidth);
+    fprintf('\ncould not find outfile, calling ProcessFlashtrain_PSTH_single...')
+    ProcessFlashtrain_PSTH_single(datadir,  t_filename, xlimits, ylimits, binwidth);
     load(outfilename);
 end
 
@@ -66,12 +66,13 @@ end
 if ~isempty(xlimits)
     if out.xlimits(1)>xlimits(1) | out.xlimits(2)<xlimits(2) %xlimits in outfile are too narrow, so reprocess
         fprintf('\nPlot called with xlimits [%d %d] but xlimits in outfile are [%d %d], calling ProcessClicktrain_PSTH_single...', xlimits(1), xlimits(2), out.xlimits(1), out.xlimits(2))
-        ProcessClicktrain_PSTH_single(datadir,  t_filename, xlimits, ylimits, binwidth);
+        ProcessFlashtrain_PSTH_single(datadir,  t_filename, xlimits, ylimits, binwidth);
         load(outfilename);
     end
 end
 
 IL=out.IL; %whether there are any interleaved laser trials
+LaserOnly=out.LaserOnly; %whether there are only laser trials
 numicis=out.numicis;
 icis=out.icis;
 numdurs=out.numdurs;
@@ -132,7 +133,7 @@ if isempty(ylimits)
     ylimits=[-.3 ymax];
 end
 
-if ~isempty(MtOFF)
+if ~LaserOnly
     
     %plot the mean tuning curve OFF
     figure
@@ -245,7 +246,7 @@ if IL
     %plot the mean tuning curve ON
     figure
     p=0;
-    subplot1(numicis, 'Max', [.95 .9])
+    subplot1(numicis, 1, 'Max', [.95 .9])
     for iciindex=1:numicis
         p=p+1;
         subplot1(p)
@@ -285,22 +286,10 @@ if IL
             plot(t, Stimtrace+offset, 'm')
         else
             %do nothing
+            keyboard
         end
-        %draw lines where clicks should be
-        L=[];
-        for k=1:nclicks(iciindex)
-            clickonset=(k-1)*(icis(iciindex));
-            height=.08*diff(ylimits2); %reasonable height
-            offset=ylimits2(1);
-            c=       [.5 .5 1] ;
-            l=line(clickonset*[1 1], [offset offset+height], 'color', c, 'linewidth', 2);
-            L=[L l];
-        end
-        %you could comment out this line to save time -- it takes ~1 sec
-        uistack(L, 'bottom')
-
         if LaserRecorded
-            for rep=1:nrepsOFF(iciindex)
+            for rep=1:nrepsON(iciindex)
                 Lasertrace=squeeze(MtONLaser(iciindex,rep, :));
                 Lasertrace=Lasertrace -mean(Lasertrace(1:100));
                 Lasertrace=.05*diff(ylimits)*Lasertrace;

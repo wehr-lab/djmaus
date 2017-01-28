@@ -1,8 +1,8 @@
-function ProcessClicktrain_PSTH_single(varargin)
+function ProcessFlashtrain_PSTH_single(varargin)
 
-%processes a single .t file of clustered spiking Clicktrain data from djmaus
+%processes a single .t file of clustered spiking Flashtrain data from djmaus
 %
-% usage: ProcessClicktrain_PSTH_single(datadir, t_filename, [xlimits],[ylimits])
+% usage: ProcessFlashtrain_PSTH_single(datadir, t_filename, [xlimits],[ylimits])
 % (xlimits, ylimits are optional)
 % xlimits default to [-1.5*max(gapdurs) 2*soa]
 % saves to outfile
@@ -150,12 +150,10 @@ for i=1:length(messages)
     end
 end
 %check if this is an appropriate stimulus protocol
-OK=0;
-for i=1:length(Events)
-    if strcmp(Events(i).type, 'clicktrain') OK=1;end
+if ~strfind(stimlog(1).protocol_description, 'Flashtrain')
+    error('This does not appear to be a Flashtrain stimulus protcol');
 end
-if ~OK error('There are no clicktrain trials in this stimulus protcol'), end
-    
+
 fprintf('\nNumber of sound events (from network messages): %d', length(Events));
 fprintf('\nNumber of hardware triggers (soundcardtrig TTLs): %d', length(all_SCTs));
 try
@@ -278,14 +276,12 @@ samprate=sampleRate;
 %get freqs/amps
 j=0;
 for i=1:length(Events)
-    if strcmp(Events(i).type, 'clicktrain')
+    if strcmp(Events(i).type, 'silentsound')
         j=j+1;
-        allicis(i)=Events(i).ici;
+        allicis(i)=Events(i).VarLaserisi;
         alldurs(i)=Events(i).duration;
-        %       if isfield(Events(i), 'nclicks')
-        allnclicks(i)=Events(i).nclicks;
-        allamps(i)=Events(i).amplitude;
-        allclickdurations(i)=Events(i).clickduration;
+        allnclicks(i)=Events(i).VarLasernumpulses;
+        allclickdurations(i)=Events(i).VarLaserpulsewidth;
     end
 end
 %%%%%%%%%%%%%%
@@ -293,10 +289,8 @@ icis=unique(allicis);
 nclicks=unique(allnclicks);
 nclicks=sort(nclicks, 'descend');
 durs=unique(alldurs);
-amps=unique(allamps);
 numicis=length(icis);
 numnclicks=length(nclicks);
-numamps=length(amps);
 numdurs=length(durs);
 nrepsON=zeros(numicis, 1);
 nrepsOFF=zeros(numicis, 1);
@@ -339,17 +333,23 @@ for i=1:length(Events)
         error('wtf?')
     end
 end
-fprintf('\n%d laser pulses in this Events file', sum(LaserTrials))
+fprintf('\n%d laser trials in this Events file', sum(LaserTrials))
 try
     if sum(LaserOnOffButton)==0
         fprintf('\nLaser On/Off button remained off for entire file.')
     end
 end
 if sum(LaserTrials)>0
-    IL=1;
+    IL=1; %there are at least some laser ON trials
 else
-    IL=0;
+    IL=0; %there are no laser ON trials (only laser OFF trials)
 end
+if all(LaserTrials)
+    LaserOnly=1; %there are only laser ON trials
+else
+    LaserOnly=0; %there are at least some laser OFF trials
+end
+
 %if lasers were used, we'll un-interleave them and save ON and OFF data
 %try to load laser and stimulus monitor files
 if isempty(getLaserfile('.'))
@@ -407,15 +407,14 @@ fprintf('\nprocessing with xlimits [%d-%d]', xlimits(1), xlimits(2))
 j=0;
 inRange=0;
 for i=1:length(Events)
-    if strcmp(Events(i).type, 'clicktrain') 
-        
+    if strcmp(Events(i).type, 'silentsound') 
         pos=Events(i).soundcard_trigger_timestamp_sec; %pos is in seconds
         laser=LaserTrials(i);
         start=pos + xlimits(1)/1000; %start is in seconds
         stop= pos + xlimits(2)/1000; %stop is in seconds
         region=round(start*samprate)+1:round(stop*samprate);
         if start>0 %(disallow negative or zero start times)
-            ici=Events(i).ici;
+            ici=Events(i).VarLaserisi;
             iciindex= find(ici==icis);
             st=spiketimes; %are in seconds
             st_inrange=st(st>start & st<stop); % spiketimes in region, in seconds relative to start of acquisition
@@ -472,8 +471,14 @@ end
 for iciindex=[1:numicis]
     if IL
         mMtONStim(iciindex,:)=mean(MtONStim(iciindex, 1:nrepsON(iciindex),:), 2);
+    else
+        mMtONStim=[];
     end
-    mMtOFFStim(iciindex,:)=mean(MtOFFStim(iciindex, 1:nrepsOFF(iciindex),:), 2);
+    if LaserOnly
+        mMtOFFStim=[];
+    else
+        mMtOFFStim(iciindex,:)=mean(MtOFFStim(iciindex, 1:nrepsOFF(iciindex),:), 2);
+    end
 end
 
 %spikecount matrices
@@ -493,17 +498,26 @@ else
     sMtspontON=[];
     semMtspontON=[];
 end
-mMtOFFspikecount=mean(MtOFFspikecount, 2);
-sMtOFFspikecount=std(MtOFFspikecount, 0, 2);
-semMtOFFspikecount=sMtOFFspikecount./nrepsOFF;
-mMtspontOFF=mean(MtspontOFF, 2);
-sMtspontOFF=std(MtspontOFF, 0,2);
-semMtspontOFF=sMtspontOFF./nrepsOFF;
+if LaserOnly
+    MtOFFspikecount=[];
+    mMtOFFspikecount=[];
+    sMtOFFspikecount=[];
+    semMtOFFspikecount=[];
+    mMtspontOFF=[];
+    sMtspontOFF=[];
+    semMtspontOFF=[];
+else
+    mMtOFFspikecount=mean(MtOFFspikecount, 2);
+    sMtOFFspikecount=std(MtOFFspikecount, 0, 2);
+    semMtOFFspikecount=sMtOFFspikecount./nrepsOFF;
+    mMtspontOFF=mean(MtspontOFF, 2);
+    sMtspontOFF=std(MtspontOFF, 0,2);
+    semMtspontOFF=sMtspontOFF./nrepsOFF;
+end
 
 %WHAT SHOULD TRACELENGTH BE????
 tracelength=50;%25; %ms
 fprintf('\nusing response window of 0-%d ms after tone onset', tracelength);
-
 
 fprintf( '\nsorting into click matrix...');
 for iciindex=1:numicis
@@ -541,8 +555,10 @@ for iciindex=1:numicis
             mMcON(iciindex, k).spiketimes=[McON(iciindex, k, 1:nrepsON(iciindex)).spiketimes];
             mMcONStim(iciindex, k,:)=mean(McONStim(iciindex, k, 1:nrepsON(iciindex), :), 3);
         end
-        mMcOFF(iciindex, k).spiketimes=[McOFF(iciindex, k, 1:nrepsOFF(iciindex)).spiketimes];
-        mMcOFFStim(iciindex, k,:)=mean(McOFFStim(iciindex, k, 1:nrepsOFF(iciindex), :), 3);
+        if ~LaserOnly
+            mMcOFF(iciindex, k).spiketimes=[McOFF(iciindex, k, 1:nrepsOFF(iciindex)).spiketimes];
+            mMcOFFStim(iciindex, k,:)=mean(McOFFStim(iciindex, k, 1:nrepsOFF(iciindex), :), 3);
+        end
     end
 end
 fprintf('done')
@@ -581,12 +597,16 @@ for iciindex=[1:numicis]
     else
         mRRTF_ON=[];
     end
-    spiketimes1=cat(2,McOFF(iciindex, 1, 1:nrepsOFF(iciindex)).spiketimes);
-    spiketimesn=[];
-    for click=nclicks(iciindex)-4:nclicks(iciindex)
-        spiketimesn=[spiketimesn (McOFF(iciindex, click, 1:nrepsOFF(iciindex)).spiketimes)];
+    if ~LaserOnly
+        spiketimes1=cat(2,McOFF(iciindex, 1, 1:nrepsOFF(iciindex)).spiketimes);
+        spiketimesn=[];
+        for click=nclicks(iciindex)-4:nclicks(iciindex)
+            spiketimesn=[spiketimesn (McOFF(iciindex, click, 1:nrepsOFF(iciindex)).spiketimes)];
+        end
+        mRRTF_OFF(iciindex)=(length(spiketimesn)/5)/(length(spiketimes1));
+    else
+        mRRTF_OFF=[];
     end
-    mRRTF_OFF(iciindex)=(length(spiketimesn)/5)/(length(spiketimes1));
 end
 
 %compute P2P1 as ratio of second/first click response -- rep-by-rep
@@ -615,10 +635,15 @@ for iciindex=[1:iciindex]
     else
         mP2P1_ON=[];
     end
-    spiketimes1=cat(2, McOFF(iciindex, 1, 1:nrepsON(iciindex)).spiketimes);
-    spiketimes2=cat(2, McOFF(iciindex, 2, 1:nrepsON(iciindex)).spiketimes);
-    mP2P1_OFF(iciindex)=length(spiketimes2)/(length(spiketimes1));
+    if ~LaserOnly
+        spiketimes1=cat(2, McOFF(iciindex, 1, 1:nrepsON(iciindex)).spiketimes);
+        spiketimes2=cat(2, McOFF(iciindex, 2, 1:nrepsON(iciindex)).spiketimes);
+        mP2P1_OFF(iciindex)=length(spiketimes2)/(length(spiketimes1));
+    else
+        mP2P1_OFF=[];
+    end
 end
+
 
 %average laser and stimulus monitor M matrices across trials
 if LaserRecorded
@@ -637,15 +662,15 @@ if LaserRecorded
 end
 if StimRecorded
     for iciindex=[1:iciindex]
-        if nrepsON(iciindex)>0
+        if IL
             mMtONStim(iciindex,:)=mean(MtONStim(iciindex, 1:nrepsON(iciindex),:), 2);
-        else %no reps for this stim, since rep=0
-            mMtONStim(iciindex,:)=zeros(size(region));
+        else %
+            mMtONStim=[]; %mMtONStim(iciindex,:)=zeros(size(region));
         end
-        if nrepsOFF(iciindex)>0
+        if LaserOnly %nrepsOFF(iciindex)>0
+            mMtOFFStim=[]; %(iciindex,:)=zeros(size(region));
+        else %
             mMtOFFStim(iciindex,:)=mean(MtOFFStim(iciindex, 1:nrepsOFF(iciindex),:), 2);
-        else %no reps for this stim, since rep=0
-            mMtOFFStim(iciindex,:)=zeros(size(region));
         end
     end
 end
@@ -658,6 +683,7 @@ end
 % mMtONspikecount(numicis)
 
 out.IL=IL;
+out.LaserOnly=LaserOnly;
 out.Nclusters=Nclusters;
 out.tetrode=channel;
 out.channel=channel;
@@ -678,10 +704,10 @@ if IL
     out.mMtspontON=mMtspontON;
     out.sMtspontON=sMtspontON;
     out.semMtspontON=semMtspontON;
-    out.M_LaserStart=M_LaserStart;
-    out.M_LaserWidth=M_LaserWidth;
-    out.M_LaserNumPulses=M_LaserNumPulses;
-    out.M_LaserISI=M_LaserISI;
+%     out.M_LaserStart=M_LaserStart;
+%     out.M_LaserWidth=M_LaserWidth;
+%     out.M_LaserNumPulses=M_LaserNumPulses;
+%     out.M_LaserISI=M_LaserISI;
     out.LaserStart=unique(LaserStart); %only saving one value for now, assuming it's constant
     out.LaserWidth=unique(LaserWidth);
     out.LaserNumPulses=unique(LaserNumPulses);
@@ -702,12 +728,12 @@ else
     out.LaserStart=[];
     out.LaserWidth=[];
     out.Lasernumpulses=[];
-    out.M_LaserStart=[];
-    out.M_LaserWidth=[];
-    out.M_LaserNumPulses=[];
-    out.M_LaserISI=[];
+%     out.M_LaserStart=[];
+%     out.M_LaserWidth=[];
+%     out.M_LaserNumPulses=[];
+%     out.M_LaserISI=[];
 end
-if isempty(MtOFF)
+if LaserOnly
     out.MtOFF=[];
     out.mMtOFF=[];
     out.mMtOFFspikecount=[];

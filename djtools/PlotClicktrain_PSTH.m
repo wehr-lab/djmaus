@@ -1,8 +1,8 @@
-function PlotGPIAS_PSTH(varargin)
+function PlotClicktrain_PSTH(varargin)
 
-%plots clustered spiking GPIAS data from djmaus
+%plots clustered spiking Clicktrain data from djmaus
 %
-% usage: PlotGPIAS_PSTH([datapath], [tetrode], [clust], [xlimits],[ylimits], [binwidth])
+% usage: PlotClicktrain_PSTH([datapath], [tetrode], [clust], [xlimits],[ylimits], [binwidth])
 % (all inputs are optional)
 %     datadir defaults to the current directory
 %     tetrode defaults to all tetrodes in data directory
@@ -57,22 +57,22 @@ if isempty(channel)     %default to all tetrodes
     d=dir('*.t');
     for i=1:length(d)
         fn=d(i).name;
-        PlotGPIAS_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
+        PlotClicktrain_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
     end
 else %user specified a channel
     if isempty(clust) % default to all clusters
         d=dir(sprintf('ch%d*.t', channel));
         for i=1:length(d)
             fn=d(i).name;
-            PlotGPIAS_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
+            PlotClicktrain_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
         end
     else %user specified a channel and a cluster
         if clust<10
             fn=sprintf('ch%d_simpleclust_0%d.t', channel, clust);
-            PlotGPIAS_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
+            PlotClicktrain_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
         else
             fn=sprintf('ch%d_simpleclust_%d.t', channel, clust);
-            PlotGPIAS_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
+            PlotClicktrain_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
             
         end
     end

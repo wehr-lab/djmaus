@@ -414,6 +414,7 @@ for i=1:length(Events)
         laser=LaserTrials(i);
         start=pos + gapdelay/1000 +xlimits(1)/1000; %start is in seconds
         stop=pos+ gapdelay/1000 + xlimits(2)/1000; %stop is in seconds
+        region=round(start*samprate)+1:round(stop*samprate);
         if start>0 %(disallow negative or zero start times)
             gapdur=Events(i).gapdur;
             gdindex= find(gapdur==gapdurs);

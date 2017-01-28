@@ -76,7 +76,7 @@ SPIKE_PREALLOC_INTERVAL = 1e6;
 
 if strcmp(filetype, 'events')
     
-    disp(['Loading events file...']);
+    fprintf('\nLoading events file...');
     
     index = 0;
     
@@ -141,8 +141,8 @@ if strcmp(filetype, 'events')
     
 elseif strcmp(filetype, 'continuous')
     
-    disp(['Loading ' filename '...']);
-    
+        fprintf('\nLoading %s', filename);
+
     index = 0;
     
     hdr = fread(fid, NUM_HEADER_BYTES, 'char*1');
@@ -306,8 +306,7 @@ elseif strcmp(filetype, 'continuous')
     
 elseif strcmp(filetype, 'spikes')
     
-    disp(['Loading spikes file...']);
-    
+    fprintf('\nLoading spikes file...');
     index = 0;
     
     hdr = fread(fid, NUM_HEADER_BYTES, 'char*1');

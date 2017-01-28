@@ -73,4 +73,6 @@ else %user specified a channel
         end
     end
 end
-
+if isempty(d)
+    fprintf('\nNo clustered data found (no .t files in this directory)')
+end

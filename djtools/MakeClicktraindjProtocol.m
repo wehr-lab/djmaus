@@ -46,6 +46,7 @@ for rep=1:nrepeats
         stimuli(nn).param.next=next;
         stimuli(nn).param.ramp=ramp;
         stimuli(nn).param.duration=trainduration;
+        stimuli(nn).param.laser=0;
         stimuli(nn).stimulus_description=GetParamStr(stimuli(nn));
         stimuli(nn).protocol_name=name;
         stimuli(nn).protocol_description=description;

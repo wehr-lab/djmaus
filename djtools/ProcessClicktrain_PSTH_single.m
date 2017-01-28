@@ -41,6 +41,11 @@ global pref
 cd (pref.datapath);
 cd(datadir)
 
+%note that this function can handle IL files, or files with no laser
+%trials, but it will choke if there are only laser ON trials (no OFF
+%trials). Should be straightforward to extend to this capability should the
+%need ever arise.
+
 try
     load notebook.mat
     %check if nb and stimlog are actually there
@@ -263,59 +268,39 @@ end %if monitor
 fprintf('\ncomputing tuning curve...');
 samprate=sampleRate;
 
+%%%%%%%%%%%%%%
 %get freqs/amps
 j=0;
 for i=1:length(Events)
-    if strcmp(Events(i).type, 'GPIAS')
+    if strcmp(Events(i).type, 'clicktrain')
         j=j+1;
-        allsoas(j)=Events(i).soa;
-        allgapdurs(j)=Events(i).gapdur;
-        allgapdelays(j)=Events(i).gapdelay;
-        allpulseamps(j)=Events(i).pulseamp;
-        allpulsedurs(j)=Events(i).pulsedur;
-        allnoiseamps(j)=Events(i).amplitude;
-    elseif strcmp(Events(i).type, 'gapinnoise')
-        allsoas(j)=Events(i).soa;
-        allgapdurs(j)=Events(i).gapdur;
-        allgapdelays(j)=Events(i).gapdelay;
-        allpulseamps(j)=Events(i).pulseamp;
-        allpulsedurs(j)=Events(i).pulsedur;
-        allnoiseamps(j)=Events(i).amplitude;
+        allicis(i)=Events(i).ici;
+        alldurs(i)=Events(i).duration;
+        %       if isfield(Events(i), 'nclicks')
+        allnclicks(i)=Events(i).nclicks;
+        allamps(i)=Events(i).amplitude;
+        allclickdurations(i)=Events(i).clickduration;
     end
-    
 end
-gapdurs=unique(allgapdurs);
-pulsedurs=unique(allpulsedurs);
-soas=unique(allsoas);
-gapdelays=unique(allgapdelays);
-pulseamps=unique(allpulseamps);
-pulsedurs=unique(allpulsedurs);
-noiseamps=unique(allnoiseamps);
-numgapdurs=length(gapdurs);
-numpulseamps=length(pulseamps);
-nrepsON=zeros( numgapdurs, numpulseamps);
-nrepsOFF=zeros( numgapdurs, numpulseamps);
-
-if length(noiseamps)~=1
-    error('not able to handle multiple noiseamps')
-end
-if length(gapdelays)~=1
-    error('not able to handle multiple gapdelays')
-end
-if length(pulsedurs)~=1
-    error('not able to handle multiple pulsedurs')
-end
-if length(soas)~=1
-    error('not able to handle multiple soas')
-end
-noiseamp=noiseamps;
-soa=soas;
-pulsedur=pulsedurs;
-gapdelay=gapdelays;
+%%%%%%%%%%%%%%
+icis=unique(allicis);
+nclicks=unique(allnclicks);
+nclicks=sort(nclicks, 'descend');
+durs=unique(alldurs);
+amps=unique(allamps);
+numicis=length(icis);
+numnclicks=length(nclicks);
+numamps=length(amps);
+numdurs=length(durs);
+nrepsON=zeros(numicis, 1);
+nrepsOFF=zeros(numicis, 1);
 
 %check for laser in Events
 for i=1:length(Events)
     if isfield(Events(i), 'laser') & isfield(Events(i), 'LaserOnOff')
+        if isempty(Events(i).laser)
+            Events(i).laser=0;
+        end
         LaserScheduled(i)=Events(i).laser; %whether the stim protocol scheduled a laser for this stim
         LaserOnOffButton(i)=Events(i).LaserOnOff; %whether the laser button was turned on
         LaserTrials(i)=LaserScheduled(i) & LaserOnOffButton(i);
@@ -338,6 +323,10 @@ for i=1:length(Events)
         Events(i).laser=0;
     elseif ~isfield(Events(i), 'laser') & ~isfield(Events(i), 'LaserOnOff')
         %if neither of the right fields are there, assume no laser
+        LaserTrials(i)=0;
+        Events(i).laser=0;
+    elseif ~isfield(Events(i), 'laser') & isfield(Events(i), 'LaserOnOff')
+        %if laser field is not there, assume no laser
         LaserTrials(i)=0;
         Events(i).laser=0;
     else
@@ -393,14 +382,18 @@ else
     fprintf('\nSound stimulus trace not recorded')
 end
 
-M1ON=[];M1OFF=[];
-nrepsON=zeros(numgapdurs, numpulseamps);
-nrepsOFF=zeros(numgapdurs, numpulseamps);
+% Mt: matrix with each complete train, size: Mt(numicis, nreps).spiketimes
+% Ms: stimulus matrix in same format as Mt
+% Mc: matrix sorted into each click response, size: Mt(numicis, nclicks, nreps).spiketimes
+
+%first sort trains into matrix Mt
+
+MtON=[];MtOFF=[];MtONStim=[];MtOFFStim=[];
 
 % %find optimal axis limits
 if isempty(xlimits)
-    xlimits(1)=-1.5*max(gapdurs);
-    xlimits(2)=2*soa;
+    xlimits(1)=-.5*max(durs);
+    xlimits(2)=1.5*max(durs);
 end
 fprintf('\nprocessing with xlimits [%d-%d]', xlimits(1), xlimits(2))
 
@@ -408,50 +401,48 @@ fprintf('\nprocessing with xlimits [%d-%d]', xlimits(1), xlimits(2))
 j=0;
 inRange=0;
 for i=1:length(Events)
-    if strcmp(Events(i).type, 'GPIAS') | strcmp(Events(i).type, 'gapinnoise')
+    if strcmp(Events(i).type, 'clicktrain') | strcmp(Events(i).type, 'flashtrain')
         
         pos=Events(i).soundcard_trigger_timestamp_sec; %pos is in seconds
         laser=LaserTrials(i);
-        start=pos + gapdelay/1000 +xlimits(1)/1000; %start is in seconds
-        stop=pos+ gapdelay/1000 + xlimits(2)/1000; %stop is in seconds
+        start=pos + xlimits(1)/1000; %start is in seconds
+        stop= pos + xlimits(2)/1000; %stop is in seconds
+        region=round(start*samprate)+1:round(stop*samprate);
         if start>0 %(disallow negative or zero start times)
-            gapdur=Events(i).gapdur;
-            gdindex= find(gapdur==gapdurs);
-            pulseamp=Events(i).pulseamp;
-            paindex= find(pulseamp==pulseamps);
+            ici=Events(i).ici;
+            iciindex= find(ici==icis);
             st=spiketimes; %are in seconds
             st_inrange=st(st>start & st<stop); % spiketimes in region, in seconds relative to start of acquisition
             spikecount=length(st_inrange); % No. of spikes fired in response to this rep of this stim.
             inRange=inRange+ spikecount; %accumulate total spikecount in region
-            spiketimes1=st_inrange*1000 - pos*1000 - gapdelay;%covert to ms after gap termination
+            spiketimes1=st_inrange*1000 - pos*1000;%covert to ms after clicktrain onset
             spont_spikecount=length(find(st<start & st>(start-(stop-start)))); % No. spikes in a region of same length preceding response window
             if laser
-                nrepsON(gdindex,paindex)=nrepsON(gdindex,paindex)+1;
-                M1ON(gdindex,paindex, nrepsON(gdindex,paindex)).spiketimes=spiketimes1; % Spike times
-                M1ONspikecounts(gdindex,paindex,nrepsON(gdindex,paindex))=spikecount; % No. of spikes
-                M1spontON(gdindex,paindex, nrepsON(gdindex,paindex))=spont_spikecount; % No. of spikes in spont window, for each presentation.
+                nrepsON(iciindex)=nrepsON(iciindex)+1;
+                MtON(iciindex, nrepsON(iciindex)).spiketimes=spiketimes1; % Spike times
+                MtONspikecount(iciindex,nrepsON(iciindex))=spikecount; % No. of spikes
+                MtspontON(iciindex, nrepsON(iciindex))=spont_spikecount; % No. of spikes in spont window, for each presentation.
                 if LaserRecorded
-                    M1ONLaser(gdindex, paindex, nrepsON(gdindex,paindex),:)=Lasertrace(region);
+                    MtONLaser(iciindex, nrepsON(iciindex),:)=Lasertrace(region);
                 end
                 if StimRecorded
-                    M1ONStim(gdindex,paindex, nrepsON(gdindex,paindex),:)=Stimtrace(region);
+                    MtONStim(iciindex, nrepsON(iciindex),:)=Stimtrace(region);
                 end
             else
-                nrepsOFF(gdindex,paindex)=nrepsOFF(gdindex,paindex)+1;
+                nrepsOFF(iciindex)=nrepsOFF(iciindex)+1;
                 
-                M1OFF(gdindex,paindex, nrepsOFF(gdindex,paindex)).spiketimes=spiketimes1;
-                M1OFFspikecounts(gdindex,paindex,nrepsOFF(gdindex,paindex))=spikecount;
-                M1spontOFF(gdindex,paindex, nrepsOFF(gdindex,paindex))=spont_spikecount;
+                MtOFF(iciindex, nrepsOFF(iciindex)).spiketimes=spiketimes1;
+                MtOFFspikecount(iciindex,nrepsOFF(iciindex))=spikecount;
+                MtspontOFF(iciindex, nrepsOFF(iciindex))=spont_spikecount;
                 if LaserRecorded
-                    M1OFFLaser(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=Lasertrace(region);
+                    MtOFFLaser(iciindex, nrepsOFF(iciindex),:)=Lasertrace(region);
                 end
                 if StimRecorded
-                    M1OFFStim(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=Stimtrace(region);
+                    MtOFFStim(iciindex, nrepsOFF(iciindex),:)=Stimtrace(region);
                 end
             end
         end
     end
-end
 end
 
 fprintf('\nmin num ON reps: %d\nmax num ON reps: %d', min(nrepsON(:)), max(nrepsON(:)))
@@ -459,100 +450,264 @@ fprintf('\nmin num OFF reps: %d\nmax num OFF reps: %d',min(nrepsOFF(:)), max(nre
 fprintf('\ntotal num spikes: %d', length(spiketimes))
 fprintf('\nIn range: %d', inRange)
 
+%accumulate across trials
+for iciindex=[1:numicis]
+    spiketimesON=[];
+    for rep=1:nrepsON(iciindex)
+        spiketimesON=[spiketimesON MtON(iciindex, rep).spiketimes];
+    end
+    mMtON(iciindex).spiketimes=spiketimesON;
+    spiketimesOFF=[];
+    for rep=1:nrepsOFF(iciindex)
+        spiketimesOFF=[spiketimesOFF MtOFF(iciindex, rep).spiketimes];
+    end
+    mMtOFF(iciindex).spiketimes=spiketimesOFF;
+end
+for iciindex=[1:numicis]
+    if IL
+        mMtONStim(iciindex,:)=mean(MtONStim(iciindex, 1:nrepsON(iciindex),:), 2);
+    end
+    mMtOFFStim(iciindex,:)=mean(MtOFFStim(iciindex, 1:nrepsOFF(iciindex),:), 2);
+end
+
+%spikecount matrices
+if IL
+    mMtONspikecount=mean(MtONspikecount, 2);
+    sMtONspikecount=std(MtONspikecount, 0, 2);
+    semMtONspikecount=sMtONspikecount./nrepsON;
+    mMtspontON=mean(MtspontON, 2);
+    sMtspontON=std(MtspontON, 0,2);
+    semMtspontON=sMtspontON./nrepsON;
+else
+    MtONspikecount=[];
+    mMtONspikecount=[];
+    sMtONspikecount=[];
+    semMtONspikecount=[];
+    mMtspontON=[];
+    sMtspontON=[];
+    semMtspontON=[];
+end
+mMtOFFspikecount=mean(MtOFFspikecount, 2);
+sMtOFFspikecount=std(MtOFFspikecount, 0, 2);
+semMtOFFspikecount=sMtOFFspikecount./nrepsOFF;
+mMtspontOFF=mean(MtspontOFF, 2);
+sMtspontOFF=std(MtspontOFF, 0,2);
+semMtspontOFF=sMtspontOFF./nrepsOFF;
+
+%WHAT SHOULD TRACELENGTH BE????
+tracelength=50;%25; %ms
+fprintf('\nusing response window of 0-%d ms after tone onset', tracelength);
+
+
+fprintf( '\nsorting into click matrix...');
+for iciindex=1:numicis
+    for k=1:nclicks(iciindex)
+        for rep=1:nrepsON(iciindex)
+            ici=icis(iciindex);
+            start=(0+(k-1)*(ici));
+            if start<1 start=1;end
+            stop=start+tracelength ;
+            region=round(start):round(stop);
+            spiketimes=MtON(iciindex, rep).spiketimes;
+            st=spiketimes(spiketimes>start & spiketimes<stop); % spiketimes in region
+            clickstimtrace=squeeze(MtONStim(iciindex, rep, region));
+            McON(iciindex,  k, rep).spiketimes=st;
+            McONStim(iciindex,  k,rep, :)=clickstimtrace;
+        end
+        for rep=1:nrepsOFF(iciindex)
+            ici=icis(iciindex);
+            start=(0+(k-1)*(ici));
+            if start<1 start=1;end
+            stop=start+tracelength ;
+            region=round(start):round(stop);
+            spiketimes=MtOFF(iciindex, rep).spiketimes;
+            st=spiketimes(spiketimes>start & spiketimes<stop); % spiketimes in region
+            clickstimtrace=squeeze(MtOFFStim(iciindex, rep, region));
+            McOFF(iciindex,  k, rep).spiketimes=st;
+            McOFFStim(iciindex,  k,rep, :)=clickstimtrace;
+        end
+    end
+end
 % Accumulate spiketimes across trials, for psth...
-for gdindex=1:numgapdurs; % Hardcoded.
-    for paindex=1:numpulseamps
-        % on
-        spiketimesON=[];
-        for rep=1:nrepsON(gdindex,paindex)
-            spiketimesON=[spiketimesON M1ON(gdindex,paindex, rep).spiketimes];
+for iciindex=1:numicis
+    for k=1:nclicks(iciindex)
+        if IL
+            mMcON(iciindex, k).spiketimes=[McON(iciindex, k, 1:nrepsON(iciindex)).spiketimes];
+            mMcONStim(iciindex, k,:)=mean(McONStim(iciindex, k, 1:nrepsON(iciindex), :), 3);
         end
-        
-        % All spiketimes for a given f/a/d combo, for psth:
-        mM1ON(gdindex,paindex).spiketimes=spiketimesON;
-        
-        % off
-        spiketimesOFF=[];
-        for rep=1:nrepsOFF(gdindex,paindex)
-            spiketimesOFF=[spiketimesOFF M1OFF(gdindex,paindex, rep).spiketimes];
+        mMcOFF(iciindex, k).spiketimes=[McOFF(iciindex, k, 1:nrepsOFF(iciindex)).spiketimes];
+        mMcOFFStim(iciindex, k,:)=mean(McOFFStim(iciindex, k, 1:nrepsOFF(iciindex), :), 3);
+    end
+end
+fprintf('done')
+
+% % compute RRTF as ratio of last5/first click response -- rep-by-rep
+for iciindex=[1:numicis]
+    for rep=1:nrepsON(iciindex)
+        spiketimes1=(McON(iciindex, 1, rep).spiketimes);
+        spiketimesn=[];
+        for click=nclicks(iciindex)-4:nclicks(iciindex)
+            spiketimesn=[spiketimesn (McON(iciindex, click, rep).spiketimes)];
         end
-        mM1OFF(gdindex,paindex).spiketimes=spiketimesOFF;
+        RRTF_ON(iciindex, rep)=(length(spiketimesn)/5)/(length(spiketimes1));
+        if isinf(RRTF_ON(iciindex, rep)), RRTF_ON(iciindex, rep)=nan;end
+    end
+    for rep=1:nrepsOFF(iciindex)
+        spiketimes1=(McOFF(iciindex, 1, rep).spiketimes);
+        spiketimesn=[];
+        for click=nclicks(iciindex)-4:nclicks(iciindex)
+            spiketimesn=[spiketimesn (McOFF(iciindex, click, rep).spiketimes)];
+        end
+        RRTF_OFF(iciindex, rep)=(length(spiketimesn)/5)/(length(spiketimes1));
+        if isinf(RRTF_OFF(iciindex, rep)), RRTF_OFF(iciindex, rep)=nan;end
     end
 end
 
+%compute RRTF as ratio of last5/first click response -- mean across reps
+for iciindex=[1:numicis]
+    if IL
+        spiketimes1=cat(2,McON(iciindex, 1, 1:nrepsON(iciindex)).spiketimes);
+        spiketimesn=[];
+        for click=nclicks(iciindex)-4:nclicks(iciindex)
+            spiketimesn=[spiketimesn (McON(iciindex, click, 1:nrepsON(iciindex)).spiketimes)];
+        end
+        mRRTF_ON(iciindex)=(length(spiketimesn)/5)/(length(spiketimes1));
+    else
+        mRRTF_ON=[];
+    end
+    spiketimes1=cat(2,McOFF(iciindex, 1, 1:nrepsOFF(iciindex)).spiketimes);
+    spiketimesn=[];
+    for click=nclicks(iciindex)-4:nclicks(iciindex)
+        spiketimesn=[spiketimesn (McOFF(iciindex, click, 1:nrepsOFF(iciindex)).spiketimes)];
+    end
+    mRRTF_OFF(iciindex)=(length(spiketimesn)/5)/(length(spiketimes1));
+end
 
-if ~IL %no laser pulses in this file
-    mM1ONspikecount=[];
-    sM1ONspikecount=[];
-    semM1ONspikecount=[];
-    M1ONspikecounts=[];
-else
-    mM1ONspikecount=mean(M1ONspikecounts,3); % Mean spike count
-    sM1ONspikecount=std(M1ONspikecounts,[],3); % Std of the above
-    semM1ONspikecount=sM1ONspikecount./sqrt(max(nrepsON(:))); % Sem of the above
-    % Spont
-    mM1spontON=mean(M1spontON,3);
-    sM1spontON=std(M1spontON,[],3);
-    for clust=1:Nclusters
-        semM1spontON=sM1spontON./sqrt(max(nrepsON(:)));
+%compute P2P1 as ratio of second/first click response -- rep-by-rep
+for iciindex=[1:iciindex]
+    for rep=1:nrepsON(iciindex)
+        spiketimes1=(McON(iciindex, 1, rep).spiketimes);
+        spiketimes2=(McON(iciindex, 2, rep).spiketimes);
+        P2P1_ON(iciindex,rep)=length(spiketimes2)/(length(spiketimes1));
+        if isinf(P2P1_ON(iciindex, rep)), P2P1_ON(iciindex, rep)=nan;end
+    end
+    for rep=1:nrepsOFF(iciindex)
+        spiketimes1=(McOFF(iciindex, 1, rep).spiketimes);
+        spiketimes2=(McOFF(iciindex, 2, rep).spiketimes);
+        P2P1_OFF(iciindex,rep)=length(spiketimes2)/(length(spiketimes1));
+        if isinf(P2P1_OFF(iciindex, rep)), P2P1_OFF(iciindex, rep)=nan;end
     end
 end
-if isempty(M1OFF) %only laser pulses in this file
-    mM1OFFspikecount=[];
-    sM1OFFspikecount=[];
-    semM1OFFspikecount=[];
-    M1OFFspikecounts=[];
-else
-    mM1OFFspikecount=mean(M1OFFspikecounts,3); % Mean spike count
-    sM1OFFspikecount=std(M1OFFspikecounts,[],3); % Std of the above
-    semM1OFFspikecount(:,:)=sM1OFFspikecount./sqrt(max(nrepsOFF(:))); % Sem of the above
-    % Spont
-    mM1spontOFF=mean(M1spontOFF,3);
-    sM1spontOFF=std(M1spontOFF,[],3);
-    semM1spontOFF=sM1spontOFF./sqrt(max(nrepsOFF(:)));
+
+%compute P2P1 as ratio of second/first click response
+% % mean across reps
+for iciindex=[1:iciindex]
+    if IL
+        spiketimes1=cat(2, McON(iciindex, 1, 1:nrepsON(iciindex)).spiketimes);
+        spiketimes2=cat(2, McON(iciindex, 2, 1:nrepsON(iciindex)).spiketimes);
+        mP2P1_ON(iciindex)=length(spiketimes2)/(length(spiketimes1));
+    else
+        mP2P1_ON=[];
+    end
+    spiketimes1=cat(2, McOFF(iciindex, 1, 1:nrepsON(iciindex)).spiketimes);
+    spiketimes2=cat(2, McOFF(iciindex, 2, 1:nrepsON(iciindex)).spiketimes);
+    mP2P1_OFF(iciindex)=length(spiketimes2)/(length(spiketimes1));
 end
+
+
+
+
+
+
+% % Accumulate spiketimes across trials, for psth...
+% for gdindex=1:numgapdurs; % Hardcoded.
+%     for paindex=1:numpulseamps
+%         % on
+%         spiketimesON=[];
+%         for rep=1:nrepsON(iciindex)
+%             spiketimesON=[spiketimesON M1ON(iciindex, rep).spiketimes];
+%         end
+%
+%         % All spiketimes for a given f/a/d combo, for psth:
+%         mM1ON(iciindex).spiketimes=spiketimesON;
+%
+%         % off
+%         spiketimesOFF=[];
+%         for rep=1:nrepsOFF(iciindex)
+%             spiketimesOFF=[spiketimesOFF M1OFF(iciindex, rep).spiketimes];
+%         end
+%         mM1OFF(iciindex).spiketimes=spiketimesOFF;
+%     end
+% end
+
+
+% if ~IL %no laser pulses in this file
+%     mM1ONspikecount=[];
+%     sM1ONspikecount=[];
+%     semM1ONspikecount=[];
+%     M1ONspikecounts=[];
+% else
+%     mM1ONspikecount=mean(M1ONspikecounts,3); % Mean spike count
+%     sM1ONspikecount=std(M1ONspikecounts,[],3); % Std of the above
+%     semM1ONspikecount=sM1ONspikecount./sqrt(max(nrepsON(:))); % Sem of the above
+%     % Spont
+%     mM1spontON=mean(M1spontON,3);
+%     sM1spontON=std(M1spontON,[],3);
+%     for clust=1:Nclusters
+%         semM1spontON=sM1spontON./sqrt(max(nrepsON(:)));
+%     end
+% end
+% if isempty(M1OFF) %only laser pulses in this file
+%     mM1OFFspikecount=[];
+%     sM1OFFspikecount=[];
+%     semM1OFFspikecount=[];
+%     M1OFFspikecounts=[];
+% else
+%     mM1OFFspikecount=mean(M1OFFspikecounts,3); % Mean spike count
+%     sM1OFFspikecount=std(M1OFFspikecounts,[],3); % Std of the above
+%     semM1OFFspikecount(:,:)=sM1OFFspikecount./sqrt(max(nrepsOFF(:))); % Sem of the above
+%     % Spont
+%     mM1spontOFF=mean(M1spontOFF,3);
+%     sM1spontOFF=std(M1spontOFF,[],3);
+%     semM1spontOFF=sM1spontOFF./sqrt(max(nrepsOFF(:)));
+% end
 
 %average laser and stimulus monitor M matrices across trials
 if LaserRecorded
-    for gdindex=1:numgapdurs
-        for paindex =1:numpulseamps
-            if nrepsON(gdindex,paindex)>0
-                mM1ONLaser(gdindex, paindex, :)=mean(M1ONLaser(gdindex,paindex, 1:nrepsON(gdindex,paindex),:), 3);
-            else %no reps for this stim, since rep=0
-                mM1ONLaser(gdindex,paindex,:)=zeros(size(region));
-            end
-            if nrepsOFF(gdindex,paindex)>0
-                mM1OFFLaser(gdindex,paindex,:)=mean(M1OFFLaser(gdindex,paindex, 1:nrepsOFF(gdindex,paindex),:), 3);
-            else %no reps for this stim, since rep=0
-                mM1OFFLaser(gdindex,paindex,:)=zeros(size(region));
-            end
+    for iciindex=[1:iciindex]
+        if nrepsON(iciindex)>0
+            mMtONLaser(iciindex, :)=mean(MtONLaser(iciindex, 1:nrepsON(iciindex),:), 2);
+        else %no reps for this stim, since rep=0
+            mMtONLaser(iciindex,:)=zeros(size(region));
+        end
+        if nrepsOFF(iciindex)>0
+            mMtOFFLaser(iciindex,:)=mean(MtOFFLaser(iciindex, 1:nrepsOFF(iciindex),:), 2);
+        else %no reps for this stim, since rep=0
+            mMtOFFLaser(iciindex,:)=zeros(size(region));
         end
     end
 end
 if StimRecorded
-    for gdindex=1:numgapdurs
-        for paindex =1:numpulseamps
-            if nrepsON(gdindex,paindex)>0
-                mM1ONStim(gdindex,paindex,:)=mean(M1ONStim(gdindex,paindex, 1:nrepsON(gdindex,paindex),:), 3);
-            else %no reps for this stim, since rep=0
-                mM1ONStim(gdindex,paindex,:)=zeros(size(region));
-            end
-            if nrepsOFF(gdindex,paindex)>0
-                mM1OFFStim(gdindex,paindex,:)=mean(M1OFFStim(gdindex,paindex, 1:nrepsOFF(gdindex,paindex),:), 3);
-            else %no reps for this stim, since rep=0
-                mM1OFFStim(gdindex,paindex,:)=zeros(size(region));
-            end
+    for iciindex=[1:iciindex]
+        if nrepsON(iciindex)>0
+            mMtONStim(iciindex,:)=mean(MtONStim(iciindex, 1:nrepsON(iciindex),:), 2);
+        else %no reps for this stim, since rep=0
+            mMtONStim(iciindex,:)=zeros(size(region));
+        end
+        if nrepsOFF(iciindex)>0
+            mMtOFFStim(iciindex,:)=mean(MtOFFStim(iciindex, 1:nrepsOFF(iciindex),:), 2);
+        else %no reps for this stim, since rep=0
+            mMtOFFStim(iciindex,:)=zeros(size(region));
         end
     end
 end
 
 %save to outfiles
-%one outfile for each cell
 
-%after squeezing cluster, saves with the following dimensions:
-% M1ON(numgapdurs, numpulseamps, nrepsON).spiketimes
-% mM1ON(numgapdurs, numpulseamps).spiketimes
-% mM1ONspikecount(numgapdurs, numpulseamps)
+%sizes:
+% MtON(numicis, nrepsON).spiketimes
+% mMtON(numicis).spiketimes
+% mMtONspikecount(numicis)
 
 out.IL=IL;
 out.Nclusters=Nclusters;
@@ -560,15 +715,21 @@ out.tetrode=channel;
 out.channel=channel;
 out.cluster=clust; %there are some redundant names here
 out.cell=clust;
+out.icis=icis;
+out.numicis=numicis;
+out.nclicks=nclicks;
+out.numnclicks=numnclicks;
+out.durs=durs;
+out.numdurs=numdurs;
 if IL
-    out.M1ON=M1ON; %isn't this so much easier?
-    out.mM1ON=mM1ON;
-    out.mM1ONspikecount=mM1ONspikecount;
-    out.sM1ONspikecount=sM1ONspikecount;
-    out.semM1ONspikecount=semM1ONspikecount;
-    out.mM1spontON=mM1spontON;
-    out.sM1spontON=sM1spontON;
-    out.semM1spontON=semM1spontON;
+    out.MtON=MtON;
+    out.mMtON=mMtON;
+    out.mMtONspikecount=mMtONspikecount;
+    out.sMtONspikecount=sMtONspikecount;
+    out.semMtONspikecount=semMtONspikecount;
+    out.mMtspontON=mMtspontON;
+    out.sMtspontON=sMtspontON;
+    out.semMtspontON=semMtspontON;
     out.M_LaserStart=M_LaserStart;
     out.M_LaserWidth=M_LaserWidth;
     out.M_LaserNumPulses=M_LaserNumPulses;
@@ -576,16 +737,20 @@ if IL
     out.LaserStart=unique(LaserStart); %only saving one value for now, assuming it's constant
     out.LaserWidth=unique(LaserWidth);
     out.LaserNumPulses=unique(LaserNumPulses);
+    out.P2P1_ON=P2P1_ON;
+    out.mP2P1_ON=mP2P1_ON;
+    out.RRTF_ON=RRTF_ON;
+    out.mRRTF_ON=mRRTF_ON;
     
 else
-    out.M1ON=[];
-    out.mM1ONspikecount=[];
-    out.sM1ONspikecount=[];
-    out.semM1ONspikecount=[];
-    out.mM1ON=[];
-    out.mM1spontON=[];
-    out.sM1spontON=[];
-    out.semM1spontON=[];
+    out.MtON=[];
+    out.mMtONspikecount=[];
+    out.sMtONspikecount=[];
+    out.semMtONspikecount=[];
+    out.mMtON=[];
+    out.mMtspontON=[];
+    out.sMtspontON=[];
+    out.semMtspontON=[];
     out.LaserStart=[];
     out.LaserWidth=[];
     out.Lasernumpulses=[];
@@ -594,31 +759,25 @@ else
     out.M_LaserNumPulses=[];
     out.M_LaserISI=[];
 end
-if isempty(M1OFF)
-    out.M1OFF=[];
-    out.mM1OFF=[];
-    out.mM1OFFspikecount=[];
-    out.sM1OFFspikecount=[];
-    out.semM1OFFspikecount=[];
-    out.mM1spontOFF=[];
-    out.sM1spontOFF=[];
-    out.semM1spontOFF=[];
+if isempty(MtOFF)
+    out.MtOFF=[];
+    out.mMtOFF=[];
+    out.mMtOFFspikecount=[];
+    out.sMtOFFspikecount=[];
+    out.semMtOFFspikecount=[];
+    out.mMtspontOFF=[];
+    out.sMtspontOFF=[];
+    out.semMtspontOFF=[];
 else
-    out.M1OFF=M1OFF;
-    out.mM1OFF=mM1OFF;
-    out.mM1OFFspikecount=mM1OFFspikecount;
-    out.sM1OFFspikecount=sM1OFFspikecount;
-    out.semM1OFFspikecount=semM1OFFspikecount;
-    out.mM1spontOFF=mM1spontOFF;
-    out.sM1spontOFF=sM1spontOFF;
-    out.semM1spontOFF=semM1spontOFF;
+    out.MtOFF=MtOFF;
+    out.mMtOFF=mMtOFF;
+    out.mMtOFFspikecount=mMtOFFspikecount;
+    out.sMtOFFspikecount=sMtOFFspikecount;
+    out.semMtOFFspikecount=semMtOFFspikecount;
+    out.mMtspontOFF=mMtspontOFF;
+    out.sMtspontOFF=sMtspontOFF;
+    out.semMtspontOFF=semMtspontOFF;
 end
-out.numpulseamps = numpulseamps;
-out.numgapdurs = numgapdurs;
-out.pulseamps = pulseamps;
-out.gapdurs = gapdurs;
-out.gapdelay = gapdelay;
-out.soa=soa;
 out.nrepsON=nrepsON;
 out.nrepsOFF=nrepsOFF;
 out.xlimits=xlimits;
@@ -630,46 +789,46 @@ out.LaserRecorded=LaserRecorded; %whether the laser signal was hooked up and rec
 out.StimRecorded=StimRecorded; %%whether the sound stimulus signal was hooked up and recorded as a continuous channel
 
 if LaserRecorded
-    if exist('M1ONLaser')
-        out.M1ONLaser=M1ONLaser;
-        out.mM1ONLaser=mM1ONLaser;
+    if exist('MtONLaser')
+        out.MtONLaser=MtONLaser;
+        out.mMtONLaser=mMtONLaser;
     else
-        out.M1ONLaser=[];
-        out.mM1ONLaser=[];
+        out.MtONLaser=[];
+        out.mMtONLaser=[];
     end
-    if exist('M1OFFLaser')
-        out.M1OFFLaser=M1OFFLaser;
-        out.mM1OFFLaser=mM1OFFLaser;
+    if exist('MtOFFLaser')
+        out.MtOFFLaser=MtOFFLaser;
+        out.mMtOFFLaser=mMtOFFLaser;
     else
-        out.M1OFFLaser=[];
-        out.mM1OFFLaser=[];
+        out.MtOFFLaser=[];
+        out.mMtOFFLaser=[];
     end
 else
-    out.M1ONLaser=[];
-    out.mM1ONLaser=[];
-    out.M1OFFLaser=[];
-    out.mM1OFFLaser=[];
+    out.MtONLaser=[];
+    out.mMtONLaser=[];
+    out.MtOFFLaser=[];
+    out.mMtOFFLaser=[];
 end
 if StimRecorded
-    if exist('M1ONStim')
-        out.M1ONStim=M1ONStim;
-        out.mM1ONStim=mM1ONStim;
+    if exist('MtONStim')
+        out.MtONStim=MtONStim;
+        out.mMtONStim=mMtONStim;
     else
-        out.M1ONStim=[];
-        out.mM1ONStim=[];
+        out.MtONStim=[];
+        out.mMtONStim=[];
     end
-    if exist('M1OFFStim')
-        out.M1OFFStim=M1OFFStim;
-        out.mM1OFFStim=mM1OFFStim;
+    if exist('MtOFFStim')
+        out.MtOFFStim=MtOFFStim;
+        out.mMtOFFStim=mMtOFFStim;
     else
-        out.M1OFFStim=[];
-        out.mM1OFFStim=[];
+        out.MtOFFStim=[];
+        out.mMtOFFStim=[];
     end
 else
-    out.M1ONStim=[];
-    out.mM1ONStim=[];
-    out.M1OFFStim=[];
-    out.mM1OFFStim=[];
+    out.MtONStim=[];
+    out.mMtONStim=[];
+    out.MtOFFStim=[];
+    out.mMtOFFStim=[];
 end
 
 try
@@ -683,7 +842,7 @@ catch
 end
 outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
 save (outfilename, 'out')
-end
+
 
 
 

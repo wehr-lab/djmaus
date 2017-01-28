@@ -35,7 +35,7 @@ filename=sprintf('Clicktrain-%ddB-%.1fms-%sms-d%d.mat',amplitude,clickduration, 
 
 nn=0;
 for rep=1:nrepeats
-    for n=1:numicis
+    for n=randperm(numicis)
         nn=nn+1;
         stimuli(nn).type='clicktrain';
         stimuli(nn).param.amplitude=amplitude;

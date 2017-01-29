@@ -316,5 +316,22 @@ if IL
 end %            %plot the mean tuning curve ON
 
 
-
-
+% plot laser record sanity check
+figure
+p=0;
+subplot1(numicis, 1, 'Max', [.95 .9])
+for iciindex=1:numicis
+    p=p+1;
+    subplot1(p)
+    hold on
+    offset=0;
+    if LaserRecorded
+        for rep=1:nrepsON(iciindex)
+            Lasertrace=squeeze(MtONLaser(iciindex,rep, :));
+            Lasertrace=Lasertrace -mean(Lasertrace(1:100));
+            plot( t, Lasertrace+offset, 'b')
+            offset=offset+range(Lasertrace);
+        end
+    end
+    xlim(xlimits)
+end

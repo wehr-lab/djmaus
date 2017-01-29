@@ -59,12 +59,18 @@ if isempty(channel)     %default to all tetrodes
         fn=d(i).name;
         PlotFlashtrain_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
     end
+    if isempty(d)
+        fprintf('\nNo clustered data found (no .t files in this directory)')
+    end
 else %user specified a channel
     if isempty(clust) % default to all clusters
         d=dir(sprintf('ch%d*.t', channel));
         for i=1:length(d)
             fn=d(i).name;
             PlotFlashtrain_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
+        end
+        if isempty(d)
+            fprintf('\nNo clustered data found for channel %d (no .t files)', channel)
         end
     else %user specified a channel and a cluster
         if clust<10
@@ -78,6 +84,3 @@ else %user specified a channel
     end
 end
 
-if isempty(d)
-    fprintf('\nNo clustered data found (no .t files in this directory)')
-end

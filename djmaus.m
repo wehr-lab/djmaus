@@ -622,6 +622,8 @@ switch type
         fcn='MakeClickTrain';
     case 'silentsound'
         fcn='MakeSilentSound';
+    case '2tone'
+        fcn='Make2Tone';
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

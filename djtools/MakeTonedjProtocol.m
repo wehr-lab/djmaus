@@ -198,8 +198,7 @@ for rep=1:nrepeats
         if interleave_laser==1
             nn=nn+1;
             stimuli(nn).param.laser=1;
-            paramstring='silent sound Laser ON';
-            stimuli(nn).type='silentsound';
+            stimuli(nn).type='silent sound Laser ON';
             stimuli(nn).param.duration=durs(1);
             stimuli(nn).param.ramp=0;
             stimuli(nn).param.next=isi;

@@ -1,22 +1,21 @@
-function JustPlotIt( datapath, varargin )
+function JustPlotIt(varargin )
 % tries to figure out the appropriate way to plot the data in a data
 % directory, and does it. 
 % For djmaus/open-ephys data.
 %
-% usage: JustPlotIt(datapath)
+% usage: JustPlotIt([datapath], [other parameters])
+%  defaults to current directory
+%  if you include a list of other parameters (like xlimits, tetrode number,
+%  etc) they will get passed on to the appropriate function. They have to
+%  be in the right order for that function.
+
 if nargin==0
     datapath=pwd;
 end
 
-stimparams=GetStimParams(datapath);
-stimparams.stimtypes={'tone', 'whitenoise'}
-
-if strcmp(stimparams.stimtypes,  'AsymGPIAS')
-        PlotAsymGPIAS_PSTH(datapath, varargin{:})
-elseif any(strcmp(stimparams.stimtypes,  'GPIAS'))
-        PlotAsymGPIAS_PSTH(datapath, varargin{:})
-elseif any(strcmp(stimparams.stimtypes,  'tone'))
-            PlotTC_PSTH(datapath, varargin{:})
-else
-        fprintf('\nsorry, could not figure out the appropriate plotting function for the data in %s', datapath)
+try
+    PlottingFunction=GetPlottingFunction
+    feval(PlottingFunction, varargin{:})
+catch
+    fprintf('\nsorry, could not figure out the appropriate plotting function for the data in %s', datapath)
 end

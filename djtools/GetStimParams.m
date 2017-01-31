@@ -100,7 +100,6 @@ for i=1:length(stimlog)
         allISIs=[allISIs stimlog(i).param.next];
     end
     if isfield(stimlog(i).param, 'description')
-        
         alldescriptions{i}=stimlog(i).param.description;
     end
     if isfield(stimlog(i).param, 'file')
@@ -108,6 +107,11 @@ for i=1:length(stimlog)
     end
 end
 
+stimparams.protocol_description=stimlog(1).protocol_description;
+stimparams.protocol_name=stimlog(1).protocol_name;
+if isfield(stimlog(1), 'PlottingFunction')
+    stimparams.PlottingFunction=stimlog(1).PlottingFunction;
+end
 stimparams.stimtypes=unique(allstimlogs);
 stimparams.durs=unique(alldurs);
 stimparams.amps=unique(allamps);

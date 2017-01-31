@@ -48,6 +48,7 @@ for rep=1:nrepeats
         stimuli(nn).stimulus_description=GetParamStr(stimuli(nn));
         stimuli(nn).protocol_name=name;
         stimuli(nn).protocol_description=description;
+        stimuli(nn).PlottingFunction='PlotFlashtrain_PSTH';
         stimuli(nn).version='djmaus';
     end
 end

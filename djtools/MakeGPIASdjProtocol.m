@@ -167,12 +167,12 @@ for noisenum=1:num_noises
     stimuli(n).param.ramp=0;
     stimuli(n).param.loop_flg=0;
     stimuli(n).param.seamless=1;
-    %     stimuli(n).param.duration=500;
     stimuli(n).param.duration=gpias_duration;
     stimuli(n).param.next=next; %totally empirical value that allows psychportaudio rescheduling to work seamlessly
     stimuli(n).stimulus_description=GetParamStr(stimuli(n));
     stimuli(n).protocol_name=name;
     stimuli(n).protocol_description=description;
+    stimuli(nn).PlottingFunction='PlotGPIAS_PSTH';
     stimuli(n).version='djmaus';
 end
 
@@ -196,6 +196,7 @@ for kk=1:length(rand_gapdurs)
     stimuli(n).stimulus_description=GetParamStr(stimuli(n));
     stimuli(n).protocol_name=name;
     stimuli(n).protocol_description=description;
+    stimuli(nn).PlottingFunction='PlotGPIAS_PSTH';
     stimuli(n).version='djmaus';
     
     %
@@ -213,6 +214,7 @@ for kk=1:length(rand_gapdurs)
         stimuli(n).stimulus_description=GetParamStr(stimuli(n));
         stimuli(n).protocol_name=name;
         stimuli(n).protocol_description=description;
+        stimuli(nn).PlottingFunction='PlotGPIAS_PSTH';
         stimuli(n).version='djmaus';
     end
 

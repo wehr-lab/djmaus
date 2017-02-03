@@ -195,6 +195,7 @@ for noisenum=1:num_noises
     stimuli(n).stimulus_description=GetParamStr(stimuli(n));
     stimuli(n).protocol_name=name;
     stimuli(n).protocol_description=description;
+    stimuli(nn).PlottingFunction='PlotAsymGPIAS_PSTH';
     stimuli(n).version='djmaus';
 end
 
@@ -220,6 +221,7 @@ for kk=1:length(rand_gapdurs)
     stimuli(n).stimulus_description=GetParamStr(stimuli(n));
     stimuli(n).protocol_name=name;
     stimuli(n).protocol_description=description;
+    stimuli(nn).PlottingFunction='PlotAsymGPIAS_PSTH';
     stimuli(n).version='djmaus';
     
     %
@@ -237,6 +239,7 @@ for kk=1:length(rand_gapdurs)
         stimuli(n).stimulus_description=GetParamStr(stimuli(n));
         stimuli(n).protocol_name=name;
         stimuli(n).protocol_description=description;
+        stimuli(nn).PlottingFunction='PlotAsymGPIAS_PSTH';
         stimuli(n).version='djmaus';
     end
 

@@ -41,13 +41,14 @@ for rep=1:nrepeats
         stimuli(nn).param.VarLaserstart=0;
         stimuli(nn).param.VarLaserpulsewidth= flashduration;
         stimuli(nn).param.VarLasernumpulses=nflashes;
-        stimuli(nn).param.VarLaserisi=icis(n);
+        stimuli(nn).param.VarLaserisi=icis(n); %
         stimuli(nn).param.next=next;
         stimuli(nn).param.ramp=0;
         stimuli(nn).param.duration=trainduration;
         stimuli(nn).stimulus_description=GetParamStr(stimuli(nn));
         stimuli(nn).protocol_name=name;
         stimuli(nn).protocol_description=description;
+        stimuli(nn).PlottingFunction='PlotFlashtrain_PSTH';
         stimuli(nn).version='djmaus';
     end
 end

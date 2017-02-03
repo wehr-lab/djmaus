@@ -349,6 +349,7 @@ if on
             end
             
             %insert laser pulse with specified parameters into samples
+            %note that for flashtrains, I am changing isi to actually be soa (mw 1-28-2017)
             if length(pulsewidth)>1
                 if length(pulsewidth)~=numpulses;
                     djMessage('djPPA: Laser numpulses must match number of widths', 'append')
@@ -381,7 +382,8 @@ if on
                     if  n==1
                         pstartsamp=1;
                     else
-                        pstartsamp=pstartsamp+(pulsewidth(n-1)+isi(n-1))*SoundFs/1000;
+                        %pstartsamp=pstartsamp+(pulsewidth(n-1)+isi(n-1))*SoundFs/1000;
+                        pstartsamp=pstartsamp+isi(n-1)*SoundFs/1000; %mw 1-28-2017
                     end
                     pstopsamp=pstartsamp+pulsewidth(n)*SoundFs/1000-1;
                     laserpulse(pstartsamp:pstopsamp)=1;
@@ -401,7 +403,8 @@ if on
                     if  n==1
                         pstartsamp=start*SoundFs/1000+1;
                     else
-                        pstartsamp=pstartsamp+(pulsewidth(n-1)+isi(n-1))*SoundFs/1000;
+                        %pstartsamp=pstartsamp+(pulsewidth(n-1)+isi(n-1))*SoundFs/1000;
+                        pstartsamp=pstartsamp+isi(n-1)*SoundFs/1000; %mw 1-28-2017
                     end
                     pstopsamp=pstartsamp+pulsewidth(n)*SoundFs/1000-1;
                     laserpulse(pstartsamp:pstopsamp)=1;

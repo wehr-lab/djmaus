@@ -163,6 +163,7 @@ for rep=1:nrepeats
             stimuli(nn).stimulus_description=GetParamStr(stimuli(nn));
             stimuli(nn).protocol_name=name;
             stimuli(nn).protocol_description=description;
+            stimuli(nn).PlottingFunction='PlotTC_PSTH';
             stimuli(nn).version='djmaus';
             
         else
@@ -176,6 +177,7 @@ for rep=1:nrepeats
             stimuli(nn).stimulus_description=GetParamStr(stimuli(nn));
             stimuli(nn).protocol_name=name;
             stimuli(nn).protocol_description=description;
+            stimuli(nn).PlottingFunction='PlotTC_PSTH';
             stimuli(nn).version='djmaus';
             
         end
@@ -193,19 +195,20 @@ for rep=1:nrepeats
         stimuli(nn).stimulus_description=GetParamStr(stimuli(nn));
         stimuli(nn).protocol_name=name;
         stimuli(nn).protocol_description=description;
+        stimuli(nn).PlottingFunction='PlotTC_PSTH';
         stimuli(nn).version='djmaus';
         
         if interleave_laser==1
             nn=nn+1;
             stimuli(nn).param.laser=1;
-            paramstring='silent sound Laser ON';
-            stimuli(nn).type='silentsound';
+            stimuli(nn).type='silent sound Laser ON';
             stimuli(nn).param.duration=durs(1);
             stimuli(nn).param.ramp=0;
             stimuli(nn).param.next=isi;
             stimuli(nn).stimulus_description=GetParamStr(stimuli(nn));
             stimuli(nn).protocol_name=name;
             stimuli(nn).protocol_description=description;
+            stimuli(nn).PlottingFunction='PlotTC_PSTH';
             stimuli(nn).version='djmaus';
         end
     end

@@ -14,7 +14,7 @@ stimparams.stimtypes={'tone', 'whitenoise'}
 if strcmp(stimparams.stimtypes,  'AsymGPIAS')
         PlotAsymGPIAS_PSTH(datapath, varargin{:})
 elseif any(strcmp(stimparams.stimtypes,  'GPIAS'))
-        PlotAsymGPIAS_PSTH(datapath, varargin{:})
+        PlotGPIAS_PSTH(datapath, varargin{:})
 elseif any(strcmp(stimparams.stimtypes,  'tone'))
             PlotTC_PSTH(datapath, varargin{:})
 else

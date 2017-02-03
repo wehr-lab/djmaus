@@ -315,7 +315,7 @@ numdurs=length(durs);
 %check for laser in Eventsdjtools/ProcessTC_PSTH_single.m
 for i=1:length(Events)
     if isfield(Events(i), 'laser') & isfield(Events(i), 'LaserOnOff')
-        LaserScheduled(i)=Events(i).laser; %whether the stim protocol schdjtools/ProcessTC_PSTH_single.meduled a laser for this stim
+        LaserScheduled(i)=Events(i).laser; %whether the stim protocol scheduled a laser for this stim
         LaserOnOffButton(i)=Events(i).LaserOnOff; %whether the laser button was turned on
         LaserTrials(i)=LaserScheduled(i) & LaserOnOffButton(i);
         if isempty(stimlog(i).LaserStart)

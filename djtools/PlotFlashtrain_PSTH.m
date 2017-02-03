@@ -70,10 +70,11 @@ else %user specified a channel
         if clust<10
             fn=sprintf('ch%d_simpleclust_0%d.t', channel, clust);
             PlotFlashtrain_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
+            d=fn;
         else
             fn=sprintf('ch%d_simpleclust_%d.t', channel, clust);
             PlotFlashtrain_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
-            
+            d=fn;
         end
     end
 end

@@ -31,14 +31,15 @@ if nstimlog~=nEvents
             warning(sprintf('\nLooks like the first %d stimuli were not logged to notebook. Mismatch possibly resolved by shifting stimlog by %d. \nFurther investigation is highly recommended!!!!!!!'), offset, offset)
             return
     end
-    if nEvents-nstimlog==2 & nEvents==nSCTs
-        if Events(1).message_timestamp_sec>Events(3).message_timestamp_sec
+    if nEvents~=nstimlog & nEvents==nSCTs
+        nMismatch = nEvents-nstimlog;
+        if Events(1).message_timestamp_sec>Events(nMismatch+1).message_timestamp_sec
             %this is a specific case where (we think) Kat might have pressed record in
             %OE before clicking record (again) in djmaus. Must investigate further.
-            %the first 2 events are spurious (or at least don't match stimlog) and have incorrect timestamps
-            Events=Events(3:end);
-            all_SCTs=all_SCTs(3:end);
-            warning(sprintf('\nLooks like the first 2 stimuli were not logged to notebook. Mismatch possibly resolved by discarding first 2 events. \nFurther investigation is highly recommended!!!!!!!'))
+            %the first nMismatch events are spurious (or at least don't match stimlog) and have incorrect timestamps
+            Events=Events(nMismatch+1:end);
+            all_SCTs=all_SCTs(nMismatch+1:end);
+            warning(sprintf('\nLooks like the first nMismatch stimuli were not logged to notebook. Mismatch possibly resolved by discarding first 2 events. \nFurther investigation is highly recommended!!!!!!!'))
             return
         end
         %a more general approach would be to look where Events.timestamps

@@ -47,13 +47,22 @@ end
 
 %tuning curve (tones/WN) by process of elimination
 if ~match
-    if all(strcmp(stimparams.stimtypes, 'whitenoise')) ...
-            | ...
-            all(strcmp(stimparams.stimtypes, 'tone')) ...
-            | ...
-            all(strcmp(stimparams.stimtypes, {'tone', 'whitenoise'})) ... %works because it's sorted
-            | ...
-            all(strcmp(stimparams.stimtypes, sort({'tone', 'whitenoise', 'silentsound'})))  %works because it's sorted
-        PlottingFunction='PlotTC_PSTH';
+    switch length(stimparams.stimtypes)
+        case 1
+            if all(strcmp(stimparams.stimtypes, 'whitenoise')) | ...
+                    all(strcmp(stimparams.stimtypes, 'tone')) | ...
+                    all(strcmp(stimparams.stimtypes, 'silentsound')) %I think PlotTC_PSTH would be appropriate for silentsound only
+                PlottingFunction='PlotTC_PSTH';
+            end
+        case 2
+            if all(strcmp(stimparams.stimtypes, {'tone', 'whitenoise'})) | ...
+                    all(strcmp(stimparams.stimtypes, {'silentsound', 'whitenoise'})) | ...
+                    all(strcmp(stimparams.stimtypes, {'silentsound', 'tone'})) 
+                    PlottingFunction='PlotTC_PSTH';
+            end
+        case 3
+            if  all(strcmp(stimparams.stimtypes, sort({'silentsound', 'tone', 'whitenoise'}))) ...  %works because it's sorted
+                    PlottingFunction='PlotTC_PSTH';
+            end
     end
 end

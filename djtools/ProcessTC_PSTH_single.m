@@ -29,7 +29,7 @@ try
     xlimits=varargin{3};
 end
 if isempty(xlimits)
-    xlimits=[0 200];
+    xlimits=[-100 200];
 end
 try
     ylimits=varargin{4};
@@ -549,6 +549,11 @@ out.SilentSoundONspikecount=SilentSoundONspikecount;
 out.SilentSoundOFFspikecount=SilentSoundOFFspikecount;
 out.mSilentSoundON=mSilentSoundON;
 out.mSilentSoundOFF=mSilentSoundOFF;
+out.SilentSoundONStim=SilentSoundONStim;
+out.SilentSoundOFFStim=SilentSoundOFFStim;
+out.SilentSoundONLaser=SilentSoundONLaser;
+out.SilentSoundOFFLaser=SilentSoundOFFLaser;
+
 
 out.LaserRecorded=LaserRecorded; %whether the laser signal was hooked up and recorded as a continuous channel
 out.StimRecorded=StimRecorded; %%whether the sound stimulus signal was hooked up and recorded as a continuous channel

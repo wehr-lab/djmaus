@@ -438,7 +438,7 @@ for iciindex=[1:numicis]
 end
 
 %compute P2P1 as ratio of second/first click response -- rep-by-rep
-for iciindex=[1:iciindex]
+for iciindex=[1:numicis]
     for rep=1:nrepsON(iciindex)
         spiketimes1=(McON(iciindex, 1, rep).spiketimes);
         spiketimes2=(McON(iciindex, 2, rep).spiketimes);
@@ -455,7 +455,7 @@ end
 
 %compute P2P1 as ratio of second/first click response
 % % mean across reps
-for iciindex=[1:iciindex]
+for iciindex=[1:numicis]
     if IL
         spiketimes1=cat(2, McON(iciindex, 1, 1:nrepsON(iciindex)).spiketimes);
         spiketimes2=cat(2, McON(iciindex, 2, 1:nrepsON(iciindex)).spiketimes);
@@ -472,7 +472,52 @@ for iciindex=[1:iciindex]
     end
 end
 
-
+% compute vector strength, rayleigh statistic, etc
+for iciindex=[1:numicis]
+    ici=icis(iciindex);
+    onsets=ici*(0:nclicks(iciindex)-1);
+    spiketimesON=mMtON(iciindex).spiketimes;
+    spiketimesOFF=mMtOFF(iciindex).spiketimes;
+    phaseON=[];
+    phaseOFF=[];
+    for s=spiketimesON
+        if s>0 & s<onsets(end)+ici
+            p=s-onsets;
+            q=p(p>0);
+            u=q(end);
+            phaseON=[phaseON 2*pi*u/ici];
+        end
+    end
+    n=length(phaseON);
+    r=sqrt(sum(cos(phaseON)).^2 + sum(sin(phaseON)).^2)/n;
+    %note: if there is only one spike, Vs=1 artifactually
+    % therefore I am excluding cases where there is only one spike
+    if n==1 r=nan; end
+    PhaseON(iciindex).phase=phaseON;
+    VsON(iciindex)=r;
+    RZON(iciindex)=n*(r^2);  %Rayleigh Z statistic RZ=n*(VS)^2, Zar p.616
+    p_ON(iciindex)=exp(-n*(r^2)); %p-value of Rayleigh Z statistic
+    
+    for s=spiketimesOFF
+        if s>0 & s<onsets(end)+ici
+            p=s-onsets;
+            q=p(p>0);
+            u=q(end);
+            phaseOFF=[phaseOFF 2*pi*u/ici];
+        end
+    end
+    n=length(phaseOFF);
+    r=sqrt(sum(cos(phaseOFF)).^2 + sum(sin(phaseOFF)).^2)/n;
+    %note: if there is only one spike, Vs=1 artifactually
+    % therefore I am excluding cases where there is only one spike
+    if n==1 r=nan; end
+    PhaseOFF(iciindex).phase=phaseOFF;
+    VsOFF(iciindex)=r;
+    RZOFF(iciindex)=n*(r^2);  %Rayleigh Z statistic RZ=n*(VS)^2, Zar p.616
+    p_OFF(iciindex)=exp(-n*(r^2)); %p-value of Rayleigh Z statistic
+end
+            
+            
 %average laser and stimulus monitor M matrices across trials
 if LaserRecorded
     for iciindex=[1:iciindex]
@@ -502,6 +547,7 @@ if StimRecorded
         end
     end
 end
+
 
 %save to outfiles
 
@@ -586,6 +632,16 @@ out.xlimits=xlimits;
 out.samprate=samprate;
 out.datadir=datadir;
 out.spiketimes=spiketimes;
+
+out.VsON=VsON; %vector strength
+out.RZON=RZON; %rayleigh statistic
+out.p_ON=p_ON; %p-value
+out.VsOFF=VsOFF;
+out.RZOFF=RZOFF;
+out.p_OFF=p_OFF;
+out.PhaseON=PhaseON; %spike times represented as phases
+out.PhaseOFF=PhaseOFF; %spike times represented as phases
+
 
 out.LaserRecorded=LaserRecorded; %whether the laser signal was hooked up and recorded as a continuous channel
 out.StimRecorded=StimRecorded; %%whether the sound stimulus signal was hooked up and recorded as a continuous channel

@@ -451,6 +451,54 @@ for iciindex=[1:iciindex]
     mP2P1_OFF(iciindex)=length(spiketimes2)/(length(spiketimes1));
 end
 
+% compute vector strength, rayleigh statistic, etc
+for iciindex=[1:numicis]
+    ici=icis(iciindex);
+    onsets=ici*(0:nclicks(iciindex)-1);
+    spiketimesON=mMtON(iciindex).spiketimes;
+    spiketimesOFF=mMtOFF(iciindex).spiketimes;
+    phaseON=[];
+    phaseOFF=[];
+    for s=spiketimesON
+        if s>0 & s<onsets(end)+ici
+            p=s-onsets;
+            q=p(p>0);
+            u=q(end);
+            phaseON=[phaseON 2*pi*u/ici];
+        end
+    end
+    n=length(phaseON);
+    r=sqrt(sum(cos(phaseON)).^2 + sum(sin(phaseON)).^2)/n;
+    %note: if there is only one spike, Vs=1 artifactually
+    % therefore I am excluding cases where there is only one spike
+    if n==1 r=nan; end
+    PhaseON(iciindex).phase=phaseON;
+    VsON(iciindex)=r;
+    RZON(iciindex)=n*(r^2);  %Rayleigh Z statistic RZ=n*(VS)^2, Zar p.616
+    p_ON(iciindex)=exp(-n*(r^2)); %p-value of Rayleigh Z statistic
+    
+    for s=spiketimesOFF
+        if s>0 & s<onsets(end)+ici
+            p=s-onsets;
+            q=p(p>0);
+            u=q(end);
+            phaseOFF=[phaseOFF 2*pi*u/ici];
+        end
+    end
+    n=length(phaseOFF);
+    r=sqrt(sum(cos(phaseOFF)).^2 + sum(sin(phaseOFF)).^2)/n;
+    %note: if there is only one spike, Vs=1 artifactually
+    % therefore I am excluding cases where there is only one spike
+    if n==1 r=nan; end
+    PhaseOFF(iciindex).phase=phaseOFF;
+    VsOFF(iciindex)=r;
+    RZOFF(iciindex)=n*(r^2);  %Rayleigh Z statistic RZ=n*(VS)^2, Zar p.616
+    p_OFF(iciindex)=exp(-n*(r^2)); %p-value of Rayleigh Z statistic
+end
+
+%for some reason the p-value of .001 is not matching up with RZ=13.8
+%I'm off by a factor of 1000, or p.^2
+
 %average laser and stimulus monitor M matrices across trials
 if LaserRecorded
     for iciindex=[1:iciindex]
@@ -513,7 +561,7 @@ if IL
     out.M_LaserWidth=M_LaserWidth;
     out.M_LaserNumPulses=M_LaserNumPulses;
     out.M_LaserISI=M_LaserISI;
-    out.LaserStart=unique(LaserStart); %only saving one value for now, assuming it's constant
+    out.LaserStart=uniquelo(LaserStart); %only saving one value for now, assuming it's constant
     out.LaserWidth=unique(LaserWidth);
     out.LaserNumPulses=unique(LaserNumPulses);
     out.P2P1_ON=P2P1_ON;
@@ -563,6 +611,15 @@ out.xlimits=xlimits;
 out.samprate=samprate;
 out.datadir=datadir;
 out.spiketimes=spiketimes;
+
+out.VsON=VsON; %vector strength
+out.RZON=RZON; %rayleigh statistic
+out.p_ON=p_ON; %p-value
+out.PhaseON=PhaseON; %spike times represented as phases
+out.VsOFF=VsOFF;
+out.RZOFF=RZOFF;
+out.p_OFF=p_OFF;
+out.PhaseOFF=PhaseOFF; %spike times represented as phases
 
 out.LaserRecorded=LaserRecorded; %whether the laser signal was hooked up and recorded as a continuous channel
 out.StimRecorded=StimRecorded; %%whether the sound stimulus signal was hooked up and recorded as a continuous channel

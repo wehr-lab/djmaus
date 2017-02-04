@@ -86,6 +86,10 @@ MtON=out.MtON;
 MtOFF=out.MtOFF;
 nrepsON=out.nrepsON;
 nrepsOFF=out.nrepsOFF;
+mMtONspikecount=out.mMtONspikecount;
+sMtONspikecount=out.sMtONspikecount;
+mMtOFFspikecount=out.mMtOFFspikecount;
+sMtOFFspikecount=out.sMtOFFspikecount;
 if isfield(out, 'LaserRecorded')
     LaserRecorded=out.LaserRecorded;
     MtONLaser=out.MtONLaser; % a crash here means this is an obsolete outfile. Set force_reprocess=1 up at the top of this mfile. (Don't forget to reset it to 0 when you're done)
@@ -335,3 +339,87 @@ for iciindex=1:numicis
     end
     xlim(xlimits)
 end
+
+
+% plot cycle histograms 
+figure
+yl=0;
+subplot1(numicis, 2)
+p=0;
+for iciindex=[1:numicis]
+    phaseON=out.PhaseON(iciindex).phase;
+    phaseOFF=out.PhaseOFF(iciindex).phase;
+    [NON xON]=hist(phaseON, [0:pi/10:2*pi]); hold on;
+    [NOFF xOFF]=hist(phaseOFF, [0:pi/10:2*pi]);
+    p=p+1; subplot1(p)
+    bOFF=bar(xOFF, NOFF,1);
+    xlim([0 2*pi])
+    yl=max(yl, ylim);
+    ylabel(sprintf('ici %dms',icis(iciindex)));
+
+    p=p+1; subplot1(p)
+    bON=bar(xON, NON,1);
+    set(bON, 'facecolor', 'c','edgecolor', 'c');
+    set(bOFF, 'facecolor', 'k','edgecolor', 'k');
+    xlim([0 2*pi])
+    yl=max(yl, ylim);
+    %ylabel(sprintf('ici %dms',icis(iciindex)));
+end
+
+for n=1:p
+    subplot1(p)
+    ylim(yl)
+end
+
+xlabel('phase')
+subplot1(1)
+h=title(sprintf('cycle spike histogram %s: \ntetrode%d cell%d, nreps: %d-%d',datadir,channel,out.cluster,min(nrepsON(:)),max(nrepsON(:))));
+set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
+pos=get(gcf, 'pos');
+pos(4)=900;
+set(gcf, 'pos',pos)           
+            
+% plot vector strength, rayleigh statistic, etc
+
+figure
+subplot1(3, 1)
+subplot1(1)
+plot(1:numicis, out.VsOFF, 'k-o', 1:numicis, out.VsON, 'c-o')
+ylabel('vector strength')
+set(gca, 'xticklabel', icis)
+xlabel('ici, ms')
+h=title(sprintf('phase-locking statistics %s: \ntetrode%d cell%d, nreps: %d-%d',datadir,channel,out.cluster,min(nrepsON(:)),max(nrepsON(:))));
+set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
+
+
+subplot1(2)
+plot(1:numicis, out.RZOFF, 'k-o', 1:numicis, out.RZON, 'c-o')
+ylabel('Rayleigh statistic')
+set(gca, 'xticklabel', icis)
+xlabel('ici, ms')
+line(xlim, 13.8*[1 1], 'linestyle', '--')
+
+subplot1(3)
+semilogy(1:numicis, out.p_OFF, 'k-o', 1:numicis, out.p_ON, 'c-o')
+set(gca, 'yscale', 'log')
+ylabel('p-value of vector strength')
+set(gca, 'xticklabel', icis)
+xlabel('ici, ms')
+ylim([0 1])
+line(xlim, .001*[1 1], 'linestyle', '--')
+
+pos=get(gcf, 'pos');
+pos(4)=900;
+set(gcf, 'pos',pos)    
+
+figure
+hold on
+if ~isempty(mMtONspikecount) 
+    e=errorbar(1:numicis, mMtONspikecount, sMtONspikecount, 'c-o')
+end
+if ~isempty(mMtOFFspikecount) 
+e=errorbar(1:numicis, mMtOFFspikecount, sMtOFFspikecount, 'k-o')
+end
+set(gca, 'xtick', 1:numicis, 'xticklabel', icis)
+xlabel('ici, ms')
+ylabel('spike count')

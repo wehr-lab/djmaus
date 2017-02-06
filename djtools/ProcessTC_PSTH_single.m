@@ -192,11 +192,13 @@ end
 %try to load laser and stimulus monitor
 if isempty(getLaserfile('.'))
     LaserRecorded=0;
+    warning('Laser monitor channel not recorded')
 else
     LaserRecorded=1;
 end
 if isempty(getStimfile('.'))
     StimRecorded=0;
+    warning('Stimulus monitor channel not recorded')
 else
     StimRecorded=1;
 end
@@ -295,9 +297,13 @@ for i=1:length(Events)
                     SilentSoundONspikecount(nreps_ssON)=spikecount;
                     if LaserRecorded
                         SilentSoundONLaser(nreps_ssON,:)=Lasertrace(region);
+                    else
+                        SilentSoundONLaser=[];
                     end
                     if StimRecorded
                         SilentSoundONStim(nreps_ssON,:)=Stimtrace(region);
+                    else
+                        SilentSoundONStim=[];
                     end
                 else
                     nreps_ssOFF=nreps_ssOFF+1;
@@ -305,9 +311,13 @@ for i=1:length(Events)
                     SilentSoundOFFspikecount(nreps_ssOFF)=spikecount;
                     if LaserRecorded
                         SilentSoundOFFLaser(nreps_ssOFF,:)=Lasertrace(region);
+                    else
+                        SilentSoundOFFLaser=[];
                     end
                     if StimRecorded
                         SilentSoundOFFStim(nreps_ssOFF,:)=Stimtrace(region);
+                    else
+                        SilentSoundOFFStim=[];
                     end
                 end
             else

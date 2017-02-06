@@ -168,7 +168,7 @@ if StimRecorded
         plot(t, Stimtrace+offsetS, 'm')
     end
 else
-    line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
+    line([0 0+out.durs(1)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
 end
 if LaserRecorded
     yl(1)=yl(1)-.05*diff(yl);
@@ -223,7 +223,7 @@ if IL
             plot(t, Stimtrace+offsetS, 'm')
         end
     else
-        line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
+        line([0 0+out.durs], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
     end
     if LaserRecorded
         yl(1)=yl(1)-.05*diff(yl);
@@ -234,6 +234,8 @@ if IL
             Lasertrace=.05*diff(yl)*Lasertrace;
             plot( t, Lasertrace+offsetL, 'c')
         end
+    else
+        line([out.LaserStart out.LaserWidth], ylimits(1)+[0 0], 'color', 'c', 'linewidth', 5)
     end
     if ~isempty(yl) ylim(yl); end
     

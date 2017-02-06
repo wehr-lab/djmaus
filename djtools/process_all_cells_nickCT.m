@@ -22,7 +22,7 @@
 %cd('/Volumes/D/lab/djmaus/Data/lab') %this is mac format
 cd('D:\lab\djmaus\Data\lab') %this is windows format
 psfilename=['D:\lab\djmaus\Data\lab\',sprintf('plot_all_cells_%s.ps',datestr(now,'YY-mm-DD_hh-MM'))];
-cell_list='ACIC1stPass.txt';
+cell_list='ACIC1stPassCT.txt';
 
 
 xlimits=[-300 300];
@@ -54,7 +54,7 @@ while 1 %processes until end of file is reached, then breaks
         filenamestr=fgetl(fid);
         clusterqualstr=fgetl(fid);
         pvstr=fgetl(fid);
-        flashstr=fgetl(fid);
+        clickstr=fgetl(fid);
 
         datadir=strsplit(pathstr, ': ');
         datadir=datadir{2};
@@ -78,7 +78,7 @@ while 1 %processes until end of file is reached, then breaks
         %certain xlimits, etc.
         %ProcessArchPVRev2(newdatadir, filename, xlimits)
         close all
-        PlotFlashtrain_PSTH(datadir, filename(3),filename(18))
+        PlotClicktrain_PSTH(datadir, filename(3),filename(18))
         if i~=1
            print('-f1',psfilename, '-dps2', '-append')
         else

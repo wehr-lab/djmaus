@@ -8,9 +8,6 @@ function PlotPINP_PSTH_single(varargin)
 %
 %Processes data if outfile is not found;
 
-
-
-
 rasters=1;
 force_reprocess=0;
 
@@ -112,6 +109,29 @@ StimRecorded=out.StimRecorded;
 samprate=out.samprate; %in Hz
 if isempty(xlimits) xlimits=out.xlimits;end
 
+% %find optimal axis limits
+if isempty(ylimits)
+    ymax=0;
+    
+    st=mSilentSoundOFF.spiketimes;
+    X=xlimits(1):binwidth:xlimits(2); %specify bin centers
+    [N, x]=hist(st, X);
+    N=N./nreps_ssOFF; %normalize to spike rate (averaged across trials)
+    N=1000*N./binwidth; %normalize to spike rate in Hz
+    ymax= max(ymax,max(N));
+    
+    if IL
+        st=mSilentSoundON.spiketimes;
+        X=xlimits(1):binwidth:xlimits(2); %specify bin centers
+        [N, x]=hist(st, X);
+        N=N./nreps_ssON; %normalize to spike rate (averaged across trials)
+        N=1000*N./binwidth; %normalize to spike rate in Hz
+        ymax= max(ymax,max(N));
+    end
+    ylimits=[-.3 ymax*2.5];
+end
+
+
 %plot the mean tuning curve OFF
 figure
 fs=10;
@@ -122,9 +142,11 @@ X=xlimits(1):binwidth:xlimits(2); %specify bin centers
 N=N./nreps_ssOFF; %normalize to spike rate (averaged across trials)
 N=1000*N./binwidth; %normalize to spike rate in Hz
 bar(x,N,1);
-offset=0;
-yl=ylim;
-inc=(yl(2))/max(nreps_ssOFF);
+%offset=0;
+%yl=ylim;
+yl=ylimits;
+offset=-yl(2)/2;
+inc=(yl(2)/2.5)/max(nreps_ssOFF);
 if rasters==1
     for n=1:nreps_ssOFF
         spiketimes2=SilentSoundOFF(n).spiketimes;
@@ -134,7 +156,7 @@ if rasters==1
 end
 
 if StimRecorded
-    yl(1)=yl(1)-.1*diff(yl);
+    yl(1)=yl(1)-.05*diff(yl);
     offsetS=yl(1);
     for rep=1:nreps_ssOFF
         Stimtrace=SilentSoundOFFStim(rep,:);
@@ -149,7 +171,7 @@ else
     line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
 end
 if LaserRecorded
-    yl(1)=yl(1)-.1*diff(yl);
+    yl(1)=yl(1)-.05*diff(yl);
     offsetL=yl(1);
     for rep=1:nreps_ssOFF
         Lasertrace=SilentSoundOFFLaser(rep, :);
@@ -158,7 +180,7 @@ if LaserRecorded
         plot( t, Lasertrace+offsetL, 'c')
     end
 end
-if ~isempty(ylimits) ylim(ylimits); end
+if ~isempty(yl) ylim(yl); end
 
 xlim(xlimits)
 set(gca, 'fontsize', fs)
@@ -175,9 +197,11 @@ if IL
     N=N./nreps_ssON; %normalize to spike rate (averaged across trials)
     N=1000*N./binwidth; %normalize to spike rate in Hz
     bar(x,N,1);
-    offset=0;
-    yl=ylim;
-    inc=(yl(2))/max(nreps_ssON);
+    %offset=0;
+    %yl=ylim;
+    yl=ylimits;
+    offset=-yl(2)/2;
+    inc=(yl(2)/2.5)/max(nreps_ssON);
     if rasters==1
         for n=1:nreps_ssON
             spiketimes2=SilentSoundON(n).spiketimes;
@@ -187,7 +211,7 @@ if IL
     end
     
     if StimRecorded
-        yl(1)=yl(1)-.1*diff(yl);
+        yl(1)=yl(1)-.05*diff(yl);
         offsetS=yl(1);
         for rep=1:nreps_ssON
             Stimtrace=SilentSoundONStim(rep,:);
@@ -202,7 +226,7 @@ if IL
         line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
     end
     if LaserRecorded
-        yl(1)=yl(1)-.1*diff(yl);
+        yl(1)=yl(1)-.05*diff(yl);
         offsetL=yl(1);
         for rep=1:nreps_ssON
             Lasertrace=SilentSoundONLaser(rep, :);
@@ -211,7 +235,7 @@ if IL
             plot( t, Lasertrace+offsetL, 'c')
         end
     end
-    if ~isempty(ylimits) ylim(ylimits); end
+    if ~isempty(yl) ylim(yl); end
     
     xlim(xlimits)
     set(gca, 'fontsize', fs)
@@ -224,24 +248,16 @@ end
 
 for rep=1:nreps_ssON
     stop=LaserStart+25;
-    st=SilentSoundON(n).spiketimes;
+    st=SilentSoundON(rep).spiketimes;
     spiketimes=st(st>LaserStart & st<stop); % spiketimes in region
     ON(rep)=length(spiketimes);
 end
 for rep=1:nreps_ssOFF
     stop=LaserStart+25;
-    st=SilentSoundOFF(n).spiketimes;
+    st=SilentSoundOFF(rep).spiketimes;
     spiketimes=st(st>LaserStart & st<stop); % spiketimes in region
     OFF(rep)=length(spiketimes);
 end
 [h,p]=ttest2(ON, OFF, 'tail', 'right')
 yl=ylim;
 text(xlimits(1)+25, .95*yl(2), sprintf('h=%d, p=%.4f effect of laser (t-test)', h,p), 'fontsize', 14)
-
-
-
-
-
-
-
-

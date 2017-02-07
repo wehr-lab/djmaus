@@ -8,7 +8,7 @@ function PlotTC_PSTH(varargin)
 %     datadir defaults to the current directory
 %     tetrode defaults to all tetrodes in data directory
 %     cluster defaults to all clusters
-%     xlimits defaults to [0 200]
+%     xlimits defaults to [-100 200]
 %     ylimits defaults to an autoscaled value
 %
 % channel (tetrode) number should be an integer

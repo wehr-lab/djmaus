@@ -37,7 +37,7 @@ end
 try
     xlimits=varargin{4};
 catch
-    xlimits=[];
+    xlimits=[-100 300];
 end
 if isempty(xlimits)
     xlimits=[];

@@ -1,4 +1,4 @@
-function MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_startle_duration, pulsedur, pulseamps, soa, soaflag, ...
+function [filename,path]=MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_startle_duration, pulsedur, pulseamps, soa, soaflag, ...
     ramp, isi, isi_var, interleave_laser, nrepeats)
 % usage MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_startle_duration, 
 %       pulsedur, pulseamps, soa, soaflag, ramp, iti, iti_var, interleave_laser, nrepeats)
@@ -172,7 +172,7 @@ for noisenum=1:num_noises
     stimuli(n).stimulus_description=GetParamStr(stimuli(n));
     stimuli(n).protocol_name=name;
     stimuli(n).protocol_description=description;
-    stimuli(nn).PlottingFunction='PlotGPIAS_PSTH';
+    stimuli(n).PlottingFunction='PlotGPIAS_PSTH';
     stimuli(n).version='djmaus';
 end
 
@@ -196,7 +196,7 @@ for kk=1:length(rand_gapdurs)
     stimuli(n).stimulus_description=GetParamStr(stimuli(n));
     stimuli(n).protocol_name=name;
     stimuli(n).protocol_description=description;
-    stimuli(nn).PlottingFunction='PlotGPIAS_PSTH';
+    stimuli(n).PlottingFunction='PlotGPIAS_PSTH';
     stimuli(n).version='djmaus';
     
     %
@@ -214,7 +214,7 @@ for kk=1:length(rand_gapdurs)
         stimuli(n).stimulus_description=GetParamStr(stimuli(n));
         stimuli(n).protocol_name=name;
         stimuli(n).protocol_description=description;
-        stimuli(nn).PlottingFunction='PlotGPIAS_PSTH';
+        stimuli(n).PlottingFunction='PlotGPIAS_PSTH';
         stimuli(n).version='djmaus';
     end
 
@@ -233,7 +233,7 @@ warning off MATLAB:MKDIR:DirectoryExists
 mkdir('GPIAS Protocols')
 cd('GPIAS Protocols')
 save(filename, 'stimuli')
-
-fprintf('\nwrote file %s \n in directory %s', filename, pwd)
+path=pwd;
+fprintf('\nwrote file %s \n in directory %s', filename, path)
 
 %  keyboard

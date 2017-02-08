@@ -1,4 +1,4 @@
-function Make2ToneWNProtocol(freqsperoctave, minfreq, maxfreq, numamplitudes, ...
+function [filename,path]=Make2ToneWNProtocol(freqsperoctave, minfreq, maxfreq, numamplitudes, ...
     minamplitude, maxamplitude, include_whitenoise, duration, ramp, isi, nrepeats, numprobeamplitudes, ...
     minprobeamplitude, maxprobeamplitude, numSOA, minSOA, maxSOA, interleave_laser, include_silent_sound)
 %usage: Make2ToneProtocol(freqsperoctave, minfreq, maxfreq, numamplitudes, ...
@@ -8,7 +8,7 @@ function Make2ToneWNProtocol(freqsperoctave, minfreq, maxfreq, numamplitudes, ..
 % modified from Make2ToneProtocol to use WN only (Make2ToneProtocol does not allow WN)
 % mw 10.30.2015
 %
-% creates an exper2 stimulus protocol file for a 2 tone protocol stimulus
+% creates an djmaus stimulus protocol file for a 2 tone protocol stimulus
 % with probe tones of single frequency but multiple amplitudes
 % no white noise used
 %
@@ -46,7 +46,11 @@ function Make2ToneWNProtocol(freqsperoctave, minfreq, maxfreq, numamplitudes, ..
 %
 %
 %example calls: numSOA
-% Make2ToneWNProtocol(0,0,0,1, 70, 70,1, 25, 3,1000, 10, 1, 70,70, 1, 100, 100 1, 0)
+%25 ms WN bursts at 100 ms SOA, no laser or silent sound
+% Make2ToneWNProtocol(0,0,0,1, 70, 70, 1, 25, 1, 1000, 10, 1, 70,70, 1, 100, 100, 0, 0)
+%400 ms WN bursts at 100 ms SOA, no laser or silent sound
+% Make2ToneWNProtocol(0,0,0,1, 70, 70, 1, 400, 1, 1000, 10, 1, 70,70, 1, 500, 100, 0, 0)
+%
 % Make2ToneWNProtocol(3, 4e3, 20e3, 1, 70, 70, 0, 400, 3, 1000, 10, 1, 70,70,2, 100, 500, 1, 1)
 %
 % ira 01.28.17
@@ -88,7 +92,7 @@ if interleave_laser==1
 else
     %[Amplitudes,Freqs, Durations, ProbeAmplitudes, probeSOAs]=meshgrid(linspacedamplitudes, logspacedfreqs, durations, linspacedamplitudes, linspacedprobeSOAs );
     numlasers=1;
-    Lasers=zeros(size(Amplitudes));
+    %Lasers=zeros(size(Amplitudes));
 end
 
 StimPerRepeat=numfreqs *numfreqs * numamplitudes *numprobeamplitudes  * numSOA * numlasers; %these are only 2 tone stimuli per repreat
@@ -226,6 +230,7 @@ for rep=1:nrepeats
                 stimuli(kk).param.SOA=[];
                 stimuli(kk).param.probeamp=[];
                 stimuli(kk).param.probefreq=[];
+                    stimuli(nn).PlottingFunction='PlotTC_PSTH';
                 stimuli(kk).version='djmaus';
                 
                 
@@ -245,8 +250,9 @@ for rep=1:nrepeats
                             stimuli(kk).param.laser=Lasers(l);
                             stimuli(kk).stimulus_description=GetParamStr(stimuli(kk));
                             stimuli(kk).protocol_name=name;
-                            stimuli(kk).protocol_description=description
+                            stimuli(kk).protocol_description=description;
                             stimuli(kk).param.SOA=ProbeSOAs(s);
+                                stimuli(nn).PlottingFunction='PlotTC_PSTH';
                             stimuli(kk).version='djmaus';
                             
                         end
@@ -270,6 +276,7 @@ for rep=1:nrepeats
         stimuli(kk).stimulus_description=GetParamStr(stimuli(kk));
         stimuli(kk).protocol_name=name;
         stimuli(kk).stimulus_description=description;
+    stimuli(nn).PlottingFunction='PlotTC_PSTH';
         stimuli(kk).version='djmaus';
         
         if interleave_laser==1
@@ -283,6 +290,7 @@ for rep=1:nrepeats
             stimuli(kk).stimulus_description=GetParamStr(stimuli(kk));
             stimuli(kk).protocol_name=name;
             stimuli(kk).pstimulus_description=description;
+    stimuli(nn).PlottingFunction='PlotTC_PSTH';
             stimuli(kk).version='djmaus';
         end
     end

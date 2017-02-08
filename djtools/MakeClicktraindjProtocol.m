@@ -1,4 +1,4 @@
-function MakeClicktraindjProtocol(amplitude, trainduration, icis, clickduration, next, ramp, nrepeats)
+function [filename,path]=MakeClicktraindjProtocol(amplitude, trainduration, icis, clickduration, next, ramp, nrepeats)
 %usage:  MakeClicktraindjProtocol(amplitude, trainduration, icis, clickduration, next, ramp, nrepeats)
 %
 %
@@ -25,6 +25,7 @@ function MakeClicktraindjProtocol(amplitude, trainduration, icis, clickduration,
 %
 %example calls:
 %MakeClicktraindjProtocol(80, 10e3, [1 2 4 8 16 32 64 128 256], .5, 3000, 0, 20)
+%MakeClicktraindjProtocol(70, 2e3, [1 2 4 8 16 32 64 128 256], .5, 3000, 0, 20)
 
 numicis=length(icis);
 icistring=sprintf('%d-', icis);icistring=icistring(1:end-1);

@@ -84,7 +84,7 @@ Eventsfilename='all_channels.events';
 sampleRate=all_channels_info.header.sampleRate; %in Hz
 
 %get Events and soundcard trigger timestamps
-[Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info);
+[Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
 %there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
 
 try
@@ -108,7 +108,7 @@ fprintf('\nsuccessfully loaded MClust spike data')
 Nclusters=1;
 
 %uncomment this to run some sanity checks
-% SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
+%SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
 
 
 fprintf('\ncomputing tuning curve...');

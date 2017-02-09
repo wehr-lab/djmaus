@@ -49,138 +49,150 @@ if nstimlog~=nEvents
         %in djmaus. Finding this reset point should be doable.
     end
 end
-    
-    %first double-check that the stimlog and Events match
-    if nstimlog==nEvents
-        for i=1:nstimlog
-            if ~strcmp(stimlog(i).type, Events(i).type)
+
+%first double-check that the stimlog and Events match
+if nstimlog==nEvents
+    for i=1:nstimlog
+        if ~strcmp(stimlog(i).type, Events(i).type)
+            error('ResolveEventMismatch: stimlog does not match Events')
+        end
+        if ~stimlog(i).param.duration==Events(i).duration
+            error('ResolveEventMismatch: stimlog does not match Events')
+        end
+        if strcmp(stimlog(i).type,'tone')
+            if ~stimlog(i).param.frequency==Events(i).frequency
                 error('ResolveEventMismatch: stimlog does not match Events')
             end
-            if ~stimlog(i).param.duration==Events(i).duration
+            if ~stimlog(i).param.amplitude==Events(i).amplitude
                 error('ResolveEventMismatch: stimlog does not match Events')
-            end
-            if strcmp(stimlog(i).type,'tone')
-                if ~stimlog(i).param.frequency==Events(i).frequency
-                    error('ResolveEventMismatch: stimlog does not match Events')
-                end
-                if ~stimlog(i).param.amplitude==Events(i).amplitude
-                    error('ResolveEventMismatch: stimlog does not match Events')
-                end
             end
         end
     end
-    fprintf('\nGood. Logged stimuli match network Events.')
+end
+fprintf('\nGood. Logged stimuli match network Events.')
+
+if nstimlog==nEvents & nSCTs==1+ nEvents
+    %there's one extra soundcard trigger, find it and remove it
     
-    if nstimlog==nEvents & nSCTs==1+ nEvents
-        %there's one extra soundcard trigger, find it and remove it
+    %if the extra one comes before any events, don't need to do anything
+    if all_SCTs(1) < Events(1).message_timestamp_sec
         
-        %if the extra one comes before any events, don't need to do anything
-        if all_SCTs(1) < Events(1).message_timestamp_sec
-            %we're fine, because extra SCTs before any message is automatically ignored
-            fprintf('\nMismatched resolved. Extra (initial) soundcard trigger discarded')
-        elseif  all_SCTs(end) > Events(end).message_timestamp_sec
-            warning(sprintf('\nMismatch possibly resolved by discarding extra (last) soundcard trigger. \nFurther investigation is highly recommended!!!!!!!'))
-        else
-            error('ResolveEventMismatch: this case is not handled yet')
-        end
-    elseif strcmp(stimlog(1).protocol_name(1:5), 'GPIAS')
-        %     one problem with GPIAS stimuli is if you stop recording during the
-        %     play-out, i.e. stimuli were logged (to stimlog and network events)
-        %     but never played before recording was stopped
-        if length(Events)>length(all_SCTs)
-            warning(sprintf('\nIt looks like Recording was stopped before all GPIAS stimuli finished playing. Mismatch possibly resolved by discarding extra Events. \nFurther investigation is highly recommended!!!!!!!'))
-            Events=Events(1:length(all_SCTs));
-        end
-    elseif  nstimlog==nEvents & nSCTs== nEvents -1
-        if strcmp(stimlog(1).protocol_name, 'ArchPVRev1')
-            %initially with this stimulus type we had some problems with java heap memory and file not
-            %finishing or something like that?
-            warning(sprintf('\nMismatch possibly resolved by discarding extra (last) Event. \nFurther investigation is highly recommended!!!!!!!'))
-            Events=Events(1:nSCTs);
-            stimlog=stimlog(1:nSCTs);
-        end
-    elseif nstimlog==nEvents & nSCTs < nEvents
-        %maybe user stopped open-ephys recording manually but djmaus was still running
-        %this happened spuriously at least once - when Aldis came in to check,
-        %open-ephys had stopped itself but djmaus was still running. Not sure
-        %how this could happen, but investigation confirms everything is fine up until the last soundcard trigger
+        %old comment:
+        %we're fine, because extra SCTs before any message is automatically ignored
         
-        %adding special case
-        [p,n,e]=fileparts(pwd);
-        switch n
-            case '2016-11-10_09-14-26_mouse-7093'
-                Events=Events(1:nSCTs);
-                stimlog=stimlog(1:nSCTs);
-            otherwise
-                fprintf('\n maybe user stopped open-ephys recording manually but djmaus was still running')
-                fprintf('\n investigate, and if this appears to be so, add a special case')
-                error('ResolveEventMismatch: this case is not handled yet')
-        end
+        %update (2-8-2017)
+        %I don't think we can ignore it. removing it is required. not sure
+        %what is different about this case (/Volumes/d/lab/djmaus/Data/kip/2017-01-09_13-07-45_mouse-3B13A)
         
+        %strip out first SCT which is extraneous
+        all_SCTs=all_SCTs(2:end);
+        for i=1:length(all_SCTs)
+            Events(i).soundcard_trigger_timestamp_sec=all_SCTs(i);
+        end
+        fprintf('\nMismatched resolved. Extra (initial) soundcard trigger discarded')
+    elseif  all_SCTs(end) > Events(end).message_timestamp_sec
+        warning(sprintf('\nMismatch possibly resolved by discarding extra (last) soundcard trigger. \nFurther investigation is highly recommended!!!!!!!'))
     else
         error('ResolveEventMismatch: this case is not handled yet')
     end
+elseif strcmp(stimlog(1).protocol_name(1:5), 'GPIAS')
+    %     one problem with GPIAS stimuli is if you stop recording during the
+    %     play-out, i.e. stimuli were logged (to stimlog and network events)
+    %     but never played before recording was stopped
+    if length(Events)>length(all_SCTs)
+        warning(sprintf('\nIt looks like Recording was stopped before all GPIAS stimuli finished playing. Mismatch possibly resolved by discarding extra Events. \nFurther investigation is highly recommended!!!!!!!'))
+        Events=Events(1:length(all_SCTs));
+    end
+elseif  nstimlog==nEvents & nSCTs== nEvents -1
+    if strcmp(stimlog(1).protocol_name, 'ArchPVRev1')
+        %initially with this stimulus type we had some problems with java heap memory and file not
+        %finishing or something like that?
+        warning(sprintf('\nMismatch possibly resolved by discarding extra (last) Event. \nFurther investigation is highly recommended!!!!!!!'))
+        Events=Events(1:nSCTs);
+        stimlog=stimlog(1:nSCTs);
+    end
+elseif nstimlog==nEvents & nSCTs < nEvents
+    %maybe user stopped open-ephys recording manually but djmaus was still running
+    %this happened spuriously at least once - when Aldis came in to check,
+    %open-ephys had stopped itself but djmaus was still running. Not sure
+    %how this could happen, but investigation confirms everything is fine up until the last soundcard trigger
     
-    
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %if you want to investigate the situation, here are some things to try:
-    if 0
-        %look for StartAcquisitionSec = xxx in command window and execute to set StartAcquisitionSec
-        SCTfname=getSCTfile(pwd);
-        if isempty(SCTfname)
-            warning('could not find soundcard trigger file')
-        else
-            [SCTtrace, SCTtimestamps, SCTinfo] =load_open_ephys_data(SCTfname);
-        end
-        
-        %here I'm loading a data channel to get good timestamps - the ADC timestamps are screwed up
-        %datafname=getContinuousFilename( pwd, 1 );
-        %[scaledtrace, datatimestamps, datainfo] =load_open_ephys_data(datafname);
-        
-        SCTtimestamps=SCTtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
-        %datatimestamps=datatimestamps-StartAcquisitionSec;
-        
-        figure
-        hold on
-        %set(gcf, 'pos', [-1853 555 1818 420]);
-        SCTtrace=SCTtrace./max(abs(SCTtrace));
-        %scaledtrace=scaledtrace./max(abs(scaledtrace));
-        plot(SCTtimestamps, SCTtrace) %plotting with data timestamps to work around wierd bug in ADC timestamps
-        %plot(datatimestamps, scaledtrace, 'm') %plotting with data timestamps to work around wierd bug in ADC timestamps
-        
-        hold on
-        %plot "software trigs" i.e. network messages in red o's
-        for i=1:length(Events)
-            plot(Events(i).message_timestamp_sec, .25, 'ro');
-            plot(Events(i).soundcard_trigger_timestamp_sec, 1, 'g*');
-            text(Events(i).message_timestamp_sec, .35, sprintf('network message #%d', i),'color', 'r')
-            text(Events(i).soundcard_trigger_timestamp_sec, .95, sprintf('SCT #%d', i), 'color','g')
-        end
-        
-        %all_channels_info.eventType(i) = 3 for digital line in (TTL), 5 for network Events
-        %all_channels_info.eventId = 1 for rising edge, 0 for falling edge
-        %all_channels_data(i) is the digital input line channel
-        
-        
-        % plot TTL SCTs in green ^=on, v=off
-        %     for i=1:length(all_channels_timestamps)
-        %         if all_channels_info.eventType(i)==3 & all_channels_info.eventId(i)==1 & all_channels_data(i)==2
-        %             plot(all_channels_timestamps(i), 1, 'g^')
-        %             text(all_channels_timestamps(i), 1, 'TTL on/off')
-        %         elseif all_channels_info.eventType(i)==3 & all_channels_info.eventId(i)==0 & all_channels_data(i)==2
-        %             plot(all_channels_timestamps(i), 1, 'gv')
-        %         end
-        %     end
-        
-        
-        %    for i=1:length(Events)
-        numEvents=length(Events);
-        for i=numEvents-5:numEvents
-            xlim([Events(i).message_timestamp_sec-.02 Events(i).message_timestamp_sec+2])
-            ylim([-5 2])
-            drawnow
-            pause(.1)
-        end
+    %adding special case
+    [p,n,e]=fileparts(pwd);
+    switch n
+        case '2016-11-10_09-14-26_mouse-7093'
+            Events=Events(1:nSCTs);
+            stimlog=stimlog(1:nSCTs);
+        otherwise
+            fprintf('\n maybe user stopped open-ephys recording manually but djmaus was still running')
+            fprintf('\n investigate, and if this appears to be so, add a special case')
+            error('ResolveEventMismatch: this case is not handled yet')
     end
     
+else
+    error('ResolveEventMismatch: this case is not handled yet')
+end
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%if you want to investigate the situation, here are some things to try:
+if 0
+    %look for StartAcquisitionSec = xxx in command window and execute to set StartAcquisitionSec
+    SCTfname=getSCTfile(pwd);
+    if isempty(SCTfname)
+        warning('could not find soundcard trigger file')
+    else
+        [SCTtrace, SCTtimestamps, SCTinfo] =load_open_ephys_data(SCTfname);
+    end
+    
+    %here I'm loading a data channel to get good timestamps - the ADC timestamps are screwed up
+    %datafname=getContinuousFilename( pwd, 1 );
+    %[scaledtrace, datatimestamps, datainfo] =load_open_ephys_data(datafname);
+    
+    SCTtimestamps=SCTtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+    %datatimestamps=datatimestamps-StartAcquisitionSec;
+    
+    figure
+    hold on
+    %set(gcf, 'pos', [-1853 555 1818 420]);
+    SCTtrace=SCTtrace./max(abs(SCTtrace));
+    %scaledtrace=scaledtrace./max(abs(scaledtrace));
+    plot(SCTtimestamps, SCTtrace) %plotting with data timestamps to work around wierd bug in ADC timestamps
+    %plot(datatimestamps, scaledtrace, 'm') %plotting with data timestamps to work around wierd bug in ADC timestamps
+    
+    hold on
+    %plot "software trigs" i.e. network messages in red o's
+    for i=1:length(Events)
+        plot(Events(i).message_timestamp_sec, .25, 'ro');
+        plot(Events(i).soundcard_trigger_timestamp_sec, 1, 'g*');
+        text(Events(i).message_timestamp_sec, .35, sprintf('network message #%d', i),'color', 'r')
+        text(Events(i).soundcard_trigger_timestamp_sec, .95, sprintf('SCT #%d', i), 'color','g')
+    end
+    
+    %all_channels_info.eventType(i) = 3 for digital line in (TTL), 5 for network Events
+    %all_channels_info.eventId = 1 for rising edge, 0 for falling edge
+    %all_channels_data(i) is the digital input line channel
+    
+    
+    % plot TTL SCTs in green ^=on, v=off
+    %     for i=1:length(all_channels_timestamps)
+    %         if all_channels_info.eventType(i)==3 & all_channels_info.eventId(i)==1 & all_channels_data(i)==2
+    %             plot(all_channels_timestamps(i), 1, 'g^')
+    %             text(all_channels_timestamps(i), 1, 'TTL on/off')
+    %         elseif all_channels_info.eventType(i)==3 & all_channels_info.eventId(i)==0 & all_channels_data(i)==2
+    %             plot(all_channels_timestamps(i), 1, 'gv')
+    %         end
+    %     end
+    
+    
+    %    for i=1:length(Events)
+    numEvents=length(Events);
+    for i=numEvents-5:numEvents
+        xlim([Events(i).message_timestamp_sec-.02 Events(i).message_timestamp_sec+2])
+        ylim([-5 2])
+        drawnow
+        pause(.1)
+    end
+end
+

@@ -67,13 +67,13 @@ else %user specified a channel
             PlotClicktrain_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
         end
     else %user specified a channel and a cluster
+        d=0; %to avoid throwing "empty" error below
         if clust<10
             fn=sprintf('ch%d_simpleclust_0%d.t', channel, clust);
             PlotClicktrain_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
         else
             fn=sprintf('ch%d_simpleclust_%d.t', channel, clust);
             PlotClicktrain_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
-            
         end
     end
 end

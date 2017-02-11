@@ -80,12 +80,14 @@ while 1 %processes until end of file is reached, then breaks
         close all
         PlotFlashtrain_PSTH(datadir, filename(3),filename(18))
         if i~=1
-           print('-f1',psfilename, '-dps2', '-append')
+           print('-f1',psfilename, '-dpsc2', '-append')
         else
            figure(2)
-           print(psfilename, '-dps2', '-append')
+           orient tall
+           print(psfilename, '-dpsc2', '-append')
            figure(1)
-           print(psfilename,'-dps2', '-append')
+           orient tall
+           print(psfilename,'-dpsc2', '-append')
         end
         i=i+1;
         %make sure you are in the right directory for the output file,

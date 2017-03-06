@@ -44,6 +44,11 @@ function [filename,path]=MakeTonedjProtocol(freqsperoctave, minfreq, maxfreq, nu
 %
 % MakeTonedjProtocol(0, 0, 0, 1, 70, 70, [1 2 4 8 16 32 64 128 256],0,1,0, 1, 1000, 10)
 %
+% freqsperoctave= 6; minfreq= 4; maxfreq= 64; 
+% numamplitudes= 1; minamplitude= 70; maxamplitude= 70; durations= 400; ramp=3;
+% include_whitenoise= 1; interleave_laser= 0; include_silent_sound= 0; isi= 500; nrepeats= 20;
+% MakeTonedjProtocol(freqsperoctave, minfreq, maxfreq, numamplitudes,   minamplitude, maxamplitude, durations, ramp, include_whitenoise, interleave_laser, include_silent_sound, isi, nrepeats)
+%
 %to include only whitenoise, use freqsperoctave==0 & minfreq==0 & maxfreq==0 & include_whitenoise==1
 
 if nargin==0; fprintf('\nno input');return;end

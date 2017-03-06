@@ -82,7 +82,6 @@ try
     SilentSoundOFFStim=out.SilentSoundOFFStim;
     SilentSoundONLaser=out.SilentSoundONLaser;
     SilentSoundOFFLaser=out.SilentSoundOFFLaser;
-    M_LaserStart=out.M_LaserStart;
     LaserStart=out.LaserStart;
 catch
     fprintf('\nre-processing %s', outfilename)
@@ -101,7 +100,6 @@ catch
     SilentSoundOFFStim=out.SilentSoundOFFStim;
     SilentSoundONLaser=out.SilentSoundONLaser;
     SilentSoundOFFLaser=out.SilentSoundOFFLaser;
-    M_LaserStart=out.M_LaserStart;
     LaserStart=out.LaserStart;
 end
 LaserRecorded=out.LaserRecorded;

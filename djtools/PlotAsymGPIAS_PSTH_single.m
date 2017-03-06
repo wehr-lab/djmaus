@@ -130,8 +130,8 @@ if isempty(ylimits)
                     st=mM1OFF(gdindex,onrampindex, offrampindex).spiketimes;
                     nr=nrepsOFF(gdindex,onrampindex, offrampindex);
                 end
-                X=xlimits(1):binwidth:xlimits(2); %specify bin centers
-                [N, x]=hist(st, X);
+                X=xlimits(1):binwidth:xlimits(2); %specify bin edges
+                [N, x]=histc(st, X);
                 N=N./nr; %normalize to spike rate (averaged across trials)
                 N=1000*N./binwidth; %normalize to spike rate in Hz
                 ymax= max(ymax,max(N));
@@ -155,8 +155,8 @@ if ~isempty(M1OFF)
                 subplot1(p)
                 hold on
                 spiketimes1=mM1OFF(gdindex,onrampindex, offrampindex).spiketimes; %spiketimes are in ms relative to gap termination
-                X=xlimits(1):binwidth:xlimits(2); %specify bin centers
-                [N, x]=hist(spiketimes1, X);
+                X=xlimits(1):binwidth:xlimits(2); %specify bin edges
+                N=histc(spiketimes1, X);
                 N=N./nrepsOFF(gdindex,onrampindex, offrampindex); %normalize to spike rate (averaged across trials)
                 N=1000*N./binwidth; %normalize to spike rate in Hz
                 offset=0;
@@ -169,7 +169,8 @@ if ~isempty(M1OFF)
                         h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k');
                     end
                 end
-                bar(x, N,1,'facecolor','k','edgecolor','k');
+%                 bar(X(1:end-1), N,1,'facecolor','k','edgecolor','k');
+                bar(X, N,1,'facecolor','k','edgecolor','k');
                 
                 if gapdurs(gdindex)>0
                     line([0 0],[ylim],'color','m')
@@ -256,8 +257,8 @@ if IL
                 subplot1(p)
                 hold on
                 spiketimes1=mM1ON(gdindex,onrampindex, offrampindex).spiketimes; %spiketimes are in ms relative to gap termination
-                X=xlimits(1):binwidth:xlimits(2); %specify bin centers
-                [N, x]=hist(spiketimes1, X);
+                X=xlimits(1):binwidth:xlimits(2); %specify bin edges
+                [N, x]=histc(spiketimes1, X);
                 N=N./nrepsON(gdindex,onrampindex, offrampindex); %normalize to spike rate (averaged across trials)
                 N=1000*N./binwidth; %normalize to spike rate in Hz
                 offset=0;
@@ -270,7 +271,7 @@ if IL
                         h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k');
                     end
                 end
-                bar(x, N,1,'facecolor','g','edgecolor','k');
+                bar(X(1:end-1), N,1,'facecolor','g','edgecolor','k');
                 
                 if gapdurs(gdindex)>0
                     line([0 0],[ylim],'color','m')

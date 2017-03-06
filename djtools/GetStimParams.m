@@ -1,10 +1,15 @@
-function stimparams=GetStimParams(datapath)
+function stimparams=GetStimParams(varargin)
 % usage: stimparams=GetStimParams(datapath)
 %
 %returns structure with stimulus params for stimuli that were presented for
 %that data session
 %
 %
+if nargin==0
+    datapath=pwd;
+elseif nargin==1
+    datapath=varargin{1};
+end
 cd(datapath)
 try
     load notebook.mat

@@ -2,13 +2,10 @@ function PlotTC_PSTH_single(varargin)
 
 %plots a single file of clustered spiking tuning curve data from djmaus
 %
-% usage: PlotAsymGPIAS_PSTH(datapath, t_filename, [xlimits],[ylimits], [binwidth])
+% usage: PlotTC_PSTH_single(datapath, t_filename, [xlimits],[ylimits], [binwidth])
 % (xlimits, ylimits, binwidth are optional)
 %
 %Processes data if outfile is not found;
-
-
-
 
 rasters=1;
 force_reprocess=0;
@@ -69,10 +66,6 @@ if ~isempty(xlimits)
         load(outfilename);
     end
 end
-
-
-
-
 
 IL=out.IL; %whether there are any interleaved laser trials
 freqs=out.freqs;
@@ -156,7 +149,7 @@ end
 
 %plot the mean tuning curve OFF
 for windex=1:numw
-    figure
+    figure('position',[650 100 600 600])
     p=0;
     subplot1(numy,numfreqs, 'Max', [.95 .9])
     for yindex=ystart:ystep:yend
@@ -184,11 +177,11 @@ for windex=1:numw
             end
             bar(x,N,1);
             
-            offsetS=ylimits(1)+.1*diff(ylimits);
+            offsetS=ylimits(1)+.05*diff(ylimits);
             if StimRecorded
                 Stimtrace=squeeze(mM1OFFStim(findex, aindex, dindex, :));
                 Stimtrace=Stimtrace -mean(Stimtrace(1:100));
-                Stimtrace=.25*diff(ylimits)*Stimtrace;
+                Stimtrace=1.25*diff(ylimits)*Stimtrace;
                 t=1:length(Stimtrace);
                 t=1000*t/out.samprate; %convert to ms
                 t=t+out.xlimits(1); %correct for xlim in original processing call
@@ -196,28 +189,33 @@ for windex=1:numw
             else
                 line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
             end
-            if LaserRecorded
-                for rep=1:nrepsOFF(findex, aindex, dindex)
-                    Lasertrace=squeeze(M1OFFLaser(findex, aindex, dindex,rep, :));
-                    Lasertrace=Lasertrace -mean(Lasertrace(1:100));
-                    Lasertrace=.05*diff(ylimits)*Lasertrace;
-                    plot( t, Lasertrace+offsetS, 'c')
-                end
-            end
+%             if LaserRecorded
+%                 for rep=1:nrepsOFF(findex, aindex, dindex)
+%                     Lasertrace=squeeze(M1OFFLaser(findex, aindex, dindex,rep, :));
+%                     Lasertrace=Lasertrace -mean(Lasertrace(1:100));
+%                     Lasertrace=.05*diff(ylimits)*Lasertrace;
+%                     plot( t, Lasertrace+offsetS, 'c')
+%                 end
+%             end
             %                 line([0 0+durs(dindex)], [-.2 -.2], 'color', 'm', 'linewidth', 4)
             %                 line(xlimits, [0 0], 'color', 'k')
             ylimits2(2)=ylimits(2)+offset;
             ylimits2(2)=2*ylimits(2);
             ylimits2(1)=-2;
 %             ylim([-2 1.1*(yl(2)+offset)])
-                            ylim(ylimits2)
-
+            ylim(ylimits2)
             
             xlim(xlimits)
             set(gca, 'fontsize', fs)
             %set(gca, 'xticklabel', '')
             %set(gca, 'yticklabel', '')
-            
+            if p==1
+                h=title(sprintf('%s: \ntetrode%d cell%d %dms, nreps: %d-%d, OFF',datadir,channel,out.cluster,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
+                set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
+            end
+            xl = xlim; yl = ylim;
+            h=text(0, range(yl),sprintf('%d ms',durs(dindex)));
+            set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal','position',[0 range(yl)*.8 0])
         end
     end
 end
@@ -226,7 +224,7 @@ end
 if IL
     %plot the mean tuning curve ON
     for windex=1:numw
-        figure
+        figure('position',[1250 100 600 700])
         p=0;
         subplot1(numy,numfreqs, 'Max', [.95 .9])
         for yindex=ystart:ystep:yend
@@ -309,10 +307,7 @@ if IL
         subplot1(1)
         h=title(sprintf('%s: \ntetrode%d cell%d %dms, nreps: %d-%d, ON',datadir,channel,out.cluster,durs(dindex),min(min(min(nrepsON))),max(max(max(nrepsON)))));
         set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
-        
-        
-        
-        
+                
         %label amps and freqs
         p=0;
         for yindex=ystart:ystep:yend
@@ -339,9 +334,3 @@ if IL
         end
     end
 end
-
-
-
-
-
-

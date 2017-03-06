@@ -21,8 +21,8 @@
 %finder).
 %cd('/Volumes/D/lab/djmaus/Data/lab') %this is mac format
 cd('D:\lab\djmaus\Data\lab') %this is windows format
-psfilename=['D:\lab\djmaus\Data\lab\',sprintf('plot_all_cells_%s_CT.ps',datestr(now,'YY-mm-DD_hh-MM'))];
-cell_list='ACIC_Click.txt';
+psfilename=['D:\lab\djmaus\Data\lab\',sprintf('plot_all_cells_%s_FT.ps',datestr(now,'YY-mm-DD_hh-MM'))];
+cell_list='ACIC_Flash.txt';
 
 
 xlimits=[-300 300];
@@ -40,6 +40,7 @@ wb=waitbar(0, 'processing data');
 % while ~strcmp(line, '***')
 %     line=fgetl(fid);
 % end
+i=1;
 while 1 %processes until end of file is reached, then breaks
     tic;
     line=fgetl(fid);
@@ -53,7 +54,7 @@ while 1 %processes until end of file is reached, then breaks
         filenamestr=fgetl(fid);
         clusterqualstr=fgetl(fid);
         pvstr=fgetl(fid);
-        clickstr=fgetl(fid);
+        flashstr=fgetl(fid);
 
         datadir=strsplit(pathstr, ': ');
         datadir=datadir{2};
@@ -77,18 +78,18 @@ while 1 %processes until end of file is reached, then breaks
         %certain xlimits, etc.
         %ProcessArchPVRev2(newdatadir, filename, xlimits)
         close all
-        PlotClicktrain_PSTH(datadir, filename(3),filename(18))
-        for f=2
-            figure(f)
-        	orient tall
-            print(psfilename, '-dpsc2', '-append')
-        end
+        PlotFlashtrain_PSTH(datadir, filename(3),filename(18))
         for f=1
             figure(f)
         	orient tall
             print(psfilename, '-dpsc2', '-append')
         end
-        for f=3:4
+        for f=3
+            figure(f)
+        	orient tall
+            print(psfilename, '-dpsc2', '-append')
+        end
+        for f=4:5
             figure(f)
             print(psfilename, '-dpsc2', '-append')
         end

@@ -78,7 +78,7 @@ end
 
 if length(Events) ~=  length(all_SCTs)
     warning('GetEventsAndSCT_Timestamps: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
-    [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog  );
+    [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog);
 end
 
 if exist('check1', 'var') & exist('check2', 'var')

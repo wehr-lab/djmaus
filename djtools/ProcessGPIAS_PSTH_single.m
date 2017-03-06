@@ -72,7 +72,7 @@ Eventsfilename='all_channels.events';
 sampleRate=all_channels_info.header.sampleRate; %in Hz
 
 %get Events and soundcard trigger timestamps 
-[Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info);
+[Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
 %there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
 
 try
@@ -147,10 +147,18 @@ pulsedur=pulsedurs;
 gapdelay=gapdelays;
 
 %check for laser in Events
+LaserScheduled = zeros(1,length(Events));
+LaserOnOffButton = zeros(1,length(Events));
+LaserTrials = zeros(1,length(Events));
+
 for i=1:length(Events)
     if isfield(Events(i), 'laser') & isfield(Events(i), 'LaserOnOff')
-        LaserScheduled(i)=Events(i).laser; %whether the stim protocol scheduled a laser for this stim
-        LaserOnOffButton(i)=Events(i).LaserOnOff; %whether the laser button was turned on
+        if ~isempty(Events(i).laser)
+            LaserScheduled(i)=Events(i).laser; %whether the stim protocol scheduled a laser for this stim
+        end
+        if ~isempty(Events(i).LaserOnOff)
+            LaserOnOffButton(i)=Events(i).LaserOnOff; %whether the laser button was turned on
+        end
         LaserTrials(i)=LaserScheduled(i) & LaserOnOffButton(i);
         if isempty(stimlog(i).LaserStart)
             LaserStart(i)=nan;

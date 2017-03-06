@@ -9,7 +9,7 @@ function PlotClicktrain_PSTH_single(varargin)
 
 
 rasters=1;
-force_reprocess=1;
+force_reprocess=0;
 
 if nargin==0
     fprintf('\nno input');
@@ -397,17 +397,17 @@ xlabel('ici, ms')
 ylim([0 1])
 line(xlim, .001*[1 1], 'linestyle', '--')
 
-pos=get(gcf, 'pos');
-pos(4)=900;
-set(gcf, 'pos',pos)           
+% pos=get(gcf, 'pos');
+% pos(4)=900;
+% set(gcf, 'pos',pos)           
 
 figure
 hold on
 if ~isempty(mMtONspikecount) 
-    e=errorbar(1:numicis, mMtONspikecount, sMtONspikecount, 'c-o')
+    e=errorbar(1:numicis, mMtONspikecount, sMtONspikecount, 'c-o');
 end
 if ~isempty(mMtOFFspikecount) 
-e=errorbar(1:numicis, mMtOFFspikecount, sMtOFFspikecount, 'k-o')
+e=errorbar(1:numicis, mMtOFFspikecount, sMtOFFspikecount, 'k-o');
 end
 set(gca, 'xtick', 1:numicis, 'xticklabel', icis)
 xlabel('ici, ms')

@@ -245,6 +245,12 @@ SilentSoundOFF=[];
 SilentSoundONspikecount=[];
 SilentSoundOFFspikecount=[];
 
+SilentSoundONStim=[];
+SilentSoundOFFStim=[];
+SilentSoundONLaser=[];
+SilentSoundOFFLaser=[];
+
+
 for i=1:length(Events)
     if strcmp(Events(i).type, 'tone') | strcmp(Events(i).type, 'whitenoise') | ...
             strcmp(Events(i).type, 'fmtone') | strcmp(Events(i).type, '2tone')| strcmp(Events(i).type, 'grating') | ...
@@ -559,6 +565,7 @@ out.SilentSoundONspikecount=SilentSoundONspikecount;
 out.SilentSoundOFFspikecount=SilentSoundOFFspikecount;
 out.mSilentSoundON=mSilentSoundON;
 out.mSilentSoundOFF=mSilentSoundOFF;
+
 out.SilentSoundONStim=SilentSoundONStim;
 out.SilentSoundOFFStim=SilentSoundOFFStim;
 out.SilentSoundONLaser=SilentSoundONLaser;

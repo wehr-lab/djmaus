@@ -4,7 +4,7 @@ function spiketimes=read_MClust_output(filename)
 %
 %usage: spiketimes=read_MClust_output(filename)
 %input: filename of .t file in curent directory
-%output: spiketimes in ms
+%output: spiketimes in 0.1 ms
 %
 %mw 12-18-2011
 
@@ -12,7 +12,7 @@ fid=fopen(filename, 'rb', 'b');
 ReadHeader(fid);
 spiketimes = fread(fid,inf,'uint32');	%read as 32 bit ints
 fclose(fid);
-% spiketimes=spiketimes; %already in ms
+% spiketimes=spiketimes; %already in 0.1 ms
 
 
 

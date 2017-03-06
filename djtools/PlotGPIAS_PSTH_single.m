@@ -138,10 +138,10 @@ end
 if ~isempty(M1OFF)
     
     %plot the mean tuning curve OFF
-    figure
+    figure('position',[600 350 600 750])
     
     p=0;
-    subplot1(numgapdurs, numpulseamps, 'Max', [.95 .9])
+    subplot1(numgapdurs, numpulseamps, 'Max', [.95 .96])
     for paindex=1:numpulseamps
         for gdindex=1:numgapdurs
             
@@ -207,6 +207,11 @@ if ~isempty(M1OFF)
                 ylimits2(1)=ylimits2(1)-2*range(Lasertrace);
                 ylim(ylimits2)
             end
+            
+            text(xlimits(1)-10, ylimits(2), sprintf('%d', gapdurs(gdindex)), 'color', 'r')
+            if gdindex<numgapdurs
+                set(gca, 'yticklabel', '');
+            end
         end
     end
     
@@ -215,24 +220,24 @@ if ~isempty(M1OFF)
     set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
     
     %label amps and freqs
-    p=0;
-    for paindex=1:numpulseamps
-        p=p+1;
-        subplot1(p)
-        vpos=ylimits(2);
-        text(xlimits(1), vpos, sprintf('%d', gapdurs(gdindex)), 'color', 'r')
-        set(gca, 'yticklabel', '');
-    end
+%     p=0;
+%     for paindex=1:numpulseamps
+%         p=p+1;
+%         subplot1(p)
+%         vpos=ylimits(2);
+%         text(xlimits(1), vpos, sprintf('%d', gapdurs(gdindex)), 'color', 'r')
+%         set(gca, 'yticklabel', '');
+%     end
 
     %turn on ytick for bottom-most plot
-    set(gca, 'yticklabelmode', 'auto');
+    %set(gca, 'yticklabelmode', 'auto');
     
 end           %plot the mean tuning curve OFF
 
 
 if IL
     %plot the mean tuning curve ON
-    figure
+    figure('position',[1200 350 600 750])
     p=0;
     subplot1(numgapdurs, numpulseamps, 'Max', [.95 .9])
     for paindex=1:numpulseamps

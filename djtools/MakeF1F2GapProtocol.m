@@ -6,7 +6,7 @@ function [filename,path]=MakeF1F2GapProtocol(F1, F2, amplitude, ...
 %
 % creates a djmaus stimulus protocol file for a 2 tone gap stimulus
 % with an F1 frequency tone followed by a gap and then a F2 frequency tone
-% the combinations of F1-F1, F2-F2, and F2-F1 are used
+% the combinations of F1-F1, F2-F2, F1-F2, and F2-F1 are used
 % this is designed for a specific experiment in which F1 evokes ON response
 % only, and F2 evokes OFF response only
 %
@@ -41,7 +41,7 @@ if nargin==0; fprintf('\nno input');return;end
 if nargin>10; error('\MakeF1F2GapProtocol: wrong number of arguments.'); end
 
 numgapdurs=length(gapdurs);
-StimPerRepeat=numgapdurs*(3+ include_whitenoise)+include_silent_sound; %
+StimPerRepeat=numgapdurs*(4+ include_whitenoise)+include_silent_sound; %
 
 
 TotalNumStim=StimPerRepeat*nrepeats;
@@ -82,53 +82,10 @@ filename= sprintf('F1F2Gap-%s-%d-%dHz%ddB-tonedur%dms-%s-msgaps-%s-%dmsiti-%drep
     include_whitenoisestr, F1,F2, amplitude,duration, gapdursstring, ...
     include_silent_soundstr, iti,nrepeats);
 
-
-
-
-% Make the stimuli
-
-
-% ProbeAmps=meshgrid(linspacedprobeamplitudes, 1:nrepeats);
-% neworder2=randperm(nrepeats *numprobeamplitudes );
-% ProbeAmps=ProbeAmps(neworder2);
-%
-% Amplitudes=meshgrid(linspacedamplitudes, 1:nrepeats);
-% neworder2=randperm(nrepeats * linspacedamplitudes);
-% Amplitudes=Amplitudes(neworder2);
-%
-% neworder2=randperm(nrepeats*numSOA);
-% ProbeSOAs=meshgrid(linspacedprobeSOAs, 1:nrepeats);
-% ProbeSOAs=ProbeSOAs(neworder2);
-%
-% Freqs=meshgrid(logspacedfreqs, 1:nrepeats);
-% neworder2=randperm(nrepeats*numfreqs);
-% Freqs=Freqs(neworder2);
-
-
-
-% % if interleave_laser==1
-% %     [Amplitudes, ProbeAmps, Freqs, Durations, ProbeSOAs, Lasers]=ndgrid( linspacedamplitudes , linspacedprobeamplitudes, logspacedfreqs, duration, linspacedprobeSOAs, [0 1] );
-% %     numlasers=2;
-% % else
-% %     [Amplitudes, ProbeAmps, Freqs, Durations, ProbeSOAs]=ndgrid( linspacedamplitudes , linspacedprobeamplitudes, logspacedfreqs, duration, linspacedprobeSOAs );
-% %     numlasers=1;
-% %     Lasers=zeros(size(Amplitudes));
-% % end
-% % numdurations=1;
-% % numSOAs=length(ProbeSOAs);
-
 n=0;
 reps=0:StimPerRepeat:(StimPerRepeat*nrepeats);
 for rep=1:nrepeats
-    
-    %     neworder=randperm( numfreqs * numamplitudes * numprobeamplitudes  * numSOAs * numlasers);
-    %     amplitudes = Amplitudes( neworder );
-    %     probeAmps= ProbeAmps( neworder );
-    %     freqs = Freqs( neworder );
-    %     lasers = Lasers( neworder );
-    
-    %for n=1:length(stimorder)
-    for g=1:numgapdurs
+        for g=1:numgapdurs
         
         %F1-F1
         n=n+1;
@@ -173,6 +130,24 @@ for rep=1:nrepeats
         stimuli(n).param.amplitude=amplitude;
         stimuli(n).param.probeamp=amplitude;
         stimuli(n).param.probefreq=F1;
+        stimuli(n).param.duration=duration;
+        stimuli(n).param.SOA=duration + gapdurs(g);
+        stimuli(n).param.ramp=ramp;
+        stimuli(n).param.next=iti;
+        stimuli(n).param.laser=0;
+        stimuli(n).stimulus_description=GetParamStr(stimuli(n));
+        stimuli(n).protocol_name=name;
+        stimuli(n).protocol_description=description;
+        stimuli(n).PlottingFunction='PlotTC_PSTH';
+        stimuli(n).version='djmaus';
+        
+         %F1-F2
+        n=n+1;
+        stimuli(n).type='2tone';
+        stimuli(n).param.frequency=F1;
+        stimuli(n).param.amplitude=amplitude;
+        stimuli(n).param.probeamp=amplitude;
+        stimuli(n).param.probefreq=F2;
         stimuli(n).param.duration=duration;
         stimuli(n).param.SOA=duration + gapdurs(g);
         stimuli(n).param.ramp=ramp;

@@ -29,7 +29,11 @@ try
     xlimits=varargin{3};
 end
 if isempty(xlimits)
-    xlimits=[-100 200];
+    %     xlimits=[-100 200];
+    s=GetStimParams(datadir);
+    durs=s.durs;
+    dur=max(durs);
+    xlimits=[-.5*dur 1.5*dur]; %default x limits for axis
 end
 try
     ylimits=varargin{4};
@@ -94,8 +98,13 @@ catch
 end
 
 %check if this is an appropriate stimulus protocol
-if ~strcmp(GetPlottingFunction(datadir), 'PlotTC_PSTH')
-    error('This stimulus protcol does not appear to have any tones or whitenoise.')
+switch (GetPlottingFunction(datadir))
+    case 'PlotTC_PSTH'
+        %that's fine
+    case 'PlotMGB_LGN'
+        %also fine, for now
+    otherwise
+        error('This stimulus protcol does not appear to have any tones or whitenoise.')
 end
 
 %read MClust .t file
@@ -117,9 +126,12 @@ samprate=sampleRate;
 
 %get freqs/amps
 j=0;
+allfreqs=[];
+allamps=[];
 for i=1:length(Events)
     if strcmp(Events(i).type, '2tone') |strcmp(Events(i).type, 'tone') ...
-            |strcmp(Events(i).type, 'fmtone') | strcmp(Events(i).type, 'whitenoise')| strcmp(Events(i).type, 'grating')
+            |strcmp(Events(i).type, 'fmtone') | strcmp(Events(i).type, 'whitenoise') ...
+            | strcmp(Events(i).type, 'grating') | strcmp(Events(i).type, 'silentsound')
         j=j+1;
         alldurs(j)=Events(i).duration;
         if strcmp(Events(i).type, 'tone') | strcmp(Events(i).type, '2tone')
@@ -458,30 +470,52 @@ if ~IL %no laser pulses in this file
     semM1ONspikecount=[];
     M1ONspikecounts=[];
 else
-    mM1ONspikecount=mean(M1ONspikecounts,4); % Mean spike count
-    sM1ONspikecount=std(M1ONspikecounts,[],4); % Std of the above
-    semM1ONspikecount=sM1ONspikecount./sqrt(max(nrepsON(:))); % Sem of the above
-    
-    % Spont
-    mM1spontON=mean(M1spontON,4);
-    sM1spontON=std(M1spontON,[],4);
-    semM1spontON(:,:)=sM1spontON./sqrt(max(nrepsON(:)));
+    if exist('M1ONspikecounts')
+        mM1ONspikecount=mean(M1ONspikecounts,4); % Mean spike count
+        sM1ONspikecount=std(M1ONspikecounts,[],4); % Std of the above
+        semM1ONspikecount=sM1ONspikecount./sqrt(max(nrepsON(:))); % Sem of the above
+        
+        % Spont
+        mM1spontON=mean(M1spontON,4);
+        sM1spontON=std(M1spontON,[],4);
+        semM1spontON(:,:)=sM1spontON./sqrt(max(nrepsON(:)));
+    else
+        mM1ONspikecount=[];
+        sM1ONspikecount=[];
+        semM1ONspikecount=[];
+        M1ONspikecounts=[];
+        mM1spontON=[];
+        sM1spontON=[];
+        semM1spontON=[];
+    end
 end
 if isempty(mM1OFF) %no laser pulses in this file
     mM1OFFspikecount=[];
     sM1OFFspikecount=[];
     semM1OFFspikecount=[];
     M1OFFspikecounts=[];
+    mM1spontOFF=[];
+    sM1spontOFF=[];
+    semM1spontOFF=[];
 else
-    mM1OFFspikecount=mean(M1OFFspikecounts,4); % Mean spike count
-    sM1OFFspikecount=std(M1OFFspikecounts,[],4); % Std of the above
-    semM1OFFspikecount=sM1OFFspikecount./sqrt(max(nrepsOFF(:))); % Sem of the above
-    % Spont
-    mM1spontOFF=mean(M1spontOFF,4);
-    sM1spontOFF=std(M1spontOFF,[],4);
-    semM1spontOFF(:,:)=sM1spontOFF./sqrt(max(nrepsOFF(:)));
+    if exist('M1OFFspikecounts')
+        mM1OFFspikecount=mean(M1OFFspikecounts,4); % Mean spike count
+        sM1OFFspikecount=std(M1OFFspikecounts,[],4); % Std of the above
+        semM1OFFspikecount=sM1OFFspikecount./sqrt(max(nrepsOFF(:))); % Sem of the above
+        % Spont
+        mM1spontOFF=mean(M1spontOFF,4);
+        sM1spontOFF=std(M1spontOFF,[],4);
+        semM1spontOFF(:,:)=sM1spontOFF./sqrt(max(nrepsOFF(:)));
+    else
+        mM1OFFspikecount=[];
+        sM1OFFspikecount=[];
+        semM1OFFspikecount=[];
+        M1OFFspikecounts=[];
+        mM1spontOFF=[];
+        sM1spontOFF=[];
+        semM1spontOFF=[];
+    end
 end
-
 %save to outfiles
 %one outfile for each cell
 % previously existing outfiles for this cell will be overwritten
@@ -512,11 +546,12 @@ if IL
     out.sM1spontON=sM1spontON;
     out.semM1spontON=semM1spontON;
     
-    out.M_LaserStart=M_LaserStart;
-    out.M_LaserWidth=M_LaserWidth;
-    out.M_LaserNumPulses=M_LaserNumPulses;
-    out.M_LaserISI=M_LaserISI;
-    
+    if exist('M_LaserStart')
+        out.M_LaserStart=M_LaserStart;
+        out.M_LaserWidth=M_LaserWidth;
+        out.M_LaserNumPulses=M_LaserNumPulses;
+        out.M_LaserISI=M_LaserISI;
+    end
     
 else
     out.M1ON=[];
@@ -576,9 +611,18 @@ out.LaserRecorded=LaserRecorded; %whether the laser signal was hooked up and rec
 out.StimRecorded=StimRecorded; %%whether the sound stimulus signal was hooked up and recorded as a continuous channel
 if LaserRecorded
     out.M1ONLaser=M1ONLaser;
-    out.mM1ONLaser=mM1ONLaser;
-    out.M1OFFLaser=M1OFFLaser;
-    out.mM1OFFLaser=mM1OFFLaser;
+    if exist('mM1ONLaser')
+        out.mM1ONLaser=mM1ONLaser;
+    end
+    if exist('M1OFFLaser')
+        out.M1OFFLaser=M1OFFLaser;
+    end
+    if exist('mM1OFFLaser')
+        out.mM1OFFLaser=mM1OFFLaser;
+    end
+    if exist('mM1ONLaser')
+        out.mM1ONLaser=mM1ONLaser;
+    end
 else
     out.M1ONLaser=[];
     out.mM1ONLaser=[];
@@ -587,9 +631,15 @@ else
 end
 if StimRecorded
     out.M1ONStim=M1ONStim;
-    out.mM1ONStim=mM1ONStim;
-    out.M1OFFStim=M1OFFStim;
-    out.mM1OFFStim=mM1OFFStim;
+    if exist('mM1ONStim')
+        out.mM1ONStim=mM1ONStim;
+    end
+    if exist('M1OFFStim')
+        out.M1OFFStim=M1OFFStim;
+    end
+    if exist('mM1OFFStim')
+        out.mM1OFFStim=mM1OFFStim;
+    end
 else
     out.M1ONStim=[];
     out.mM1ONStim=[];

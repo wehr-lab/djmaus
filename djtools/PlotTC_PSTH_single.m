@@ -54,6 +54,7 @@ cd(datadir)
 
 if exist(outfilename,'file')
     load(outfilename)
+    fprintf('\nloaded outfile.')
 else
     ProcessTC_PSTH_single(datadir,  t_filename, xlimits, ylimits);
     load(outfilename);

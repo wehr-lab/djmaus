@@ -102,7 +102,7 @@ spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
 %correct for OE start time, so that time starts at 0
 spiketimes=spiketimes-StartAcquisitionSec;
 totalnumspikes=length(spiketimes);
-fprintf('\nsuccessfully loaded MClust spike data')
+fprintf('\nsuccessfully loaded MClust spike data, %d spikes', totalnumspikes)
 Nclusters=1;
 
 %uncomment this to run some sanity checks
@@ -500,6 +500,7 @@ out.xlimits=xlimits;
 out.samprate=samprate;
 out.datadir=datadir;
 out.spiketimes=spiketimes;
+out.totalnumspikes=totalnumspikes;
 
 out.LaserRecorded=LaserRecorded; %whether the laser signal was hooked up and recorded as a continuous channel
 out.StimRecorded=StimRecorded; %%whether the sound stimulus signal was hooked up and recorded as a continuous channel
@@ -557,6 +558,7 @@ catch
 end
 outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
 save (outfilename, 'out')
+fprintf('\nsaved to outfile %s',outfilename)
 
 
 

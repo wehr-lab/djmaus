@@ -42,7 +42,7 @@ end
 try
     xlimits=varargin{4};
 catch
-    xlimits=[-200 200];
+    xlimits=[];
 end
 try
     ylimits=varargin{5};

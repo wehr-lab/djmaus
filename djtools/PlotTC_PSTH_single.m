@@ -228,7 +228,32 @@ for windex=1:numw
     end
 end
 
-
+ %label amps and freqs
+        p=0;
+        for yindex=ystart:ystep:yend
+            for findex=1:numfreqs
+                p=p+1;
+                subplot1(p)
+                
+                if findex==1
+                    if numamps>=numdurs
+                        text(xlimits(1)-diff(xlimits)/2, mean(ylimits), int2str(amps(yindex)))
+                    else
+                        text(xlimits(1)+diff(xlimits)/20, mean(ylimits), int2str(durs(yindex)))
+                    end
+                end
+                if aindex==1
+                    if mod(findex,2) %odd freq
+                        vpos=mean(ylimits);
+%                        vpos=ylimits(1)-mean(ylimits);
+                    else
+                        vpos=mean(ylimits);
+                    end
+                    text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
+                end
+            end
+        end
+        
 if IL
     %plot the mean tuning curve ON
     for windex=1:numw

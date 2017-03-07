@@ -148,17 +148,24 @@ elseif numdurs>numamps
     yend=numy;
 end
 
+if numdurs==1 & numamps==1
+        numy=numfreqs;
+        numx=1;
+else
+    numx=numfreqs;
+end
+    
 %plot the mean tuning curve OFF
 for windex=1:numw
     figure('position',[650 100 600 600])
     p=0;
-    subplot1(numy,numfreqs, 'Max', [.95 .9])
+    subplot1(numy,numx, 'Max', [.95 .9])
     for yindex=ystart:ystep:yend
         for findex=1:numfreqs
             p=p+1;
             subplot1(p)
             hold on
-            if numamps>=numdurs, aindex=yindex; dindex=windex;
+            if numamps>=numdurs, aindex=yindex; dindex=windex; 
             else aindex=windex; dindex=yindex;
             end
             spiketimes1=mM1OFF(findex, aindex, dindex).spiketimes;
@@ -227,7 +234,7 @@ if IL
     for windex=1:numw
         figure('position',[1250 100 600 700])
         p=0;
-        subplot1(numy,numfreqs, 'Max', [.95 .9])
+        subplot1(numy,numx, 'Max', [.95 .9])
         for yindex=ystart:ystep:yend
             for findex=1:numfreqs
                 p=p+1;

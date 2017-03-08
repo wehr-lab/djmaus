@@ -102,7 +102,7 @@ for rep=1:nrepeats
         stimuli(n).stimulus_description=GetParamStr(stimuli(n));
         stimuli(n).protocol_name=name;
         stimuli(n).protocol_description=description;
-        stimuli(n).PlottingFunction='PlotTC_PSTH';
+        stimuli(n).PlottingFunction='Plot2Tone_PSTH';
         stimuli(n).version='djmaus';
         
         %F2-F2
@@ -120,7 +120,7 @@ for rep=1:nrepeats
         stimuli(n).stimulus_description=GetParamStr(stimuli(n));
         stimuli(n).protocol_name=name;
         stimuli(n).protocol_description=description;
-        stimuli(n).PlottingFunction='PlotTC_PSTH';
+        stimuli(n).PlottingFunction='Plot2Tone_PSTH';
         stimuli(n).version='djmaus';
         
         %F2-F1
@@ -138,7 +138,7 @@ for rep=1:nrepeats
         stimuli(n).stimulus_description=GetParamStr(stimuli(n));
         stimuli(n).protocol_name=name;
         stimuli(n).protocol_description=description;
-        stimuli(n).PlottingFunction='PlotTC_PSTH';
+        stimuli(n).PlottingFunction='Plot2Tone_PSTH';
         stimuli(n).version='djmaus';
         
          %F1-F2
@@ -156,7 +156,7 @@ for rep=1:nrepeats
         stimuli(n).stimulus_description=GetParamStr(stimuli(n));
         stimuli(n).protocol_name=name;
         stimuli(n).protocol_description=description;
-        stimuli(n).PlottingFunction='PlotTC_PSTH';
+        stimuli(n).PlottingFunction='Plot2Tone_PSTH';
         stimuli(n).version='djmaus';
         
         if include_whitenoise
@@ -175,7 +175,7 @@ for rep=1:nrepeats
             stimuli(n).stimulus_description=GetParamStr(stimuli(n));
             stimuli(n).protocol_name=name;
             stimuli(n).protocol_description=description;
-            stimuli(n).PlottingFunction='PlotTC_PSTH';
+            stimuli(n).PlottingFunction='Plot2Tone_PSTH';
             stimuli(n).version='djmaus';
         end
         
@@ -190,7 +190,7 @@ for rep=1:nrepeats
             stimuli(n).stimulus_description=GetParamStr(stimuli(n));
             stimuli(n).protocol_name=name;
             stimuli(n).stimulus_description=description;
-            stimuli(n).PlottingFunction='PlotTC_PSTH';
+            stimuli(n).PlottingFunction='Plot2Tone_PSTH';
             stimuli(n).version='djmaus';
         end
     end

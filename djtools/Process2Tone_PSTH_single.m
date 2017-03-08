@@ -149,6 +149,7 @@ numfreqs=length(freqs);
 numprobefreqs=length(probefreqs);
 numamps=length(amps);
 numdurs=length(durs);
+numSOAs=length(SOAs);
 
 %check for laser in Eventsdjtools/ProcessTC_PSTH_single.m
 for i=1:length(Events)
@@ -235,9 +236,9 @@ else
 end
 
 M1=[];M1ON=[];M1OFF=[];
-nreps=zeros(numfreqs, numprobefreqs, numamps, numdurs);
-nrepsON=zeros(numfreqs, numprobefreqs, numamps, numdurs);
-nrepsOFF=zeros(numfreqs, numprobefreqs, numamps, numdurs);
+nreps=zeros(numfreqs, numprobefreqs, numamps, numSOAs);
+nrepsON=zeros(numfreqs, numprobefreqs, numamps, numSOAs);
+nrepsOFF=zeros(numfreqs, numprobefreqs, numamps, numSOAs);
 nreps_ssON=0;
 nreps_ssOFF=0;
 %extract the traces into a big matrix M
@@ -316,39 +317,39 @@ for i=1:length(Events)
                     end
                 end
             else
-                dur=Events(i).duration;
+                SOA=Events(i).SOA;
                 findex= find(freqs==freq);
                 pfindex= find(probefreqs==probefreq);
                 aindex= find(amps==amp);
-                dindex= find(durs==dur);
-                nreps(findex, pfindex, aindex, dindex)=nreps(findex, pfindex, aindex, dindex)+1;
+                SOAindex= find(SOAs==SOA);
+                nreps(findex, pfindex, aindex, SOAindex)=nreps(findex, pfindex, aindex, SOAindex)+1;
                 
                 
                 if laser
-                    nrepsON(findex, pfindex, aindex, dindex)=nrepsON(findex, pfindex, aindex, dindex)+1;
-                    M1ON(findex, pfindex,aindex,dindex, nrepsON(findex, pfindex, aindex, dindex)).spiketimes=spiketimes1; % Spike times
-                    M1ONspikecounts(findex, pfindex,aindex,dindex,nrepsON(findex, pfindex, aindex, dindex))=spikecount; % No. of spikes
-                    M1spontON(findex, pfindex,aindex,dindex, nrepsON(findex, pfindex, aindex, dindex))=spont_spikecount; % No. of spikes in spont window, for each presentation.
-                    M_LaserStart(findex, pfindex,aindex,dindex, nrepsON(findex, pfindex, aindex, dindex))=LaserStart(i);
-                    M_LaserWidth(findex, pfindex,aindex,dindex, nrepsON(findex, pfindex, aindex, dindex))= LaserWidth(i);
-                    M_LaserNumPulses(findex, pfindex,aindex,dindex, nrepsON(findex, pfindex, aindex, dindex))= LaserNumPulses(i);
-                    M_LaserISI(findex, pfindex,aindex,dindex, nrepsON(findex, pfindex, aindex, dindex))= LaserISI(i);
+                    nrepsON(findex, pfindex, aindex, SOAindex)=nrepsON(findex, pfindex, aindex, SOAindex)+1;
+                    M1ON(findex, pfindex,aindex,SOAindex, nrepsON(findex, pfindex, aindex, SOAindex)).spiketimes=spiketimes1; % Spike times
+                    M1ONspikecounts(findex, pfindex,aindex,SOAindex,nrepsON(findex, pfindex, aindex, SOAindex))=spikecount; % No. of spikes
+                    M1spontON(findex, pfindex,aindex,SOAindex, nrepsON(findex, pfindex, aindex, SOAindex))=spont_spikecount; % No. of spikes in spont window, for each presentation.
+                    M_LaserStart(findex, pfindex,aindex,SOAindex, nrepsON(findex, pfindex, aindex, SOAindex))=LaserStart(i);
+                    M_LaserWidth(findex, pfindex,aindex,SOAindex, nrepsON(findex, pfindex, aindex, SOAindex))= LaserWidth(i);
+                    M_LaserNumPulses(findex, pfindex,aindex,SOAindex, nrepsON(findex, pfindex, aindex, SOAindex))= LaserNumPulses(i);
+                    M_LaserISI(findex, pfindex,aindex,SOAindex, nrepsON(findex, pfindex, aindex, SOAindex))= LaserISI(i);
                     if LaserRecorded
-                        M1ONLaser(findex, pfindex,aindex,dindex, nrepsON(findex, pfindex, aindex, dindex),:)=Lasertrace(region);
+                        M1ONLaser(findex, pfindex,aindex,SOAindex, nrepsON(findex, pfindex, aindex, SOAindex),:)=Lasertrace(region);
                     end
                     if StimRecorded
-                        M1ONStim(findex, pfindex,aindex,dindex, nrepsON(findex, pfindex, aindex, dindex),:)=Stimtrace(region);
+                        M1ONStim(findex, pfindex,aindex,SOAindex, nrepsON(findex, pfindex, aindex, SOAindex),:)=Stimtrace(region);
                     end
                 else
-                    nrepsOFF(findex, pfindex, aindex, dindex)=nrepsOFF(findex, pfindex, aindex, dindex)+1;
-                    M1OFF(findex, pfindex,aindex,dindex, nrepsOFF(findex, pfindex, aindex, dindex)).spiketimes=spiketimes1;
-                    M1OFFspikecounts(findex, pfindex,aindex,dindex,nrepsOFF(findex, pfindex, aindex, dindex))=spikecount;
-                    M1spontOFF(findex, pfindex,aindex,dindex, nrepsOFF(findex, pfindex, aindex, dindex))=spont_spikecount;
+                    nrepsOFF(findex, pfindex, aindex, SOAindex)=nrepsOFF(findex, pfindex, aindex, SOAindex)+1;
+                    M1OFF(findex, pfindex,aindex,SOAindex, nrepsOFF(findex, pfindex, aindex, SOAindex)).spiketimes=spiketimes1;
+                    M1OFFspikecounts(findex, pfindex,aindex,SOAindex,nrepsOFF(findex, pfindex, aindex, SOAindex))=spikecount;
+                    M1spontOFF(findex, pfindex,aindex,SOAindex, nrepsOFF(findex, pfindex, aindex, SOAindex))=spont_spikecount;
                     if LaserRecorded
-                        M1OFFLaser(findex, pfindex,aindex,dindex, nrepsOFF(findex, pfindex, aindex, dindex),:)=Lasertrace(region);
+                        M1OFFLaser(findex, pfindex,aindex,SOAindex, nrepsOFF(findex, pfindex, aindex, SOAindex),:)=Lasertrace(region);
                     end
                     if StimRecorded
-                        M1OFFStim(findex, pfindex,aindex,dindex, nrepsOFF(findex, pfindex, aindex, dindex),:)=Stimtrace(region);
+                        M1OFFStim(findex, pfindex,aindex,SOAindex, nrepsOFF(findex, pfindex, aindex, SOAindex),:)=Stimtrace(region);
                     end
                 end
             end
@@ -367,7 +368,7 @@ mM1ON=[];
 mM1OFF=[];
 
 % Accumulate spiketimes across trials, for psth...
-for dindex=1:length(durs); % Hardcoded.
+for SOAindex=1:length(SOAs); % Hardcoded.
     for aindex=[numamps:-1:1]
         for findex=1:numfreqs
             for pfindex=1:numprobefreqs
@@ -375,20 +376,20 @@ for dindex=1:length(durs); % Hardcoded.
                 % on
                 spiketimesON=[];
                 spikecountsON=[];
-                for rep=1:nrepsON(findex, pfindex, aindex, dindex)
-                    spiketimesON=[spiketimesON M1ON(findex, pfindex, aindex, dindex, rep).spiketimes];
+                for rep=1:nrepsON(findex, pfindex, aindex, SOAindex)
+                    spiketimesON=[spiketimesON M1ON(findex, pfindex, aindex, SOAindex, rep).spiketimes];
                 end
                 
                 % All spiketimes for a given f/a/d combo, for psth:
-                mM1ON(findex, pfindex, aindex, dindex).spiketimes=spiketimesON;
+                mM1ON(findex, pfindex, aindex, SOAindex).spiketimes=spiketimesON;
                 
                 % off
                 spiketimesOFF=[];
                 spikecountsOFF=[];
-                for rep=1:nrepsOFF(findex, pfindex, aindex, dindex)
-                    spiketimesOFF=[spiketimesOFF M1OFF(findex, pfindex, aindex, dindex, rep).spiketimes];
+                for rep=1:nrepsOFF(findex, pfindex, aindex, SOAindex)
+                    spiketimesOFF=[spiketimesOFF M1OFF(findex, pfindex, aindex, SOAindex, rep).spiketimes];
                 end
-                mM1OFF(findex, pfindex, aindex, dindex).spiketimes=spiketimesOFF;
+                mM1OFF(findex, pfindex, aindex, SOAindex).spiketimes=spiketimesOFF;
             end
         end
     end
@@ -411,16 +412,16 @@ if LaserRecorded
     for aindex=1:numamps
         for findex=1:numfreqs
             for pfindex=1:numprobefreqs
-                for dindex=1:numdurs
-                    if nrepsON(findex, pfindex, aindex, dindex)>0
-                        mM1ONLaser(findex, pfindex, aindex, dindex,:)=mean(M1ONLaser(findex, pfindex, aindex, dindex, 1:nrepsON(findex, pfindex, aindex, dindex),:), 5);
+                for SOAindex=1:numSOAs
+                    if nrepsON(findex, pfindex, aindex, SOAindex)>0
+                        mM1ONLaser(findex, pfindex, aindex, SOAindex,:)=mean(M1ONLaser(findex, pfindex, aindex, SOAindex, 1:nrepsON(findex, pfindex, aindex, SOAindex),:), 5);
                     else %no reps for this stim, since rep=0
-                        mM1ONLaser(findex, pfindex, aindex, dindex,:)=zeros(size(region));
+                        mM1ONLaser(findex, pfindex, aindex, SOAindex,:)=zeros(size(region));
                     end
-                    if nrepsOFF(findex, pfindex, aindex, dindex)>0
-                        mM1OFFLaser(findex, pfindex, aindex, dindex,:)=mean(M1OFFLaser(findex, pfindex, aindex, dindex, 1:nrepsOFF(findex, pfindex, aindex, dindex),:), 5);
+                    if nrepsOFF(findex, pfindex, aindex, SOAindex)>0
+                        mM1OFFLaser(findex, pfindex, aindex, SOAindex,:)=mean(M1OFFLaser(findex, pfindex, aindex, SOAindex, 1:nrepsOFF(findex, pfindex, aindex, SOAindex),:), 5);
                     else %no reps for this stim, since rep=0
-                        mM1OFFLaser(findex, pfindex, aindex, dindex,:)=zeros(size(region));
+                        mM1OFFLaser(findex, pfindex, aindex, SOAindex,:)=zeros(size(region));
                     end
                 end
             end
@@ -431,16 +432,16 @@ if StimRecorded
     for aindex=1:numamps
         for findex=1:numfreqs
             for pfindex=1:numprobefreqs
-                for dindex=1:numdurs
-                    if nrepsON(findex, pfindex, aindex, dindex)>0
-                        mM1ONStim(findex, pfindex, aindex, dindex,:)=mean(M1ONStim(findex, pfindex, aindex, dindex, 1:nrepsON(findex, pfindex, aindex, dindex),:), 5);
+                for SOAindex=1:numSOAs
+                    if nrepsON(findex, pfindex, aindex, SOAindex)>0
+                        mM1ONStim(findex, pfindex, aindex, SOAindex,:)=mean(M1ONStim(findex, pfindex, aindex, SOAindex, 1:nrepsON(findex, pfindex, aindex, SOAindex),:), 5);
                     else %no reps for this stim, since rep=0
-                        mM1ONStim(findex, pfindex, aindex, dindex,:)=zeros(size(region));
+                        mM1ONStim(findex, pfindex, aindex, SOAindex,:)=zeros(size(region));
                     end
-                    if nrepsOFF(findex, pfindex, aindex, dindex)>0
-                        mM1OFFStim(findex, pfindex, aindex, dindex,:)=mean(M1OFFStim(findex, pfindex, aindex, dindex, 1:nrepsOFF(findex, pfindex, aindex, dindex),:), 5);
+                    if nrepsOFF(findex, pfindex, aindex, SOAindex)>0
+                        mM1OFFStim(findex, pfindex, aindex, SOAindex,:)=mean(M1OFFStim(findex, pfindex, aindex, SOAindex, 1:nrepsOFF(findex, pfindex, aindex, SOAindex),:), 5);
                     else %no reps for this stim, since rep=0
-                        mM1OFFStim(findex, pfindex, aindex, dindex,:)=zeros(size(region));
+                        mM1OFFStim(findex, pfindex, aindex, SOAindex,:)=zeros(size(region));
                     end
                 end
             end
@@ -489,7 +490,7 @@ else
         % Spont
         mM1spontOFF=mean(M1spontOFF,5);
         sM1spontOFF=std(M1spontOFF,[],5);
-        semM1spontOFF(:,:)=sM1spontOFF./sqrt(max(nrepsOFF(:)));
+        semM1spontOFF=sM1spontOFF./sqrt(max(nrepsOFF(:)));
     else
         mM1OFFspikecount=[];
         sM1OFFspikecount=[];
@@ -505,9 +506,9 @@ end
 % previously existing outfiles for this cell will be overwritten
 
 %after squeezing cluster, saves with the following dimensions:
-% M1ON(findex, pfindex,aindex,dindex, nrepsON).spiketimes
-% mM1ON(findex, pfindex,aindex,dindex).spiketimes
-% mM1ONspikecount(findex, pfindex,aindex,dindex)
+% M1ON(findex, pfindex,aindex,SOAindex, nrepsON).spiketimes
+% mM1ON(findex, pfindex,aindex,SOAindex).spiketimes
+% mM1ONspikecount(findex, pfindex,aindex,SOAindex)
 
 out.IL=IL;
 out.Nclusters=Nclusters;
@@ -566,11 +567,13 @@ out.semM1spontOFF=semM1spontOFF;
 out.amps=amps;
 out.freqs=freqs;
 out.probefreqs=probefreqs;
+out.SOAs=SOAs;
 out.durs=durs;
 out.numamps=numamps;
 out.numfreqs=numfreqs;
 out.numprobefreqs=numprobefreqs;
 out.numdurs=numdurs;
+out.numSOAs=numSOAs;
 out.nreps=nreps;
 out.nrepsON=nrepsON;
 out.nrepsOFF=nrepsOFF;

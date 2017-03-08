@@ -1,8 +1,8 @@
-function PlotTC_PSTH_single(varargin)
+function Plot2Tone_PSTH_single(varargin)
 
-%plots a single file of clustered spiking tuning curve data from djmaus
+%plots a single file of clustered spiking 2 tone data from djmaus
 %
-% usage: PlotTC_PSTH_single(datapath, t_filename, [xlimits],[ylimits], [binwidth])
+% usage: Plot2Tone_PSTH_single(datapath, t_filename, [xlimits],[ylimits], [binwidth])
 % (xlimits, ylimits, binwidth are optional)
 %
 %Processes data if outfile is not found;
@@ -36,7 +36,7 @@ end
 
 if force_reprocess
     fprintf('\nForce re-process\n')
-    ProcessTC_PSTH_single(datadir,  t_filename, xlimits, ylimits);
+    Process2Tone_PSTH_single(datadir,  t_filename, xlimits, ylimits);
 end
 
 [p,f,ext]=fileparts(t_filename);
@@ -56,7 +56,7 @@ if exist(outfilename,'file')
     load(outfilename)
     fprintf('\nloaded outfile.')
 else
-    ProcessTC_PSTH_single(datadir,  t_filename, xlimits, ylimits);
+    Process2Tone_PSTH_single(datadir,  t_filename, xlimits, ylimits);
     load(outfilename);
 end
 
@@ -64,17 +64,19 @@ end
 if ~isempty(xlimits)
     if out.xlimits(1)>xlimits(1) | out.xlimits(2)<xlimits(2) %xlimits in outfile are too narrow, so reprocess
     fprintf('\nPlot called with xlimits [%d %d] but xlimits in outfile are [%d %d], re-processing...', xlimits(1), xlimits(2), out.xlimits(1), out.xlimits(2))
-        ProcessTC_PSTH_single(datadir,  t_filename, xlimits, ylimits);
+        Process2Tone_PSTH_single(datadir,  t_filename, xlimits, ylimits);
         load(outfilename);
     end
 end
 
 IL=out.IL; %whether there are any interleaved laser trials
 freqs=out.freqs;
+probefreqs=out.probefreqs;
 amps=out.amps;
 durs=out.durs;
 nreps=out.nreps;
 numfreqs=out.numfreqs;
+numprobefreqs=out.numprobefreqs;
 numamps=out.numamps;
 numdurs=out.numdurs;
 samprate=out.samprate; %in Hz
@@ -110,24 +112,26 @@ fs=10; %fontsize
 if isempty(ylimits)
     ymax=0;
     for aindex=[numamps:-1:1]
-        for findex=1:numfreqs
+        for findex=1:numfreqs 
+            for pfindex=1:numprobefreqs
             for dindex=1:numdurs
-                st=mM1OFF(findex, aindex, dindex).spiketimes;
+                st=mM1OFF(findex, pfindex, aindex, dindex).spiketimes;
                 X=xlimits(1):binwidth:xlimits(2); %specify bin centers
                 [N, x]=hist(st, X);
-                N=N./nreps(findex, aindex, dindex); %normalize to spike rate (averaged across trials)
+                N=N./nreps(findex, pfindex, aindex, dindex); %normalize to spike rate (averaged across trials)
                 N=1000*N./binwidth; %normalize to spike rate in Hz
                 ymax= max(ymax,max(N));
                 
                 if IL
-                    st=mM1ON(findex, aindex, dindex).spiketimes;
+                    st=mM1ON(findex, pfindex, aindex, dindex).spiketimes;
                     X=xlimits(1):binwidth:xlimits(2); %specify bin centers
                     [N, x]=hist(st, X);
-                    N=N./nreps(findex, aindex, dindex); %normalize to spike rate (averaged across trials)
+                    N=N./nreps(findex, pfindex, aindex, dindex); %normalize to spike rate (averaged across trials)
                     N=1000*N./binwidth; %normalize to spike rate in Hz
                     ymax= max(ymax,max(N));
                 end
             end
+        end
         end
     end
     ylimits=[-.3 ymax];
@@ -162,24 +166,26 @@ for windex=1:numw
     p=0;
     subplot1(numy,numx, 'Max', [.95 .9])
     for yindex=ystart:ystep:yend
-        for findex=1:numfreqs
+        for findex=1:numfreqs 
+            for pfindex=1:numprobefreqs
+        for pfindex=1:numprobefreqs
             p=p+1;
             subplot1(p)
             hold on
             if numamps>=numdurs, aindex=yindex; dindex=windex; 
             else aindex=windex; dindex=yindex;
             end
-            spiketimes1=mM1OFF(findex, aindex, dindex).spiketimes;
+            spiketimes1=mM1OFF(findex, pfindex, aindex, dindex).spiketimes;
             X=xlimits(1):binwidth:xlimits(2); %specify bin centers
             [N, x]=hist(spiketimes1, X);
-            N=N./nreps(findex, aindex, dindex); %normalize to spike rate (averaged across trials)
+            N=N./nrepsOFF(findex, pfindex, aindex, dindex); %normalize to spike rate (averaged across trials)
             N=1000*N./binwidth; %normalize to spike rate in Hz
             offset=0;
             yl=ylimits;
-            inc=(yl(2))/max(max(max(nreps)));
+            inc=(yl(2))/max(max(max(nrepsOFF)));
             if rasters==1
-                for n=1:nrepsOFF(findex, aindex, dindex)
-                    spiketimes2=M1OFF(findex, aindex, dindex, n).spiketimes;
+                for n=1:nrepsOFF(findex, pfindex, aindex, dindex)
+                    spiketimes2=M1OFF(findex, pfindex, aindex, dindex, n).spiketimes;
                     offset=offset+inc;
                     h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k');
                 end
@@ -188,7 +194,7 @@ for windex=1:numw
             
             offsetS=ylimits(1)+.05*diff(ylimits);
             if StimRecorded
-                Stimtrace=squeeze(mM1OFFStim(findex, aindex, dindex, :));
+                Stimtrace=squeeze(mM1OFFStim(findex, pfindex, aindex, dindex, :));
                 Stimtrace=Stimtrace -mean(Stimtrace(1:100));
                 Stimtrace=1.25*diff(ylimits)*Stimtrace;
                 t=1:length(Stimtrace);
@@ -226,35 +232,11 @@ for windex=1:numw
             h=text(0, range(yl),sprintf('%d ms',durs(dindex)));
             set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal','position',[0 range(yl)*.8 0])
         end
+            end
     end
 end
 
- %label amps and freqs
-        p=0;
-        for yindex=ystart:ystep:yend
-            for findex=1:numfreqs
-                p=p+1;
-                subplot1(p)
-                
-                if findex==1
-                    if numamps>=numdurs
-                        text(xlimits(1)-diff(xlimits)/2, mean(ylimits), int2str(amps(yindex)))
-                    else
-                        text(xlimits(1)+diff(xlimits)/20, mean(ylimits), int2str(durs(yindex)))
-                    end
-                end
-                if aindex==1
-                    if mod(findex,2) %odd freq
-                        vpos=mean(ylimits);
-%                        vpos=ylimits(1)-mean(ylimits);
-                    else
-                        vpos=mean(ylimits);
-                    end
-                    text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
-                end
-            end
-        end
-        
+
 if IL
     %plot the mean tuning curve ON
     for windex=1:numw
@@ -262,32 +244,33 @@ if IL
         p=0;
         subplot1(numy,numx, 'Max', [.95 .9])
         for yindex=ystart:ystep:yend
-            for findex=1:numfreqs
+            for findex=1:numfreqs 
+                for pfindex=1:numprobefreqs
                 p=p+1;
                 subplot1(p)
                 hold on
                 if numamps>=numdurs, aindex=yindex; dindex=windex;
                 else aindex=windex; dindex=yindex;
                 end
-                spiketimes1=mM1ON(findex, aindex, dindex).spiketimes;
+                spiketimes1=mM1ON(findex, pfindex, aindex, dindex).spiketimes;
                 X=xlimits(1):binwidth:xlimits(2); %specify bin centers
                 [N, x]=hist(spiketimes1, X);
-                N=N./nreps(findex, aindex, dindex); %normalize to spike rate (averaged across trials)
+                N=N./nreps(findex, pfindex, aindex, dindex); %normalize to spike rate (averaged across trials)
                 N=1000*N./binwidth; %normalize to spike rate in Hz
                 offset=0;
                 yl=ylimits;
                 inc=(yl(2))/max(max(max(nreps)));
                 if rasters==1
-                    for n=1:nrepsON(findex, aindex, dindex)
-                        spiketimes2=M1ON(findex, aindex, dindex, n).spiketimes;
+                    for n=1:nrepsON(findex, pfindex, aindex, dindex)
+                        spiketimes2=M1ON(findex, pfindex, aindex, dindex, n).spiketimes;
                         offset=offset+inc;
                         %this should plot a cyan line for every trial among the rasters
                         %it should accomodate trial-by-trial changes to
                         %Laser params
-                        MLaserStart=M_LaserStart(findex,aindex,dindex, n);
-                        MLaserWidth=M_LaserWidth(findex,aindex,dindex, n);
-                        MLaserNumPulses=M_LaserNumPulses(findex,aindex,dindex, n);
-                        MLaserISI=M_LaserISI(findex,aindex,dindex, n);
+                        MLaserStart=M_LaserStart(findex, pfindex,aindex,dindex, n);
+                        MLaserWidth=M_LaserWidth(findex, pfindex,aindex,dindex, n);
+                        MLaserNumPulses=M_LaserNumPulses(findex, pfindex,aindex,dindex, n);
+                        MLaserISI=M_LaserISI(findex, pfindex,aindex,dindex, n);
                         for np=1:MLaserNumPulses
                             plot([MLaserStart+(np-1)*(MLaserWidth+MLaserISI) MLaserStart+(np-1)*(MLaserWidth+MLaserISI)+MLaserWidth], [1 1]+yl(2)+offset, 'c')
                         end
@@ -298,7 +281,7 @@ if IL
                 line(xlimits, [0 0], 'color', 'k')
                 
                 if StimRecorded
-                    Stimtrace=squeeze(mM1OFFStim(findex, aindex, dindex, :));
+                    Stimtrace=squeeze(mM1OFFStim(findex, pfindex, aindex, dindex, :));
                     Stimtrace=Stimtrace -mean(Stimtrace(1:100));
                     Stimtrace=.25*diff(ylimits)*Stimtrace;
                     t=1:length(Stimtrace);
@@ -317,8 +300,8 @@ if IL
 %                 ylim([-2 1.1*(yl(2)+offset)])
                 
                 if LaserRecorded
-                    for rep=1:nrepsON(findex, aindex, dindex)
-                        Lasertrace=squeeze(M1ONLaser(findex, aindex, dindex,rep, :));
+                    for rep=1:nrepsON(findex, pfindex, aindex, dindex)
+                        Lasertrace=squeeze(M1ONLaser(findex, pfindex, aindex, dindex,rep, :));
                         Lasertrace=Lasertrace -mean(Lasertrace(1:100));
                         Lasertrace=.05*diff(ylimits)*Lasertrace;
                         plot( t, Lasertrace+offset, 'c')
@@ -337,6 +320,7 @@ if IL
                 set(gca, 'yticklabel', '')
                 
             end
+            end
         end
         subplot1(1)
         h=title(sprintf('%s: \ntetrode%d cell%d %dms, nreps: %d-%d, ON',datadir,channel,out.cluster,durs(dindex),min(min(min(nrepsON))),max(max(max(nrepsON)))));
@@ -345,7 +329,7 @@ if IL
         %label amps and freqs
         p=0;
         for yindex=ystart:ystep:yend
-            for findex=1:numfreqs
+            for findex=1:numfreqs for pfindex=1:numprobefreqs
                 p=p+1;
                 subplot1(p)
                 

@@ -627,7 +627,7 @@ buffSize=[]; %use default
 Mode=3; %full duplex: simultaneous capture and playback
 
 %hack mw 10.13.2016 to use other soundcard for input
-Mode=1;
+%Mode=1;
 
 %stop and close
 try
@@ -637,15 +637,16 @@ end
 
 try pahandle = PsychPortAudio('Open', DeviceID, Mode, reqlatencyclass, SoundFs, numChan, buffSize);
  %hack mw 10.13.2016:
- paInhandle = PsychPortAudio('Open', 0, 2, reqlatencyclass, SoundFs, numChan, buffSize);
+% paInhandle = PsychPortAudio('Open', 0, 2, reqlatencyclass, SoundFs, numChan, buffSize);
     %runMode = 0; %default, turns off soundcard after playback
     runMode = 1; %leaves soundcard on (hot), uses more resources but may solve dropouts? mw 08.25.09: so far so good.
     PsychPortAudio('RunMode', pahandle, runMode);
     % Preallocate an internal audio recording  buffer with a capacity of 10 seconds:
-    PsychPortAudio('GetAudioData', paInhandle, 10);%hack mw 10.13.2016
+%     PsychPortAudio('GetAudioData', paInhandle, 10);%hack mw 10.13.2016
+     PsychPortAudio('GetAudioData', pahandle, 10);%hack mw 10.13.2016
     
     userdata.pahandle=pahandle;
-    userdata.paInhandle=paInhandle;%hack mw 10.13.2016
+%     userdata.paInhandle=paInhandle;%hack mw 10.13.2016
     set(handles.figure1, 'userdata', userdata);
     Message('Initialized Sound', handles)
     
@@ -928,21 +929,22 @@ samples=reshape(samples, nstimchans, length(samples)); %ensure samples are a row
 samples(2,:)=0.*samples;
 
 pahandle=userdata.pahandle;
-paInhandle=userdata.paInhandle;
+%paInhandle=userdata.paInhandle;
 PsychPortAudio('FillBuffer', pahandle, samples); % fill buffer
 nreps=1;
 when=0; %use this to start immediately
 waitForStart=0;
 PsychPortAudio('Start', pahandle,nreps,when,waitForStart);
-PsychPortAudio('Start', paInhandle,nreps,when,waitForStart);
+%PsychPortAudio('Start', paInhandle,nreps,when,waitForStart);
 
 % Stop capture:
 waitForEndOfPlayback=1; %'waitForEndOfPlayback' - If set to 1, this method will wait until playback of the audio stream finishes by itself.
 PsychPortAudio('Stop', pahandle, waitForEndOfPlayback);
-PsychPortAudio('Stop', paInhandle, waitForEndOfPlayback);
+%PsychPortAudio('Stop', paInhandle, waitForEndOfPlayback);
 
 % Retrieve pending audio data from the drivers internal ringbuffer:
-[audiodata absrecposition overflow cstarttime] = PsychPortAudio('GetAudioData', paInhandle);
+[audiodata absrecposition overflow cstarttime] = PsychPortAudio('GetAudioData', pahandle);
+%[audiodata absrecposition overflow cstarttime] = PsychPortAudio('GetAudioData', paInhandle);
 nrsamples = size(audiodata, 2);
 if overflow>0 warning('overflow in RecordTone'); end
 

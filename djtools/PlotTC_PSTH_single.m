@@ -194,9 +194,12 @@ for windex=1:numw
                 t=1:length(Stimtrace);
                 t=1000*t/out.samprate; %convert to ms
                 t=t+out.xlimits(1); %correct for xlim in original processing call
-                plot(t, Stimtrace+offsetS, 'm')
+                stimh=plot(t, Stimtrace+offsetS, 'm');
+                uistack(stimh, 'bottom')
+                ylimits2(1)=2*offsetS;
             else
                 line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
+                ylimits2(1)=-2;
             end
 %             if LaserRecorded
 %                 for rep=1:nrepsOFF(findex, aindex, dindex)
@@ -210,7 +213,6 @@ for windex=1:numw
             %                 line(xlimits, [0 0], 'color', 'k')
             ylimits2(2)=ylimits(2)+offset;
             ylimits2(2)=2*ylimits(2);
-            ylimits2(1)=-2;
 %             ylim([-2 1.1*(yl(2)+offset)])
             ylim(ylimits2)
             
@@ -305,16 +307,18 @@ if IL
                     t=1000*t/out.samprate; %convert to ms
                     t=t+out.xlimits(1); %correct for xlim in original processing call
                     offset=ylimits(1)+.1*diff(ylimits);
-                    plot(t, Stimtrace+offset, 'm')
+                    stimh=plot(t, Stimtrace+offsetS, 'm');
+                    uistack(stimh, 'bottom')
+                    ylimits2(1)=2*offsetS;
                 else
                     line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
+                    ylimits2(1)=-2;
                 end
                 
-            ylimits2(2)=ylimits(2)+offset;
-            ylimits2(2)=2*ylimits(2);
-                ylimits2(1)=-2;
+                ylimits2(2)=ylimits(2)+offset;
+                ylimits2(2)=2*ylimits(2);
                 ylim(ylimits2)
-%                 ylim([-2 1.1*(yl(2)+offset)])
+                %                 ylim([-2 1.1*(yl(2)+offset)])
                 
                 if LaserRecorded
                     for rep=1:nrepsON(findex, aindex, dindex)

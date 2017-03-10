@@ -20,9 +20,12 @@
 %need to mount it first (outside of matlab -i.e. in windows explorer or
 %finder).
 %cd('/Volumes/D/lab/djmaus/Data/lab') %this is mac format
-cd('D:\lab\djmaus\Data\lab') %this is windows format
-psfilename=['D:\lab\djmaus\Data\lab\',sprintf('plot_all_cells_%s_CT.ps',datestr(now,'YY-mm-DD_hh-MM'))];
-cell_list='ACIC_Click.txt';
+%cd('D:\lab\djmaus\Data\lab') %this is windows format
+cd('/Volumes/D/lab/djmaus/Data/lab') %mac 
+%psfilename=['D:\lab\djmaus\Data\lab\',sprintf('plot_all_cells_%s_CT.ps',datestr(now,'YY-mm-DD_hh-MM'))];
+psfilename=['/Volumes/D/lab/djmaus/Data/lab/',sprintf('plot_all_cells_%s_NTSR_CT.ps',datestr(now,'YY-mm-DD_hh-MM'))];
+
+cell_list='NTSR_Click.txt';
 
 
 xlimits=[-300 300];
@@ -64,10 +67,10 @@ while 1 %processes until end of file is reached, then breaks
         %expects. The datapath in the cell list can vary depending on which
         %machine was used when you built the cell list. It might take a little
         %trial and error to get the datapath to be recognized properly.
-        %newdatadir=strrep(datadir, '\\Wehrrig1b', '/Volumes');
-        %newdatadir=strrep(newdatadir, '\\wehrrig1b', '/Volumes');
-        %newdatadir=strrep(datadir, 'D:', '/Volumes/D');
-        %newdatadir=strrep(newdatadir, '\', '/'); %format for mac
+       % newdatadir=strrep(datadir, '\\Wehrrig1b', '/Volumes');
+       % newdatadir=strrep(newdatadir, '\\wehrrig1b', '/Volumes');
+        newdatadir=strrep(datadir, 'D:', '/Volumes/D');
+        newdatadir=strrep(newdatadir, '\', '/'); %format for mac
 
         %fprintf('\n%s', datadir);
         %here you would use the appropriate function to process and/or plot your
@@ -77,7 +80,7 @@ while 1 %processes until end of file is reached, then breaks
         %certain xlimits, etc.
         %ProcessArchPVRev2(newdatadir, filename, xlimits)
         close all
-        PlotClicktrain_PSTH(datadir, filename(3),filename(18))
+        PlotClicktrain_PSTH(newdatadir, filename(3),filename(18))
         for f=2
             figure(f)
         	orient tall

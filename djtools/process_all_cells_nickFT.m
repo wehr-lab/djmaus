@@ -19,10 +19,11 @@
 %running on. If you're processing data on a remote machine you probably
 %need to mount it first (outside of matlab -i.e. in windows explorer or
 %finder).
-%cd('/Volumes/D/lab/djmaus/Data/lab') %this is mac format
-cd('D:\lab\djmaus\Data\lab') %this is windows format
-psfilename=['D:\lab\djmaus\Data\lab\',sprintf('plot_all_cells_%s_FT.ps',datestr(now,'YY-mm-DD_hh-MM'))];
-cell_list='ACIC_Flash.txt';
+cd('/Volumes/D/lab/djmaus/Data/lab') %this is mac format
+%cd('D:\lab\djmaus\Data\lab') %this is windows format
+psfilename=['/Volumes/D/lab/djmaus/Data/lab/',sprintf('plot_all_cells_%s_NTSR_CT.ps',datestr(now,'YY-mm-DD_hh-MM'))];
+%psfilename=['D:\lab\djmaus\Data\lab\',sprintf('plot_all_cells_%s_FT.ps',datestr(now,'YY-mm-DD_hh-MM'))];
+cell_list='NTSR_Flash.txt';
 
 
 xlimits=[-300 300];
@@ -67,8 +68,8 @@ while 1 %processes until end of file is reached, then breaks
         %trial and error to get the datapath to be recognized properly.
         %newdatadir=strrep(datadir, '\\Wehrrig1b', '/Volumes');
         %newdatadir=strrep(newdatadir, '\\wehrrig1b', '/Volumes');
-        %newdatadir=strrep(datadir, 'D:', '/Volumes/D');
-        %newdatadir=strrep(newdatadir, '\', '/'); %format for mac
+        newdatadir=strrep(datadir, 'D:', '/Volumes/D');
+        newdatadir=strrep(newdatadir, '\', '/'); %format for mac
 
         %fprintf('\n%s', datadir);
         %here you would use the appropriate function to process and/or plot your
@@ -78,7 +79,7 @@ while 1 %processes until end of file is reached, then breaks
         %certain xlimits, etc.
         %ProcessArchPVRev2(newdatadir, filename, xlimits)
         close all
-        PlotFlashtrain_PSTH(datadir, filename(3),filename(18))
+        PlotFlashtrain_PSTH(newdatadir, filename(3),filename(18))
         for f=1
             figure(f)
         	orient tall

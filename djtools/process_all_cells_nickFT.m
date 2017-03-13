@@ -21,7 +21,7 @@
 %finder).
 cd('/Volumes/D/lab/djmaus/Data/lab') %this is mac format
 %cd('D:\lab\djmaus\Data\lab') %this is windows format
-psfilename=['/Volumes/D/lab/djmaus/Data/lab/',sprintf('plot_all_cells_%s_NTSR_CT.ps',datestr(now,'YY-mm-DD_hh-MM'))];
+psfilename=['/Volumes/D/lab/djmaus/Data/lab/',sprintf('plot_all_cells_%s_NTSR_FT.ps',datestr(now,'YY-mm-DD_hh-MM'))];
 %psfilename=['D:\lab\djmaus\Data\lab\',sprintf('plot_all_cells_%s_FT.ps',datestr(now,'YY-mm-DD_hh-MM'))];
 cell_list='NTSR_Flash.txt';
 

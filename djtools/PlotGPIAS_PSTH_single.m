@@ -8,7 +8,7 @@ function PlotGPIAS_PSTH_single(varargin)
 %Processes data if outfile is not found;
 
 
-rasters=1;
+rasters=0;
 force_reprocess=0;
 
 if nargin==0

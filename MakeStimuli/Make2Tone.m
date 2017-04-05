@@ -1,4 +1,4 @@
-function tone=MakeTone(varargin)
+function tone=Make2Tone(varargin)
 
 % Note: now we use absolute SPL instead of attenuation!!!
 

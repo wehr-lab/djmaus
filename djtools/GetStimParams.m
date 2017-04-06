@@ -43,6 +43,13 @@ allgapdurs=[];
 alldescriptions=[];
 allfiles=[];
 allfields={};
+alllasers=[];
+allVarLasers=[];
+allVarLaserstarts =[];
+allVarLaserpulsewidths=[];
+allVarLasernumpulses=[];
+allVarLaserisis=[];
+allicis=[];
 
 for i=1:length(stimlog)
     allstimlogs{i}=stimlog(i).type;
@@ -110,6 +117,28 @@ for i=1:length(stimlog)
     if isfield(stimlog(i).param, 'file')
         allfiles{i}= stimlog(i).param.file;
     end
+    if isfield(stimlog(i).param, 'laser')
+        alllasers=[alllasers stimlog(i).param.laser];
+    end
+    if isfield(stimlog(i).param, 'VarLaser')
+        allVarLasers=[allVarLasers stimlog(i).param.VarLaser];
+    end
+    if isfield(stimlog(i).param, 'VarLaserstart')
+        allVarLaserstarts=[allVarLaserstarts stimlog(i).param.VarLaserstart];
+    end
+    if isfield(stimlog(i).param, 'VarLaserpulsewidth')
+        allVarLaserpulsewidths=[allVarLaserpulsewidths stimlog(i).param.VarLaserpulsewidth];
+    end
+    if isfield(stimlog(i).param, 'VarLasernumpulses')
+        allVarLasernumpulses=[allVarLasernumpulses stimlog(i).param.VarLasernumpulses];
+    end
+    if isfield(stimlog(i).param, 'VarLaserisi')
+        allVarLaserisis=[allVarLaserisis stimlog(i).param.VarLaserisi];
+    end
+    if isfield(stimlog(i).param, 'ici')
+        allicis=[allicis stimlog(i).param.ici];
+    end
+    
 end
 
 stimparams.protocol_description=stimlog(1).protocol_description;
@@ -139,5 +168,25 @@ stimparams.lower_frequencies=unique(alllower_frequencies);
 stimparams.upper_frequencies=unique(allupper_frequencies);
 stimparams.allfields=unique(allfields);
 stimparams.descriptions=unique(alldescriptions);
+
+stimparams.lasers=unique(alllasers);
+stimparams.VarLasers=unique(allVarLasers);
+stimparams.VarLaserstarts=unique(allVarLaserstarts);
+stimparams.VarLaserpulsewidths=unique(allVarLaserpulsewidths);
+stimparams.VarLasernumpulses=unique(allVarLasernumpulses);
+stimparams.VarLaserisis=unique(allVarLaserisis);
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

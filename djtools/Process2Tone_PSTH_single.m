@@ -105,6 +105,8 @@ switch (GetPlottingFunction(datadir))
         %that's fine
     case 'Plot2Tone_PSTH'
         %also fine, for now
+    case 'Plot2Tone_PSTH'
+        %OK
     otherwise
         warning('GetPlottingFunction does not check out.')
         error('This stimulus protcol does not appear to have any tones or whitenoise.')

@@ -1,4 +1,4 @@
-function PlotPINP_PSTH_single(varargin)
+function PlotPINPWN_PSTH_single(varargin)
 
 %plots a single file of clustered spiking tuning curve data from djmaus
 %this function plots silent sounds with laser on, that's it.

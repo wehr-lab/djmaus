@@ -253,12 +253,12 @@ for i=1:length(Events)
                 nrepsOFF(dindex)=nrepsOFF(dindex)+1;
                 MSilentSoundOFF(dindex, nrepsOFF(dindex)).spiketimes=spiketimes1;
                 if LaserRecorded
-                    MSilentSoundOFFLasertrace(nrepsOFF(dindex),:)=Lasertrace(region);
+                    MSilentSoundOFFLasertrace(dindex, nrepsOFF(dindex),:)=Lasertrace(region);
                 else
                     MSilentSoundOFFLasertrace=[];
                 end
                 if StimRecorded
-                    MSilentSoundOFFStimtrace(nrepsOFF(dindex),:)=Stimtrace(region);
+                    MSilentSoundOFFStimtrace(dindex, nrepsOFF(dindex),:)=Stimtrace(region);
                 else
                     MSilentSoundOFFStimtrace=[];
                 end
@@ -269,12 +269,12 @@ for i=1:length(Events)
                 nrepsPulse(pwindex)=nrepsPulse(pwindex)+1;
                 MPulse(pwindex, nrepsPulse(pwindex)).spiketimes=spiketimes1;
                 if LaserRecorded
-                    MPulseLasertrace(nrepsPulse(pwindex),:)=Lasertrace(region);
+                    MPulseLasertrace(pwindex, nrepsPulse(pwindex),:)=Lasertrace(region);
                 else
                     MPulseLasertrace=[];
                 end
                 if StimRecorded
-                    MPulseStimtrace(nrepsPulse(pwindex),:)=Stimtrace(region);
+                    MPulseStimtrace(pwindex, nrepsPulse(pwindex),:)=Stimtrace(region);
                 else
                     MPulseStimtrace=[];
                 end
@@ -290,12 +290,12 @@ for i=1:length(Events)
                 nrepsTrain(tnpindex, tpwindex, tiindex)=nrepsTrain(tnpindex,tpwindex, tiindex)+1;
                 MTrain(tnpindex, tpwindex, tiindex, nrepsTrain(tnpindex, tpwindex, tiindex)).spiketimes=spiketimes1;
                 if LaserRecorded
-                    MTrainLasertrace(nrepsTrain(tnpindex, tpwindex, tiindex),:)=Lasertrace(region);
+                    MTrainLasertrace(tnpindex, tpwindex, tiindex, nrepsTrain(tnpindex, tpwindex, tiindex),:)=Lasertrace(region);
                 else
                     MTrainLasertrace=[];
                 end
                 if StimRecorded
-                    MTrainStimtrace(nrepsTrain(tnpindex, tpwindex, tiindex),:)=Stimtrace(region);
+                    MTrainStimtrace(tnpindex, tpwindex, tiindex, nrepsTrain(tnpindex, tpwindex, tiindex),:)=Stimtrace(region);
                 else
                     MTrainStimtrace=[];
                 end

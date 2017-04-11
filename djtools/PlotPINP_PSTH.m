@@ -16,7 +16,6 @@ function PlotPINP_PSTH(varargin)
 %
 %Processes data if outfile is not found;
 
-rasters=1;
 
 try
     datadir=varargin{1};
@@ -58,6 +57,7 @@ end
 cd(datadir)
 if isempty(channel)     %default to all tetrodes
     d=dir('*.t');
+    if isempty(d) fprintf('\nno .t files found'), end
     for i=1:length(d)
         fn=d(i).name;
         PlotPINP_PSTH_single(datadir, fn, xlimits, ylimits)

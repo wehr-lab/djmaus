@@ -13,6 +13,7 @@ function djmaus(varargin)
 
 %ISI works by setting the djTimerDelay to
 %stimulus.param.duration/1000 + stimulus.param.next/1000
+%test comment
 
 global SP pref djTimer djTimerDelay
 

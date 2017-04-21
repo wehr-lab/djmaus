@@ -24,6 +24,8 @@ function dBPSD=dBPSD(Px, sensitivity)
 
 
 switch sensitivity
+    case .1
+        F= 7.57e-04;
     case .316
         F=.00757;
     case 1

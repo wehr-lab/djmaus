@@ -78,3 +78,5 @@ were completely messed up. Changing the recording node from bandpass filter to r
 
 if you're using open-ephys and djmaus on different computers, be sure to turn sharing on for the data drive on 
 the open-ephys computer, and change the permissions to full. Right click on D:, properties, sharing.
+
+-On Windows, if you get 'v140 tools not installed' error in Visual Studio: right click open-ephys project - Properties - General - in building tools scroll bar select v140 tools that are installed. 

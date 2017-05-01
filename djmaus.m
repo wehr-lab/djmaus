@@ -625,6 +625,8 @@ switch type
         fcn='MakeSilentSound';
     case '2tone'
         fcn='Make2Tone';
+    case 'soundfile'
+        fcn='LoadSoundfile';
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

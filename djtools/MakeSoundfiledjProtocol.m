@@ -1,9 +1,12 @@
 function [filename,path]=MakeSoundfiledjProtocol(amplitude, dur, include_whitenoise, interleave_laser, include_silent_sound, isi, nrepeats)
 
-% Usage: MakeSoundfiledjProtocol(amplitude, include_whitenoise,
-%       interleave_laser, include_silent_sound, isi, nrepeats)
+% Usage: MakeSoundfiledjProtocol(amplitude, dur, include_whitenoise, ...
+%        interleave_laser, include_silent_sound, isi, nrepeats)
+
+
 %
-% loads sounds from a folder of sound files (e.g., WAV files). Opens a dialog box for you to select the folder.
+% loads sounds from sound files (e.g., WAV files). Opens a dialog box for
+% you to select the sound files and provide a descriptive name for the protocol. 
 %
 %
 % see help audioread for list of supported file formats. WAV works for
@@ -13,7 +16,7 @@ function [filename,path]=MakeSoundfiledjProtocol(amplitude, dur, include_whiteno
 % amplitude: in dB SPL. All sounds will be normalized to peak level across all sounds,
 %   then scaled to this amplitude
 % duration (in seconds): how much of the soundfile to use
-%   (defaults to total duration of the soundfile)
+%   (use [] to default to total duration of the soundfile)
 % include_whitenoise: 0 or 1 to include white noise bursts (at amplitude)
 % interleave_laser: 0 or 1 to duplicate all stimuli and interleave laser
 %            and non-laser trials in random order
@@ -23,19 +26,15 @@ function [filename,path]=MakeSoundfiledjProtocol(amplitude, dur, include_whiteno
 % isi: inter stimulus interval (onset-to-onset) in ms
 % nrepeats: number of repetitions (different pseudorandom orders)
 % OUTPUTS:
-%       - creates a suitably named stimulus protocol in djprefs.stimuli\Tone Protocols
+%       - creates a suitably named stimulus protocol in djprefs.stimuli\Soundfile Protocols
+%       - copies resampled/truncated/amplitude-adjusted sourcefiles to subfolder
 %       - returns name & path to protocol (AKH 6/19/13)
 % ------------------------------------------------------------------------
 %
-% example call: MakeTonedjProtocol(4, 1000, 32000, 3, 50, 80, 200, 10, 1, 1, 1, 500, 10)
-%
-% example call with multiple durations:
-% MakeTonedjProtocol(4, 1000, 32000, 3, 50, 80, [200 400],10,1,1, 1, 500, 10)
-%
-% MakeTonedjProtocol(0, 0, 0, 1, 70, 70, [1 2 4 8 16 32 64 128 256],0,1,0, 1, 1000, 10)
-%
+% example call: 
 % amp= 70; dur=[]; include_whitenoise= 1; interleave_laser= 1; include_silent_sound= 1; isi= 500; nrepeats= 20;
-% MakeWAVdjProtocol(amp, dur, include_whitenoise, interleave_laser, include_silent_sound, isi, nrepeats)
+%MakeSoundfiledjProtocol(amp, dur, include_whitenoise, interleave_laser, include_silent_sound, isi, nrepeats)
+
 
 
 if nargin==0; fprintf('\nno input');return;end

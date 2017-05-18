@@ -649,10 +649,8 @@ catch
     out.user='unknown';
 end
 out.t_filename=filename;
+out.outfile_created_by=mfilename;
 outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
-<<<<<<< HEAD
 save (outfilename, 'out', '-v7.3')
-=======
-save (outfilename, 'out', 'v7.3')
->>>>>>> origin/master
+
 

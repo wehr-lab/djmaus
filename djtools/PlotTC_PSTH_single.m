@@ -88,6 +88,7 @@ if isempty(xlimits) xlimits=out.xlimits;end
 
 LaserRecorded=out.LaserRecorded;
 StimRecorded=out.StimRecorded;
+try
 M_LaserStart=out.M_LaserStart;
 M_LaserWidth=out.M_LaserWidth;
 M_LaserNumPulses=out.M_LaserNumPulses;
@@ -96,6 +97,7 @@ LaserStart=out.LaserStart;
 LaserWidth=out.LaserWidth;
 LaserNumPulses=out.LaserNumPulses;
 LaserISI=out.LaserISI;
+end
 M1ONStim=out.M1ONStim;
 M1ONLaser=out.M1ONLaser; % a crash here means this is an obsolete outfile. Set force_reprocess=1 up at the top of this mfile. (Don't forget to reset it to 0 when you're done)
 mM1ONStim=out.mM1ONStim;
@@ -330,10 +332,10 @@ if IL
                 end
                 %this should plot a cyan line at the unique Laser
                 %params - not sure what will happen if not scalar
-                for np=1:LaserNumPulses
-                    plot([LaserStart+(np-1)*(LaserWidth+LaserISI) LaserStart+(np-1)*(LaserWidth+LaserISI)+LaserWidth], [-2 -2], 'c', 'linewidth', 2)
-                end
-                line([0 0+durs(dindex)], [-.2 -.2], 'color', 'm', 'linewidth', 4)
+%                 for np=1:LaserNumPulses
+%                     plot([LaserStart+(np-1)*(LaserWidth+LaserISI) LaserStart+(np-1)*(LaserWidth+LaserISI)+LaserWidth], [-2 -2], 'c', 'linewidth', 2)
+%                 end
+%                 line([0 0+durs(dindex)], [-.2 -.2], 'color', 'm', 'linewidth', 4)
                 
                 xlim(xlimits)
                 set(gca, 'fontsize', fs)

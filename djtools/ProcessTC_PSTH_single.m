@@ -133,7 +133,7 @@ allamps=[];
 for i=1:length(Events)
     if strcmp(Events(i).type, '2tone') |strcmp(Events(i).type, 'tone') ...
             |strcmp(Events(i).type, 'fmtone') | strcmp(Events(i).type, 'whitenoise') ...
-            | strcmp(Events(i).type, 'grating') | strcmp(Events(i).type, 'silentsound')
+            | strcmp(Events(i).type, 'grating') |strcmp(Events(i).type, 'silentsound')
         j=j+1;
         alldurs(j)=Events(i).duration;
         if strcmp(Events(i).type, 'tone') | strcmp(Events(i).type, '2tone')
@@ -148,6 +148,10 @@ for i=1:length(Events)
         elseif strcmp(Events(i).type, 'grating')
             allfreqs(j)=Events(i).angle*1000;
             allamps(j)=Events(i).spatialfrequency;
+        elseif strcmp(Events(i).type, 'silentsound')
+            allfreqs(j)=-1;
+            allamps(j)=-1000;
+            alldurs(j)=Events(i).duration;
         end
     end
 end
@@ -315,6 +319,7 @@ for i=1:length(Events)
                     nreps_ssON=nreps_ssON+1;
                     SilentSoundON(nreps_ssON).spiketimes=spiketimes1;
                     SilentSoundONspikecount(nreps_ssON)=spikecount;
+                    
                     if LaserRecorded
                         SilentSoundONLaser(nreps_ssON,:)=Lasertrace(region);
                     else

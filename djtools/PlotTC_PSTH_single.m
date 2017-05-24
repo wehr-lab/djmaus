@@ -158,7 +158,7 @@ end
     
 %plot the mean tuning curve OFF
 for windex=1:numw
-    figure('position',[650 100 600 600])
+    figure('position',[200 100 600 600])
     p=0;
     subplot1(numy,numx, 'Max', [.95 .9])
     for yindex=ystart:ystep:yend
@@ -184,7 +184,8 @@ for windex=1:numw
                     h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k');
                 end
             end
-            bar(x,N,1);
+            b=bar(x,N,1);
+            set(b, 'facecolor', 'k');
             
             offsetS=ylimits(1)+.05*diff(ylimits);
             if StimRecorded
@@ -196,7 +197,7 @@ for windex=1:numw
                 t=t+out.xlimits(1); %correct for xlim in original processing call
                 stimh=plot(t, Stimtrace+offsetS, 'm');
                 uistack(stimh, 'bottom')
-                ylimits2(1)=2*offsetS;
+                ylimits2(1)=0;%2*offsetS;
             else
                 line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
                 ylimits2(1)=-2;
@@ -296,7 +297,8 @@ if IL
                         h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k');
                     end
                 end
-                bar(x, N,1);
+                b=bar(x, N,1);
+                set(b, 'facecolor', 'k');
                 line(xlimits, [0 0], 'color', 'k')
                 
                 if StimRecorded
@@ -309,7 +311,7 @@ if IL
                     offset=ylimits(1)+.1*diff(ylimits);
                     stimh=plot(t, Stimtrace+offsetS, 'm');
                     uistack(stimh, 'bottom')
-                    ylimits2(1)=2*offsetS;
+                    ylimits2(1)=0;%2*offsetS;
                 else
                     line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
                     ylimits2(1)=-2;
@@ -320,13 +322,19 @@ if IL
                 ylim(ylimits2)
                 %                 ylim([-2 1.1*(yl(2)+offset)])
                 
-                if LaserRecorded
+                if 0*LaserRecorded
                     for rep=1:nrepsON(findex, aindex, dindex)
                         Lasertrace=squeeze(M1ONLaser(findex, aindex, dindex,rep, :));
                         Lasertrace=Lasertrace -mean(Lasertrace(1:100));
                         Lasertrace=.05*diff(ylimits)*Lasertrace;
                         plot( t, Lasertrace+offset, 'c')
                     end
+                else
+                    
+                    X=[xlimits(1), LaserStart, LaserStart, LaserStart+LaserWidth, LaserStart+LaserWidth, xlimits(2)];
+                    height=diff(ylimits)/5;
+                    Y=[0 0 height height 0 0];
+                    line(X,Y, 'color', 'c', 'linewidth', 2)
                 end
                 %this should plot a cyan line at the unique Laser
                 %params - not sure what will happen if not scalar

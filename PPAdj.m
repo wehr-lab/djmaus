@@ -101,9 +101,10 @@ switch action
     case 'playsound'
         PlaySound;
         
-    case 'stop'
+    case 'stop' 
         % Stop playback:
         PsychPortAudio('Stop',SP.PPAhandle,0);
+        PsychPortAudio('Close', SP.PPAhandle);
         
 
 end

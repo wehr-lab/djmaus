@@ -103,11 +103,12 @@ end
 switch (GetPlottingFunction(datadir))
     case 'PlotTC_PSTH'
         %that's fine
-    case 'PlotMGB_LGN'
+    case 'Plot2Tone_PSTH'
         %also fine, for now
     case 'Plot2Tone_PSTH'
         %OK
     otherwise
+        warning('GetPlottingFunction does not check out.')
         error('This stimulus protcol does not appear to have any tones or whitenoise.')
 end
 
@@ -648,6 +649,8 @@ catch
     out.user='unknown';
 end
 out.t_filename=filename;
+out.outfile_created_by=mfilename;
 outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
-save (outfilename, 'out')
+save (outfilename, 'out', '-v7.3')
+
 

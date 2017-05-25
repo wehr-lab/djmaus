@@ -128,6 +128,13 @@ elseif nstimlog==nEvents & nSCTs < nEvents
             fprintf('\n investigate, and if this appears to be so, add a special case')
             error('ResolveEventMismatch: this case is not handled yet')
     end
+elseif nstimlog==nEvents & nSCTs > nEvents
+    for i=1:nEvents
+        temp(i) = Events(i).soundcard_trigger_timestamp_sec;
+    end
+    [~,ind] = intersect(all_SCTs,temp);
+    all_SCTs = all_SCTs(ind);
+    nSCTs = length(ind);
     
 else
     error('ResolveEventMismatch: this case is not handled yet')

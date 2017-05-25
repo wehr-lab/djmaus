@@ -1,4 +1,4 @@
-function djmaus(varargin)
+ function djmaus(varargin)
 
 % Plays a bunch of different stimuli stored in a .mat file ('protocol')
 % Uses PPA sound which requires PsychToolbox. Download from psychtoolbox.org.
@@ -712,7 +712,9 @@ try
     
     %     SP.activedir=RecordingPath;
     SP.activedir=fullfile(pref.datahost, RecordingPath);
-    SP.activedir=strrep(SP.activedir, ':', '');
+    %SP.activedir=strrep(SP.activedir, ':', ''); %commenting out to run on
+    %single-machine windows configuration - was this important for
+    %2-machine config?? mw 04.11.2017
     
     d=dir(SP.activedir);
     if isempty(d)

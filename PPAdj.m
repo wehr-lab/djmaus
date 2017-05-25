@@ -105,6 +105,8 @@ switch action
         % Stop playback:
         PsychPortAudio('Stop',SP.PPAhandle,0);
         
+    case 'camerapulse'
+        SendCameraPulse
 
 end
 
@@ -210,6 +212,26 @@ param=[]; %do I need to put stuff in param?
 LoadPPA('var',zeros(1,200),param)
 PlaySound
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function SendCameraPulse
+global SP pref  
+%sends a TTL pulse on soundcard channel 2, intended to start/stop a pi
+%camera
+
+PPAhandle=SP.PPAhandle; %grab PPAhandle object from param
+SoundFs=SP.SoundFs; %sampling rate
+numChan=SP.numChan; %number of output channels we initialized the soundcard with
+cameratriglength=round(SoundFs/1000); %1 ms trigger
+samples=zeros(numChan, 2*cameratriglength);
+camera_pulse=zeros(1, 2*cameratriglength);
+camera_pulse(1:cameratriglength)=ones(size(1:cameratriglength));
+samples(2,:)=camera_pulse;
+PsychPortAudio('FillBuffer', PPAhandle, samples); % fill buffer now, start in PlaySound
+PlaySound
+djMessage('djPPA: sent camera pulse', 'append')
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function LoadPPA(type,where,param)

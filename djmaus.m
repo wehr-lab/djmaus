@@ -306,7 +306,8 @@ switch action
     case 'LaserISI'
         SP.LaserISI=str2num(get(SP.LaserISIh, 'string'));
 
-        
+    case 'camerapulse'
+        PPAdj('camerapulse')
 end
 
 function AddUser
@@ -1277,6 +1278,14 @@ SP.mouseIDlabel=uicontrol(fig,'Parent',hp,'tag','mouseIDlabel','style','text','u
     'enable','inact','horiz','left','pos', [e  H w h/2]);
 H=H+h;
 
+%%%%%%%%%%%%%%%%%%
+
+%send pi camera pulse button
+ H=H+5*h+e;
+SP.camerapulse=uicontrol(fig,'tag','camerapulse','style','pushbutton','units','pixels',...
+    'fontname','Arial', ...
+    'string', 'camera','callback', [me ';'],'enable','on','horiz','left','pos',[4*e+3*w H w h ]);
+ H=H+h+e;
 
 
 set(fig,'visible','on');

@@ -105,6 +105,7 @@ if pulsedur>0 %allow for no pulse if duration ==0
 end
 
 tone=continuous_noise;
-
+figure(2)
+plot(tone)
 
 

@@ -2,8 +2,8 @@ function [filename,path]=MakeSoundfiledjProtocol(amplitude, dur, include_whiteno
 
 % Usage: MakeSoundfiledjProtocol(amplitude, dur, include_whitenoise, ...
 %        interleave_laser, include_silent_sound, isi, nrepeats)
-
-
+%
+%
 %
 % loads sounds from sound files (e.g., WAV files). Opens a dialog box for
 % you to select the sound files and provide a descriptive name for the protocol. 
@@ -32,7 +32,7 @@ function [filename,path]=MakeSoundfiledjProtocol(amplitude, dur, include_whiteno
 % ------------------------------------------------------------------------
 %
 % example call: 
-% amp= 70; dur=[]; include_whitenoise= 1; interleave_laser= 1; include_silent_sound= 1; isi= 500; nrepeats= 20;
+% amp= 80; dur=[]; include_whitenoise= 1; interleave_laser= 1; include_silent_sound= 1; isi= 800; nrepeats= 20;
 %MakeSoundfiledjProtocol(amp, dur, include_whitenoise, interleave_laser, include_silent_sound, isi, nrepeats)
 
 
@@ -141,8 +141,8 @@ for nreps=1:nrepeats
         
         %normalize and set to requested SPL;
         s=s./max(abs(s));
-        amplitude=1*(10.^((amp-pref.maxSPL)/20)); %in volts (-1<x<1), i.e. pref.maxSPL=+_1V
-        s=amplitude.*s;
+        %amplitude=1*(10.^((amp-pref.maxSPL)/20)); %in volts (-1<x<1), i.e. pref.maxSPL=+_1V
+        %s=amplitude.*s;
         
         sample.param.description='soundfile stimulus';
         sample.param.duration=durations(i);
@@ -204,7 +204,7 @@ for nreps=1:nrepeats
         if interleave_laser==1
             n=n+1;
             stimuli(n).param.laser=1;
-            stimuli(n).type='silent sound';
+            stimuli(n).type='silentsound';
             stimuli(n).param.duration=durations(1)*1e3; %in ms;
             stimuli(n).param.ramp=0;
             stimuli(n).param.next=isi;

@@ -17,7 +17,6 @@ end
 try
     PlottingFunction=GetPlottingFunction
     feval(PlottingFunction, varargin{:})
-catch exception
-    throw(exception)
+catch
     fprintf('\nsorry, could not figure out the appropriate plotting function for the data in %s', datapath)
 end

@@ -9,7 +9,7 @@ function PlotPINP_PSTH_single(varargin)
 %Processes data if outfile is not found;
 
 rasters=1;
-force_reprocess=0;
+force_reprocess=1;
 
 if nargin==0
     fprintf('\nno input');
@@ -71,17 +71,6 @@ if ~isempty(xlimits)
 end
 
 tetrode=out.channel;
-
-MPulse=out.MPulse;
-MSilentSoundOFF=out.MSilentSoundOFF;
-MTrain=out.MTrain;
-MPulseLasertrace=out.MPulseLasertrace;
-MSilentSoundOFFLasertrace=out.MSilentSoundOFFLasertrace;
-MTrainLasertrace=out.MTrainLasertrace;
-MPulseStimtrace=out.MPulseStimtrace;
-MSilentSoundOFFStimtrace=out.MSilentSoundOFFStimtrace;
-MTrainStimtrace=out.MTrainStimtrace;
-
 mMPulse=out.mMPulse;
 mMSilentSoundOFF=out.mMSilentSoundOFF;
 mMTrain=out.mMTrain;
@@ -190,13 +179,13 @@ for dindex=1:numsilentsounddurs
         yl(1)=yl(1)-.05*diff(yl);
         offsetS=yl(1);
         for rep=1:nrepsOFF
-            Stimtrace=squeeze(MSilentSoundOFFStimtrace(dindex, rep, :));
-            Stimtrace=Stimtrace -mean(Stimtrace(1:100));
+            Stimtrace=squeeze(MSilentSoundOFFStimtrace(dindex, rep, :))';
+            Stimtrace= Stimtrace -mean(Stimtrace(1:100));
             Stimtrace=.25*diff(yl)*Stimtrace;
             t=1:length(Stimtrace);
             t=1000*t/out.samprate; %convert to ms
             t=t+out.xlimits(1); %correct for xlim in original processing call
-            plot(t, Stimtrace+offsetS, 'color', [.5 .5 .5])
+            plot(t, Stimtrace+offsetS, 'm')
         end
     else
         line([0 0+silentsounddurs(dindex)], ylimits(1)+[0 0], 'color', [.5 .5 .5], 'linewidth', 5)
@@ -205,7 +194,7 @@ for dindex=1:numsilentsounddurs
         yl(1)=yl(1)-.05*diff(yl);
         offsetL=yl(1);
         for rep=1:nrepsOFF
-            Lasertrace=squeeze(MSilentSoundOFFLasertrace(dindex, rep, :));
+            Lasertrace=squeeze(MSilentSoundOFFLasertrace(dindex, rep, :))';
             Lasertrace=Lasertrace -mean(Lasertrace(1:100));
             Lasertrace=.05*diff(yl)*Lasertrace;
             plot( t, Lasertrace+offsetL, 'c')
@@ -258,13 +247,13 @@ for pwindex=1:numpulsewidths
         yl(1)=yl(1)-.05*diff(yl);
         offsetS=yl(1);
         for rep=1:nrepsPulse(pwindex)
-            Stimtrace=squeeze(MPulseStimtrace(pwindex, rep, :));
+            Stimtrace=squeeze(MPulseStimtrace(pwindex, rep, :))';
             Stimtrace=Stimtrace -mean(Stimtrace(1:100));
             Stimtrace=.25*diff(yl)*Stimtrace;
             t=1:length(Stimtrace);
             t=1000*t/out.samprate; %convert to ms
             t=t+out.xlimits(1); %correct for xlim in original processing call
-            plot(t, Stimtrace+offsetS,  'color', [.5 .5 .5])
+            plot(t, Stimtrace+offsetS, 'm')
         end
     else
         % do nothing
@@ -273,7 +262,7 @@ for pwindex=1:numpulsewidths
         yl(1)=yl(1)-.05*diff(yl);
         offsetL=yl(1);
         for rep=1:nrepsPulse(pwindex)
-            Lasertrace=squeeze(MPulseLasertrace(pwindex, rep, :));
+            Lasertrace=squeeze(MPulseLasertrace(pwindex, rep, :))';
             Lasertrace=Lasertrace -mean(Lasertrace(1:100));
             Lasertrace=.05*diff(yl)*Lasertrace;
             plot( t, Lasertrace+offsetL, 'c')
@@ -347,13 +336,13 @@ for tpwindex=1:numtrainpulsewidths
                 yl(1)=yl(1)-.05*diff(yl);
                 offsetS=yl(1);
                 for rep=1:nrepsTrain(tnpindex,tpwindex,tiindex)
-                    Stimtrace=squeeze(MTrainStimtrace(tnpindex,tpwindex,tiindex, rep, :));
+                    Stimtrace=squeeze(MTrainStimtrace(tnpindex,tpwindex,tiindex, rep, :))';
                     Stimtrace=Stimtrace -mean(Stimtrace(1:100));
                     Stimtrace=.25*diff(yl)*Stimtrace;
                     t=1:length(Stimtrace);
                     t=1000*t/out.samprate; %convert to ms
                     t=t+out.xlimits(1); %correct for xlim in original processing call
-                    plot(t, Stimtrace+offsetS,  'color', [.5 .5 .5])
+                    plot(t, Stimtrace+offsetS, 'm')
                 end
             else
                 %do nothing
@@ -363,7 +352,7 @@ for tpwindex=1:numtrainpulsewidths
                 yl(1)=yl(1)-.05*diff(yl);
                 offsetL=yl(1);
                 for rep=1:nrepsTrain(tnpindex,tpwindex,tiindex)
-                    Lasertrace=squeeze(MTrainLasertrace(tnpindex,tpwindex,tiindex, rep, :));
+                    Lasertrace=squeeze(MTrainLasertrace(tnpindex,tpwindex,tiindex, rep, :))';
                     Lasertrace=Lasertrace -mean(Lasertrace(1:100));
                     Lasertrace=.05*diff(yl)*Lasertrace;
                     plot( t, Lasertrace+offsetL, 'c')

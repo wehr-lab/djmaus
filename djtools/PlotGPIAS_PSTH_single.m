@@ -138,7 +138,7 @@ end
 if ~isempty(M1OFF)
     
     %plot the mean tuning curve OFF
-    figure('position',[600 350 600 750])
+    figure('position',[600 200 600 750])
     
     p=0;
     subplot1(numgapdurs, numpulseamps, 'Max', [.95 .96])
@@ -237,7 +237,7 @@ end           %plot the mean tuning curve OFF
 
 if IL
     %plot the mean tuning curve ON
-    figure('position',[1200 350 600 750])
+    figure('position',[1200 200 600 750])
     p=0;
     subplot1(numgapdurs, numpulseamps, 'Max', [.95 .9])
     for paindex=1:numpulseamps
@@ -289,7 +289,7 @@ if IL
                 %do nothing
             end
             if LaserRecorded
-                for rep=1:nrepsOFF(findex, aindex, dindex)
+                for rep=1:nrepsOFF(gdindex,paindex)
                     Lasertrace=squeeze(M1OFFLaser(gdindex,paindex,rep, :));
                     Lasertrace=Lasertrace -mean(Lasertrace(1:100));
                     Lasertrace=.05*diff(ylimits)*Lasertrace;
@@ -306,15 +306,14 @@ if IL
     
     %label amps and freqs
     p=0;
-    for paindex=1:numpulseamps
+        for gdindex=1:numgapdurs
         p=p+1;
         subplot1(p)
         vpos=ylimits(2);
         text(xlimits(1), vpos, sprintf('%d', gapdurs(gdindex)), 'color', 'r')
-        vpos=ylimits2(2)*.9;
-        text(0, vpos, sprintf('%d', onramps(onrampindex)), 'color', 'r')
-        gapdur=gapdurs(gdindex);
-        text(-gapdur, vpos, sprintf('%d', offramps(offrampindex)), 'color', 'r')
+            if gdindex<numgapdurs
+                set(gca, 'yticklabel', '');
+            end
     end
     %turn on ytick for bottom-most plot
     set(gca, 'yticklabelmode', 'auto');

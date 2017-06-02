@@ -272,6 +272,10 @@ for i=1:length(Events)
                 M1ON(gdindex,paindex, nrepsON(gdindex,paindex)).spiketimes=spiketimes1; % Spike times
                 M1ONspikecounts(gdindex,paindex,nrepsON(gdindex,paindex))=spikecount; % No. of spikes
                 M1spontON(gdindex,paindex, nrepsON(gdindex,paindex))=spont_spikecount; % No. of spikes in spont window, for each presentation.
+                M_LaserStart(gdindex,paindex, nrepsON(gdindex,paindex))=LaserStart(i);
+                M_LaserWidth(gdindex,paindex, nrepsON(gdindex,paindex))= LaserWidth(i);
+                M_LaserNumPulses(gdindex,paindex, nrepsON(gdindex,paindex))= LaserNumPulses(i);
+                M_LaserISI(gdindex,paindex, nrepsON(gdindex,paindex))= LaserISI(i);
                 if LaserRecorded
                     M1ONLaser(gdindex, paindex, nrepsON(gdindex,paindex),:)=Lasertrace(region);
                 end
@@ -334,9 +338,8 @@ else
     % Spont
     mM1spontON=mean(M1spontON,3);
     sM1spontON=std(M1spontON,[],3);
-    for clust=1:Nclusters
-        semM1spontON=sM1spontON./sqrt(max(nrepsON(:)));
-    end
+    semM1spontON=sM1spontON./sqrt(max(nrepsON(:)));
+    
 end
 if isempty(M1OFF) %only laser pulses in this file
     mM1OFFspikecount=[];
@@ -524,6 +527,7 @@ catch
 end
 outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
 save (outfilename, 'out')
+fprintf('\nsaved %s', outfilename)
 end
 
 

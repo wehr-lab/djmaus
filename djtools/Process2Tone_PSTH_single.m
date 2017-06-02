@@ -650,5 +650,5 @@ catch
 end
 out.t_filename=filename;
 outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
-save (outfilename, 'out', 'v7.3')
+save (outfilename, 'out', '-v7.3')
 

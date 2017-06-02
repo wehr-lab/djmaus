@@ -35,5 +35,7 @@ cd('Soundfile Protocols')
 cd(sourcepath)
 load(sourcefile)
 samples=sample.sample;
-
-% amplitude already applied during soundfile creation
+%samples are stored in normalized -1:1 format
+%apply calibrated amplitude *************** already applied during soundfile creation
+amplitude=1*(10.^((amplitude-pref.maxSPL)/20)); %mw 080107
+samples=amplitude.*samples;

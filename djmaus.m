@@ -628,6 +628,7 @@ switch type
         fcn='Make2Tone';
     case 'soundfile'
         fcn='LoadSoundfile';
+    otherwise djMessage(sprintf('%s not recognized', type))
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -962,6 +963,15 @@ if ~isempty(cal) %it will be empty if Init failed to load calibration
                 catch
                     djMessage( 'NOT calibrated', 'append')
                 end
+            case 'soundfile'
+                %best we can do for now is use the whitenoise calibration
+                findex=find(cal.logspacedfreqs==-1); %freq of -1 indicates white noise
+                atten=cal.atten(findex);
+                stimparam.amplitude=stimparam.amplitude-atten;
+                djMessage( 'calibrated', 'append')
+            otherwise
+                djMessage( 'NOT calibrated', 'append')
+
         end
     end
 else

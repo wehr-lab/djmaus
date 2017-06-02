@@ -928,6 +928,12 @@ end
 samples=reshape(samples, nstimchans, length(samples)); %ensure samples are a row vector
 samples(2,:)=0.*samples;
 
+% this swaps channels, for a test
+% fprintf('\nchannel hack')
+% samples(2,:)=samples(1,:);
+% samples(1,:)=0.*samples(1,:);
+
+
 pahandle=userdata.pahandle;
 %paInhandle=userdata.paInhandle;
 PsychPortAudio('FillBuffer', pahandle, samples); % fill buffer

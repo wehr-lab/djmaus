@@ -9,7 +9,7 @@ function PlotPINP_PSTH_single(varargin)
 %Processes data if outfile is not found;
 
 rasters=1;
-force_reprocess=1;
+force_reprocess=0;
 
 if nargin==0
     fprintf('\nno input');
@@ -71,15 +71,24 @@ if ~isempty(xlimits)
 end
 
 tetrode=out.channel;
+MPulse=out.MPulse;
 mMPulse=out.mMPulse;
 mMSilentSoundOFF=out.mMSilentSoundOFF;
+MSilentSoundOFF=out.MSilentSoundOFF;
 mMTrain=out.mMTrain;
+MTrain=out.MTrain;
 mMPulseLasertrace=out.mMPulseLasertrace;
+MPulseLasertrace=out.MPulseLasertrace;
 mMSilentSoundOFFLasertrace=out.mMSilentSoundOFFLasertrace;
+MSilentSoundOFFLasertrace=out.MSilentSoundOFFLasertrace;
 mMTrainLasertrace=out.mMTrainLasertrace;
+MTrainLasertrace=out.MTrainLasertrace;
 mMPulseStimtrace=out.mMPulseStimtrace;
+MPulseStimtrace=out.MPulseStimtrace;
 mMSilentSoundOFFStimtrace=out.mMSilentSoundOFFStimtrace;
+MSilentSoundOFFStimtrace=out.MSilentSoundOFFStimtrace;
 mMTrainStimtrace=out.mMTrainStimtrace;
+MTrainStimtrace=out.MTrainStimtrace;
 
 silentsounddurs=out.silentsounddurs;
 trainnumpulses=out.trainnumpulses;

@@ -564,6 +564,8 @@ PPAdj('playsound')
 UpdateStimlog(stimulus);
 djMessage(stimulus.stimulus_description, 'append');
 
+figure(100)
+plot(samples)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function NextStimulus
@@ -628,6 +630,8 @@ switch type
         fcn='Make2Tone';
     case 'soundfile'
         fcn='LoadSoundfile';
+    case 'AMNoise'
+        fcn='MakeAMNoise';
     otherwise djMessage(sprintf('%s not recognized', type))
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -893,7 +897,7 @@ if ~isempty(cal) %it will be empty if Init failed to load calibration
         
     else
         switch stimtype
-            case {'clicktrain', 'whitenoise', 'amnoise'} %stimuli that consist of white noise
+            case {'clicktrain', 'whitenoise', 'AMNoise'} %stimuli that consist of white noise
                try
                     findex=find(cal.logspacedfreqs==-1); %freq of -1 indicates white noise
                     atten=cal.atten(findex);

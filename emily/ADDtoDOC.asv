@@ -1,0 +1,12 @@
+%enter desired file name in NAME
+%need to figure out a way to make it sense desired tetrode 
+
+n=
+t = number of tetrodes 
+
+for i = 1:n
+    figure(i)
+    cd d:\lab\emily
+    print -dpsc2 NAME.ps -append
+    close
+end

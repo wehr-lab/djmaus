@@ -288,12 +288,19 @@ for i=1:length(Events)
                 M1OFF(gdindex,paindex, nrepsOFF(gdindex,paindex)).spiketimes=spiketimes1;
                 M1OFFspikecounts(gdindex,paindex,nrepsOFF(gdindex,paindex))=spikecount;
                 M1spontOFF(gdindex,paindex, nrepsOFF(gdindex,paindex))=spont_spikecount;
-                if LaserRecorded
+%                 try  % The "try catch warning end" steps can be activated
+%                 if there are missing hardware triggers at eof. confirm
+%                 first that "stimlog(trialnum).param" fields matche
+%                 "Events(trialnum)" fields (ie trials are in sync).
+                    if LaserRecorded
                     M1OFFLaser(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=Lasertrace(region);
                 end
                 if StimRecorded
                     M1OFFStim(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=Stimtrace(region);
                 end
+%                 catch
+%                 warning('ignoring missing data')    
+%                 end
             end
         end
     end

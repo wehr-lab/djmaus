@@ -79,7 +79,7 @@ else
 end
 
 function SelectCells(d)
-listsize=25;
+listsize=35;
 if length(d)<=listsize
     [selection, ok, ClustQual, PVcell]=myCellListDlg(d);
 else %break up into chunks
@@ -228,7 +228,7 @@ function [selection, ok, ClustQual, PVcell]=myCellListDlg(d)
 global P
 
 fig=figure;
-set(fig, 'pos',[800 400 500 800] )
+set(fig, 'pos',[800 150 500 800] )
 
 selection=[];
 ClustQual=[];

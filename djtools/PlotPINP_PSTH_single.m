@@ -288,15 +288,15 @@ for pwindex=1:numpulsewidths
     set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
     
     
-    %How about a t-test for effect of Laser in first 25 ms
+    %How about a t-test for effect of Laser in first 75 ms
     for rep=1:nrepsPulse(pwindex)
-        stop=laserstart+25;
+        stop=laserstart+75;
         st=MPulse(pwindex,rep).spiketimes;
         spiketimes=st(st>laserstart & st<stop); % spiketimes in region
         ON(rep)=length(spiketimes);
     end
     for rep=1:nrepsOFF(ssdindex)
-        stop=laserstart+25;
+        stop=laserstart+75;
         st=MSilentSoundOFF(rep).spiketimes;
         spiketimes=st(st>laserstart & st<stop); % spiketimes in region
         OFF(rep)=length(spiketimes);
@@ -304,8 +304,8 @@ for pwindex=1:numpulsewidths
     [h,p]=ttest2(ON, OFF, 'tail', 'right');
     yl=ylim;
     xl=xlim;
-    text(xl(1)+25, .95*yl(2), sprintf('h=%d, p=%.4f effect of laser (t-test)', h,p), 'fontsize', 14)
-    fprintf('\nch%d cell %d: h=%d, p=%.4f effect of laser (1-tailed t-test)',channel, clust, h,p)
+    text(xl(1)+25, .95*yl(2), sprintf('h=%d, p=%.4f effect of laser (t-test) 0-75ms', h,p), 'fontsize', 14)
+    fprintf('\nch%d cell %d: h=%d, p=%.4f effect of laser (1-tailed t-test) 0-75ms',channel, clust, h,p)
 end
 
 %plot the psth for silent sound with laser train

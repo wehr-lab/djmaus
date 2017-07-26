@@ -191,7 +191,7 @@ P.AddCurrentDirh=uicontrol('parent',fig,'string','Add Current Dir','tag','AddCur
 H=H+h+e;
 P.recursive=uicontrol('parent',fig,'string','Recursive Scan','tag','Recursive','units','pixels',...
     'position',[e H w h],'enable','on',...
-    'style','checkbox');
+    'style','checkbox','value',1);
 
 
 function doOK(src, evt, IncludeCellcheckbox, sl, pvcheckbox)

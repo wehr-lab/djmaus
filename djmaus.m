@@ -759,6 +759,7 @@ try
     nb.mouseGenotype=SP.mouseGenotype;
     nb.Drugs=SP.Drugs;
     nb.notes=SP.Notes;
+    nb.Reinforcement=SP.Reinforcement;
     
     save('notebook.mat', 'nb')
     fprintf('\ncreated notebook file in %s', nb.activedir)
@@ -823,6 +824,7 @@ nb.mouseSex=SP.mouseSex;
 nb.mouseGenotype=SP.mouseGenotype;
 nb.notes=SP.Notes;
 nb.Drugs=SP.Drugs;
+nb.Reinforcement=SP.Reinforcement;
 try
     cd(nb.activedir)
 save('notebook.mat', '-append', 'nb')

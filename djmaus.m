@@ -822,7 +822,7 @@ nb.mouseDOB=SP.mouseDOB;
 nb.mouseSex=SP.mouseSex;
 nb.mouseGenotype=SP.mouseGenotype;
 nb.notes=SP.Notes;
-
+nb.Drugs=SP.Drugs;
 try
     cd(nb.activedir)
 save('notebook.mat', '-append', 'nb')

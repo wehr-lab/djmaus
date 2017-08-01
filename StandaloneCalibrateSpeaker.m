@@ -229,6 +229,7 @@ for lp = 1:num_loops
         xt=get(ax2, 'xtick');
         set(ax2, 'xticklabel', round(10*xt/1000)/10)
         
+        %set Analog In1 and Analog Out1 to -10dBV in the lynx mixer
         if GetXonarDevice & isempty(GetAsioLynxDevice)
             fudgefactorTone=-1.07;
             fudgefactorWN=0.79;

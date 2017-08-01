@@ -286,9 +286,15 @@ triglength=round(SoundFs/1000); %1 ms trigger
 %(this produces max output for trig amplitude, which is +10V on the Lynx,
 %which is the way we used to do it for TTL triggers)
 
-% trigsamples(1:triglength)=.25*ones(size(1:triglength)); for lynx
-% soundcard
-trigsamples(1:triglength)=ones(size(1:triglength));
+if GetAsioLynxDevice & isempty(GetXonarDevice)
+     trigsamples(1:triglength)=.25*ones(size(1:triglength)); %for lynx soundcard
+elseif GetXonarDevice & isempty(GetAsioLynxDevice)
+    trigsamples(1:triglength)=ones(size(1:triglength));
+else
+    error('cannot determine soundcard type')
+end
+%Lynx delivers +- 10V, so we cut down, 
+%Xonar delivers about +-1V, so we can use full range soundcardtrigger
 %now, since djmaus is designed for open-ephys which wants 3.3V triggers, we
 %use .33 = 3.3/10
 %.25 is enough to trigger a digital TTL and is safer, so we will use that

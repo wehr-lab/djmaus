@@ -564,8 +564,8 @@ PPAdj('playsound')
 UpdateStimlog(stimulus);
 djMessage(stimulus.stimulus_description, 'append');
 
-figure(100)
-plot(samples)
+% figure(100)
+% plot(samples)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function NextStimulus
@@ -835,7 +835,7 @@ end
 function InitZMQ
 global SP pref
 
-%open tcp/ip connection using zeroMQ  to communicate with open ephys
+%open tcp/ip connection using zeroMQ  to communicate with openephys
 cd (pref.root)
 cd(pref.mexpath)
 try
@@ -1196,8 +1196,10 @@ SP.LaserOnOff=0;
 
 H=e;
 %Notes edit box
-SP.Notesh=uicontrol(fig,'tag','Notes','style','edit','fontweight','bold','units','pixels',...
-    'string', '','horiz','left', 'Max', Inf, 'callback',[me ';'],'pos',[2*e+2*w  H 2*w 3*h ]);
+% SP.Notesh=uicontrol(fig,'tag','Notes','style','edit','fontweight','bold','units','pixels',...
+%     'string', '','horiz','left', 'Max', Inf, 'callback',[me ';'],'pos',[2*e+2*w  H 2*w 3*h ]);
+SP.Notesh=uicontrol(fig,'tag','Notes','style','edit','fontweight','bold','units','pixels',... %mw 07.20.2017
+    'string', '','horiz','left', 'Max', 1000, 'callback',[me ';'],'pos',[2*e+2*w  H 2*w 3*h ]);
 H=H+3*h+e;
 SP.Noteslabel=uicontrol(fig,'tag','Noteslabel','style','text','units','pixels',...
     'string', 'Notes', 'fontsize', labelfs,...

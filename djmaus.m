@@ -725,6 +725,10 @@ try
     %single-machine windows configuration - was this important for
     %2-machine config?? mw 04.11.2017
     
+    if strcmp(SP.activedir(1:6), 'o:\d:\') %hack mw 080217
+        SP.activedir=SP.activedir([1:3 7:end]);
+    end
+    
     d=dir(SP.activedir);
     if isempty(d)
         w=0;

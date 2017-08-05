@@ -335,7 +335,6 @@ semMtspontOFF=sMtspontOFF./nrepsOFF;
 tracelength=50;%25; %ms
 fprintf('\nusing response window of 0-%d ms after tone onset', tracelength);
 
-
 fprintf( '\nsorting into click matrix...');
 for iciindex=1:numicis
     for k=1:nclicks(iciindex)
@@ -349,7 +348,7 @@ for iciindex=1:numicis
             st=spiketimes(spiketimes>start & spiketimes<stop); % spiketimes in region
             clickstimtrace=squeeze(MtONStim(iciindex, rep, region));
             McON(iciindex,  k, rep).spiketimes=st;
-            McONStim(iciindex,  k,rep, :)=clickstimtrace;
+            % McONStim(iciindex,  k,rep, :)=clickstimtrace;
         end
         for rep=1:nrepsOFF(iciindex)
             ici=icis(iciindex);
@@ -361,21 +360,28 @@ for iciindex=1:numicis
             st=spiketimes(spiketimes>start & spiketimes<stop); % spiketimes in region
             clickstimtrace=squeeze(MtOFFStim(iciindex, rep, region));
             McOFF(iciindex,  k, rep).spiketimes=st;
-            McOFFStim(iciindex,  k,rep, :)=clickstimtrace;
+            % McOFFStim(iciindex,  k, rep, :)=clickstimtrace;
         end
+        
+        if IL
+            mMcON(iciindex, k).spiketimes = [McON(iciindex, k, 1:nrepsON(iciindex)).spiketimes];
+        end
+        mMcOFF(iciindex, k).spiketimes=[McOFF(iciindex, k, 1:nrepsOFF(iciindex)).spiketimes];
     end
 end
 % Accumulate spiketimes across trials, for psth...
-for iciindex=1:numicis
-    for k=1:nclicks(iciindex)
-        if IL
-            mMcON(iciindex, k).spiketimes=[McON(iciindex, k, 1:nrepsON(iciindex)).spiketimes];
-            mMcONStim(iciindex, k,:)=mean(McONStim(iciindex, k, 1:nrepsON(iciindex), :), 3);
-        end
-        mMcOFF(iciindex, k).spiketimes=[McOFF(iciindex, k, 1:nrepsOFF(iciindex)).spiketimes];
-        mMcOFFStim(iciindex, k,:)=mean(McOFFStim(iciindex, k, 1:nrepsOFF(iciindex), :), 3);
-    end
-end
+% Removing unnecessary calls and de-duplicating iteration for speed 
+% JLS 080417
+% for iciindex=1:numicis
+%     for k=1:nclicks(iciindex)
+%         if IL
+%             mMcON(iciindex, k).spiketimes=[McON(iciindex, k, 1:nrepsON(iciindex)).spiketimes];
+%             mMcONStim(iciindex, k,:)=mean(McONStim(iciindex, k, 1:nrepsON(iciindex), :), 3);
+%         end
+%         mMcOFF(iciindex, k).spiketimes=[McOFF(iciindex, k, 1:nrepsOFF(iciindex)).spiketimes];
+%         mMcOFFStim(iciindex, k,:)=mean(McOFFStim(iciindex, k, 1:nrepsOFF(iciindex), :), 3);
+%     end
+% end
 fprintf('done')
 
 % % compute RRTF as ratio of last5/first click response -- rep-by-rep

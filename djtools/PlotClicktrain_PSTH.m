@@ -51,29 +51,37 @@ try
 catch
     binwidth=5;
 end
+try
+    % Do we want to show every plot as we make it?
+    show_plots = varargin{7};
+catch
+    % Default to yes
+    show_plots = 1;
+end
+
 
 cd(datadir)
 if isempty(channel)     %default to all tetrodes
     d=dir('*.t');
     for i=1:length(d)
         fn=d(i).name;
-        PlotClicktrain_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
+        PlotClicktrain_PSTH_single(datadir, fn, xlimits, ylimits, binwidth, show_plots)
     end
 else %user specified a channel
     if isempty(clust) % default to all clusters
         d=dir(sprintf('ch%d*.t', channel));
         for i=1:length(d)
             fn=d(i).name;
-            PlotClicktrain_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
+            PlotClicktrain_PSTH_single(datadir, fn, xlimits, ylimits, binwidth, show_plots)
         end
     else %user specified a channel and a cluster
         d=0; %to avoid throwing "empty" error below
         if clust<10
             fn=sprintf('ch%d_simpleclust_0%d.t', channel, clust);
-            PlotClicktrain_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
+            PlotClicktrain_PSTH_single(datadir, fn, xlimits, ylimits, binwidth, show_plots)
         else
             fn=sprintf('ch%d_simpleclust_%d.t', channel, clust);
-            PlotClicktrain_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
+            PlotClicktrain_PSTH_single(datadir, fn, xlimits, ylimits, binwidth, show_plots)
         end
     end
 end

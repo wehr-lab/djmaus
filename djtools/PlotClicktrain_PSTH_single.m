@@ -35,6 +35,12 @@ catch
     binwidth=5;
 end
 
+try
+    show_plots = varargin{6};
+catch
+    show_plots = 1
+end
+
 if force_reprocess
     fprintf('\nForce re-process\n')
     ProcessClicktrain_PSTH_single(datadir,  t_filename, xlimits, ylimits, binwidth);
@@ -139,7 +145,11 @@ end
 if ~isempty(MtOFF)
     
     %plot the mean tuning curve OFF
-    figure
+    if show_plots == 0
+        figure('Visible','off')
+    else
+        figure
+    end
     p=0;
     subplot1(numicis,1, 'Max', [.95 .9])
     for iciindex=1:numicis
@@ -187,16 +197,20 @@ if ~isempty(MtOFF)
         
         %draw lines where clicks should be
         L=[];
-        for k=1:nclicks(iciindex)
-            clickonset=(k-1)*(icis(iciindex));
-            height=.08*diff(ylimits2); %reasonable height
-            offset=ylimits2(1);
-            c=       [.5 .5 1] ;
-            l=line(clickonset*[1 1], [offset offset+height], 'color', c, 'linewidth', 2);
-            L=[L l];
+        if nclicks(iciindex) < 128
+            for k=1:nclicks(iciindex)
+                clickonset=(k-1)*(icis(iciindex));
+                height=.08*diff(ylimits2); %reasonable height
+                offset=ylimits2(1);
+                c=       [.5 .5 1] ;
+                l=line(clickonset*[1 1], [offset offset+height], 'color', c, 'linewidth', 2);
+                L=[L l];
+            end
         end
         %you could comment out this line to save time -- it takes ~1 sec
-        uistack(L, 'bottom')
+        if show_plots == 1
+            uistack(L, 'bottom')
+        end
         
         if LaserRecorded & IL %plot laser square pulses
             height=.05*diff(ylimits2);
@@ -247,7 +261,11 @@ end           %plot the mean tuning curve OFF
 
 if IL
     %plot the mean tuning curve ON
-    figure
+    if show_plots == 0
+        figure('Visible','off')
+    else
+        figure
+    end
     p=0;
     subplot1(numicis, 1, 'Max', [.95 .9])
     for iciindex=1:numicis
@@ -301,7 +319,9 @@ if IL
             L=[L l];
         end
         %you could comment out this line to save time -- it takes ~1 sec
-        uistack(L, 'bottom')
+        if show_plots == 1
+            uistack(L, 'bottom')
+        end
 
         if LaserRecorded
             for rep=1:nrepsOFF(iciindex)
@@ -331,7 +351,11 @@ if IL
 end %            %plot the mean tuning curve ON
 
 % plot cycle histograms 
-figure
+if show_plots == 0
+    figure('Visible','off')
+else
+    figure
+end
 yl=0;
 subplot1(numicis, 2)
 p=0;
@@ -370,7 +394,11 @@ set(gcf, 'pos',pos)
             
 % plot vector strength, rayleigh statistic, etc
 
-figure
+if show_plots == 0
+    figure('Visible','off')
+else
+    figure
+end
 subplot1(3, 1)
 subplot1(1)
 plot(1:numicis, out.VsOFF, 'k-o', 1:numicis, out.VsON, 'c-o')
@@ -401,7 +429,11 @@ line(xlim, .001*[1 1], 'linestyle', '--')
 % pos(4)=900;
 % set(gcf, 'pos',pos)           
 
-figure
+if show_plots == 0
+    figure('Visible','off')
+else
+    figure
+end
 hold on
 if ~isempty(mMtONspikecount) 
     e=errorbar(1:numicis, mMtONspikecount, sMtONspikecount, 'c-o');

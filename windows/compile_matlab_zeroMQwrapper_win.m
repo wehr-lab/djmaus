@@ -28,13 +28,13 @@ cd('C:\lab\djmaus\')
 %GUIfolder = 'C:\Users\Shay\Documents\GitHub\GUI';
 %GUIfolder = '/home/jsiegle/Programming/GUI/';
 %GUIfolder = '/Users/mikewehr/Documents/Analysis/plugin GUI';
-GUIfolder = 'C:\lab\open-ephys-windows'; %wehrrig1
-%GUIfolder = 'C:\lab\plugin-GUI';
+%GUIfolder = 'C:\lab\open-ephys-windows'; %wehrrig1
+GUIfolder = 'C:\lab\plugin-GUI'; %wehrrig2
 
 
-%headerFolder = [GUIfolder, '\Resources\windows-libs\ZeroMQ\include'];%probably for compiled
+headerFolder = [GUIfolder, '\Resources\windows-libs\ZeroMQ\include'];% for compiled version of OE
 %headerFolder = '/usr/local/include';
-headerFolder =    'C:\lab\ZeroMQ4.0.4\include'; %rig2, binary
+%headerFolder =    'C:\lab\ZeroMQ4.0.4\include'; %rig2, binary
 
 
 if strcmp(computer,'PCWIN')
@@ -42,13 +42,12 @@ if strcmp(computer,'PCWIN')
     libraryName = 'libzmq-v110-mt-3_2_2';
     cppFile = 'windows/zeroMQwrapper.cpp';
 elseif strcmp(computer,'PCWIN64')
-    %libFolder = [GUIfolder, '\Resources\windows-libs\ZeroMQ\lib_x64']; %probably for compiled
-    libFolder =   'C:\lab\ZeroMQ4.0.4\lib'; %rig2, binary download
-
+    libFolder = [GUIfolder, '\Resources\windows-libs\ZeroMQ\lib_x64']; % for compiled version of OE
+    %libFolder =   'C:\lab\ZeroMQ4.0.4\lib'; %rig2, binary download
     %libraryName = 'libzmq-v110-mt-3_2_2';
     libraryName = 'libzmq-v120-mt-4_0_4.lib';
-    cppFile = 'windows/zeroMQwrapper.cpp';
-    
+%     cppFile = [GUIfolder, '\Resources\Matlab\zeroMQwrapper/windows/zeroMQwrapper.cpp'];
+        cppFile=  'C:\lab\djmaus\windows\zeroMQwrapper.cpp';
 elseif strcmp(computer,'GLNX86') || strcmp(computer,'GLNXA64')
     libFolder = '/usr/local/lib';
     libraryName = 'zmq';

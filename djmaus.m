@@ -652,7 +652,7 @@ if SP.Record
             protocol=SP.ProtocolIndex;
             current=SP.CurrentStimulus(protocol);
             inQueue=current-status.SchedulePosition-SP.CurrStimatPPAstart;
-            Question=sprintf('stimuli have not finished playing yet (%d remaining).\nDo you really wnat to stop acquisition?', inQueue)
+            Question=sprintf('stimuli have not finished playing yet (%d remaining).\nDo you really want to stop acquisition?', inQueue)
             
             ButtonName = questdlg(Question, 'Are you sure?', 'Cancel', 'Really Stop', 'Cancel');
             if strcmp(ButtonName, 'Cancel')
@@ -684,7 +684,8 @@ else
         SP.mouseID='none';
     end
     zeroMQwrapper('Send',SP.zhandle ,'StartAcquisition'); %shouldn't need to do this unless user stopped acquisition, doesn't hurt anyway
-    startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', pref.remotedatapath, SP.mouseID);
+   % startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', pref.remotedatapath, SP.mouseID);
+    startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', [pref.remotedatapath,SP.user], SP.mouseID);
     zeroMQwrapper('Send',SP.zhandle ,startstr);
     set(SP.Recordh, 'backgroundcolor',[0.9 0 0],'String','Recording...');
     set(SP.mouseIDh, 'enable', 'off');

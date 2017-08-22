@@ -28,6 +28,16 @@ switch action
         InitPPA;
         
     case 'close'
+        try
+            % Stop playback:
+            PPAhandle=SP.PPAhandle;
+            PsychPortAudio('Stop', PPAhandle);
+            PsychPortAudio('Close', PPAhandle);
+        catch
+            djMessage('PPAdj: failed to close PPA device')
+            pause(.5)
+        end
+        
         try 
             %delete timer
             stop(SP.PPATimer);
@@ -35,17 +45,13 @@ switch action
             
             %no really, delete timer. I mean it.
             s=timerfind('TimerFcn', 'PPAdj(''PPATimer'');');
-            stop(s)
-            delete(s)
-            
-            % Stop playback:
-            PPAhandle=SP.PPAhandle;
-            PsychPortAudio('Stop', PPAhandle);
-            PsychPortAudio('Close', PPAhandle);
-       
+            if ~isempty(s)
+                stop(s)
+                delete(s)
+            end
         catch
-            djMessage('PPAdj: failed to close device or stop timer')
-            pause(.2)
+            djMessage('PPAdj: failed to stop PPA timer')
+            pause(.5)
         end
 
     case 'load'

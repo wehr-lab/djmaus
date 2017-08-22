@@ -5,9 +5,11 @@ function [filename,path]=MakeTonedjProtocol(freqsperoctave, minfreq, maxfreq, nu
 
 
 
-% Usage: MakeTonedjProtocol(freqsperoctave, minfreq, maxfreq, ...
-% numamplitudes, minamplitude, maxamplitude, duration, ramp, ...
-% include_whitenoise, interleave_laser, isi, nrepeats)
+% Usage: [filename,path]=MakeTonedjProtocol(freqsperoctave, ...
+%         minfreq, maxfreq, numamplitudes, ...
+%         minamplitude, maxamplitude, durations, ramp, include_whitenoise,...
+%         interleave_laser, include_silent_sound, isi, nrepeats)
+%
 %
 % same as MakeTuningCurveOct from exper, except that you can tell it
 % interleave laser trials
@@ -37,14 +39,14 @@ function [filename,path]=MakeTonedjProtocol(freqsperoctave, minfreq, maxfreq, nu
 %       - returns name & path to protocol (AKH 6/19/13)
 % ------------------------------------------------------------------------
 %
-% example call: MakeTonedjProtocol(4, 1000, 32000, 3, 50, 80, 200, 10, 1, 1, 1, 500, 10)
+% example call: MakeTonedjProtocol(4, 4000, 64000, 4, 20, 80, 25, 3, 1, 1, 1, 500, 10)
 %
 % example call with multiple durations:
 % MakeTonedjProtocol(4, 1000, 32000, 3, 50, 80, [200 400],10,1,1, 1, 500, 10)
 % MakeTonedjProtocol(4, 4000, 64000, 3, 50, 80, 25,3,1,0, 1, 500, 10)
 % 
-% 
-% MakeTonedjProtocol(0, 0, 0, 1, 70, 70, [1 2 4 8 16 32 64 128 256],0,1,0, 1, 1000, 10)
+% For white noise only of several durations:
+% MakeTonedjProtocol(0, 0, 0, 4, 20, 80, [1 2 4 8 16 32 64 128 256],0,1,1, 1, 1000, 10)
 %
 % freqsperoctave= 6; minfreq= 4e3; maxfreq= 64e3; 
 % numamplitudes= 1; minamplitude= 70; maxamplitude= 70; durations= 400; ramp=3;
@@ -199,6 +201,7 @@ for rep=1:nrepeats
         stimuli(nn).param.laser=0;
         stimuli(nn).type='silentsound';
         stimuli(nn).param.duration=durs(1);
+        stimuli(nn).param.laser=0;
         stimuli(nn).param.ramp=0;
         stimuli(nn).param.next=isi;
         stimuli(nn).stimulus_description=GetParamStr(stimuli(nn));
@@ -210,8 +213,9 @@ for rep=1:nrepeats
         if interleave_laser==1
             nn=nn+1;
             stimuli(nn).param.laser=1;
-            stimuli(nn).type='silent sound Laser ON';
+            stimuli(nn).type='silentsound';
             stimuli(nn).param.duration=durs(1);
+            stimuli(nn).param.laser=1;
             stimuli(nn).param.ramp=0;
             stimuli(nn).param.next=isi;
             stimuli(nn).stimulus_description=GetParamStr(stimuli(nn));

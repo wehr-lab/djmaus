@@ -6,7 +6,11 @@ function deviceID=GetXonarDevice
 %mw 10-11-2016
 
 %AssertOpenGL;
-InitializePsychSound(1);
+% InitializePsychSound(1);
+%this is throwing a message every stimulus but I
+% don't think we need it. mw 08.23.2017
+%(we use GetXonarDevice to determine which soundcard is used and
+%therefore how to set amplitude of soundcard trigger)
 
 devs = PsychPortAudio('GetDevices');
 deviceID=[];

@@ -1,25 +1,20 @@
-function MakeGapShockdjProtocol
-% usage: MakeGapShockdjProtocol
+function oldMakeGapShockdjProtocol
+% usage: oldMakeGapShockdjProtocol
+%this was the original way we made a Gap Shock Protocol, by hijacking the
+%laser pulse and using it to trigger the S88.
+%But now we want to use both lasers and shock together and independently. 
+%So this function is obsolete
+
 %Create Gap Shock Protocol and incorporate a previously
-% created GPIAS djmaus protocol. Laser and Shock are now independent
-% channels. last updated by Mike 8-24-2017
+% created GPIAS djmaus protocol
 %
 %This is a special-purpose protocol for paired gap-shock conditioning. 
-%First use MakeGPIASdjProtocol to create a GPIAS protocol. Use IL=0.
-% Then call this function and select that protocol to add a laser and shock condition to every GPIAS trial. 
-% Use the shock soundcard channel output to drive the S88 stimulator to
-% deliver shock.
-% The soundcard channel used for shock is specified in djPrefs - you might
-% need to edit your djPrefs the first time you try this on a new computer,
-% and add the following line:
-% pref.Shockchannel=5; %or whatever channel you have available
+%First use MakeGPIASdjProtocol to create a GPIAS protocol
+% Then call this function and select that protocol to add a laser condition to every GPIAS trial 
+%You can then use the laser output to drive the S88 stimulator to deliver shock
 %
-%New: in principle you can include whatever type of laser conditions you
-%want. For this version we hard-code every trial to have both a shock and a
-%laser. Slight modification of this function should allow any combination.
-
 %example:
-% noiseamp=80; gapdurs=16; gapdelay=1000; poststartle=0;
+% noiseamp=80; gapdurs=10; gapdelay=1000; poststartle=0;
 % pulsedur=0;pulseamps=0;soa=50; soaflag='isi'; ramp=0; isi=30000; isi_var=.33; IL=0; nreps=20;
 % MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, poststartle, pulsedur, pulseamps, soa, soaflag, ramp, isi, isi_var, IL, nreps)
 % MakeGapShockdjProtocol
@@ -77,15 +72,6 @@ while tc_n+1<=length(tc.stimuli)
     %then add the GPIAS with laser on
     stimuli(st_n)=tone;
     stimuli(st_n).param.laser=1;
-    
-    %and the shock
-    stimuli(st_n).param.Shock=1; %whether to deliver a shock on this stimulus
-    stimuli(st_n).param.Shockstart=-25; %ms relative to sound onset
-    stimuli(st_n).param.Shockpulsewidth=1; %ms
-    stimuli(st_n).param.Shocknumpulses=20; % for shock trains
-    stimuli(st_n).param.Shockisi=5; %ms, for shock trains
-    %note: the soundcard channel to deliver shock TTL is specified in djPrefs as pref.Shockchannel
-    stimuli(st_n).stimulus_description=GetParamStr(stimuli(st_n));
     
 end
 

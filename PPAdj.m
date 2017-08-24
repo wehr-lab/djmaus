@@ -296,6 +296,8 @@ if GetAsioLynxDevice & isempty(GetXonarDevice)
      trigsamples(1:triglength)=.25*ones(size(1:triglength)); %for lynx soundcard
 elseif GetXonarDevice & isempty(GetAsioLynxDevice)
     trigsamples(1:triglength)=ones(size(1:triglength));
+elseif ismac
+    trigsamples(1:triglength)=ones(size(1:triglength));
 else
     error('cannot determine soundcard type')
 end
@@ -343,6 +345,8 @@ end
 
 
 %add in a Laser pulse if djmaus laser button is turned on AND if sound param.laser==1
+laser_prepend=0;
+laser_append=0;
 on=SP.LaserOnOff;
 if on  
     if isfield(param, 'laser')
@@ -405,12 +409,14 @@ if on
                 temp=zeros(numChan,length(samples)+ -start*SoundFs/1000);
                 temp(:,(-start*SoundFs/1000)+1:end)=samples;
                 samples=temp;
+                laser_prepend=(-start*SoundFs/1000)+1;
                 
                 if width*SoundFs/1000>length(samples)
                     %need to append some silence after sound
                     temp=zeros(numChan, width*SoundFs/1000);
                     temp(:,1:length(samples))=samples;
                     samples=temp;
+                    laser_append=width*SoundFs/1000-length(samples);
                 end
                 laserpulse=zeros(1, length(samples));
                 for n=1:numpulses
@@ -424,7 +430,7 @@ if on
                     laserpulse(pstartsamp:pstopsamp)=1;
                 end
                 laserpulse(end)=0; %make sure to turn off pulse at end
-                samples(numChan,:)=laserpulse;
+                samples(numChan,:)=laserpulse; %laser always goes on the last channel?
                 
             else %start >=0
                 if (start+width)*SoundFs/1000>length(samples)
@@ -432,6 +438,7 @@ if on
                     temp=zeros(numChan, (start+width)*SoundFs/1000);
                     temp(:,1:length(samples))=samples;
                     samples=temp;
+                    laser_append=width*SoundFs/1000-length(samples);
                 end
                 laserpulse=zeros(1, length(samples));
                 for n=1:numpulses
@@ -447,16 +454,99 @@ if on
                 laserpulse(end)=0; %make sure to turn off pulse at end
                 samples(numChan,:)=laserpulse;
             end
-            
-            
-           
-            
         end
     end
 end
 
-% str1=str;
 % we used to add a silent pad at the end to avoid dropouts, but that didn't really work and the problem is now solved differently anyway
+
+%add in a Shock pulse if the stimulus includes a shock
+if isfield(param, 'Shock') %if there is a shock field
+    if param.Shock %if shock is on for this stim
+        Shockstart=param.Shockstart; %ms
+        Shockpulsewidth=param.Shockpulsewidth; %ms
+        Shocknumpulses=param.Shocknumpulses; %ms
+        Shockisi=param.Shockisi; %ms
+        Shockchannel=pref.Shockchannel; %soundcard channel to deliver shock TTL
+        %insert laser pulse with specified parameters into samples
+        %note that for flashtrains, I am changing isi to actually be soa (mw 1-28-2017)
+        if length(Shockpulsewidth)>1
+            if length(Shockpulsewidth)~=Shocknumpulses;
+                djMessage('djPPA: Shock numpulses must match number of widths', 'append')
+            end
+            if length(Shockisi)~=Shocknumpulses-1;
+                djMessage('djPPA: Shock numpulses must be 1 more than number of isis', 'append')
+            end
+        end
+        if length(Shockpulsewidth)==1
+            Shockpulsewidth=repmat(Shockpulsewidth, 1, Shocknumpulses);
+        end
+        if length(Shockisi)==1
+            Shockisi=repmat(Shockisi, 1, Shocknumpulses-1);
+        end
+        Shockwidth=sum(Shockpulsewidth)+sum(Shockisi); %width of entire pulse train
+        
+       
+%         for the time being, let's assume (enforce) that the shock always
+%         falls within the sound. If in the future we want a shock to
+%         precede or follow the sound, and we need to prepend or append
+%         silence to the stimulus, then we will have to check if there's
+%         also a laser and if we did that for laser as well -> lots of
+%         special cases to deal with.
+
+        if Shockstart<0-laser_prepend %need to prepend some silence before sound
+            temp=zeros(numChan,length(samples)+ -Shockstart*SoundFs/1000);
+            temp(:,(-Shockstart*SoundFs/1000)+1:end)=samples;
+            samples=temp;
+        end
+            
+            if Shockwidth*SoundFs/1000>length(samples)
+                %need to append some silence after sound
+                temp=zeros(numChan, Shockwidth*SoundFs/1000);
+                temp(:,1:length(samples))=samples;
+                samples=temp;
+            end
+            
+            Shockpulse=zeros(1, length(samples));
+            for n=1:Shocknumpulses
+                if  n==1
+                    pShockstartsamp=1;
+                else
+                    %pShockstartsamp=pShockstartsamp+(pulsewidth(n-1)+isi(n-1))*SoundFs/1000;
+                    pShockstartsamp=pShockstartsamp+Shockisi(n-1)*SoundFs/1000; %mw 1-28-2017
+                end
+                pShockstopsamp=pShockstartsamp+Shockpulsewidth(n)*SoundFs/1000-1;
+                Shockpulse(pShockstartsamp:pShockstopsamp)=1;
+            end
+            Shockpulse(end)=0; %make sure to turn off pulse at end
+            samples(Shockchannel,:)=Shockpulse;
+            
+%         else %Shockstart >=0
+            if (Shockstart+Shockwidth)*SoundFs/1000>length(samples)
+                %need to append some silence after sound
+                temp=zeros(numChan, (Shockstart+Shockwidth)*SoundFs/1000);
+                temp(:,1:length(samples))=samples;
+                samples=temp;
+            end
+%             laserpulse=zeros(1, length(samples));
+%             for n=1:numpulses
+%                 if  n==1
+%                     pShockstartsamp=Shockstart*SoundFs/1000+1;
+%                 else
+%                     %pShockstartsamp=pShockstartsamp+(pulsewidth(n-1)+isi(n-1))*SoundFs/1000;
+%                     pShockstartsamp=pShockstartsamp+isi(n-1)*SoundFs/1000; %mw 1-28-2017
+%                 end
+%                 pstopsamp=pShockstartsamp+pulsewidth(n)*SoundFs/1000-1;
+%                 laserpulse(pShockstartsamp:pstopsamp)=1;
+%             end
+%             laserpulse(end)=0; %make sure to turn off pulse at end
+%             samples(numChan,:)=laserpulse;
+%         end
+    end
+end
+
+figure(100)
+plot(samples')
 
 SP.samples= samples; %store samples for re-buffering if we're looping (used only for looping)
 

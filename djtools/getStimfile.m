@@ -1,6 +1,7 @@
 function [ fname ] = getStimfile( datadir )
 %reads settings.xml in datadir to figure out which node the stim (sound
 %monitor) was recorded on, and hence what the filename is
+%usage [ fname ] = getStimfile( datadir )
 cd(datadir)
 settings=xml2struct('settings.xml');
 stimchannel=1; %filenames and ADClines are both 1-indexed

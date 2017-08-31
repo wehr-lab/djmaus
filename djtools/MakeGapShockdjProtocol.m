@@ -19,8 +19,8 @@ function MakeGapShockdjProtocol
 %laser. Slight modification of this function should allow any combination.
 %
 %example:
-% noiseamp=80; gapdurs=16; gapdelay=1000; poststartle=0;
-% pulsedur=0;pulseamps=0;soa=50; soaflag='isi'; ramp=0; isi=30000; isi_var=.33; IL=0; nreps=20;
+% noiseamp=80; gapdurs=16; gapdelay=1000; poststartle=1000;
+% pulsedur=0;pulseamps=0;soa=50; soaflag='isi'; ramp=0; isi=28000; isi_var=.33; IL=0; nreps=20;
 % MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, poststartle, pulsedur, pulseamps, soa, soaflag, ramp, isi, isi_var, IL, nreps)
 % MakeGapShockdjProtocol
 

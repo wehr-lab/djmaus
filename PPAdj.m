@@ -532,13 +532,13 @@ if isfield(param, 'Shock') %if there is a shock field
             end
             
             Shockpulse=zeros(1, length(samples));
-            for n=1:numpulses
+            for n=1:Shocknumpulses
                 if  n==1
                     pShockstartsamp=Shockstart*SoundFs/1000+1;
                 else
                     pShockstartsamp=pShockstartsamp+isi(n-1)*SoundFs/1000; %mw 1-28-2017
                 end
-                pShockstopsamp=pShockstartsamp+pulsewidth(n)*SoundFs/1000-1;
+                pShockstopsamp=pShockstartsamp+Shockpulsewidth(n)*SoundFs/1000-1;
                 Shockpulse(pShockstartsamp:pShockstopsamp)=1;
             end
             Shockpulse(end)=0; %make sure to turn off pulse at end

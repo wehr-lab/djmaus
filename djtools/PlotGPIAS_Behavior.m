@@ -9,7 +9,7 @@ if nargin==0 datadir=pwd;end
 
 PreStartleWindowms=[-100 0]; % in ms relative to onset of startle pulse
 PostStartleWindowms=[0 100]; % in ms relative to onset of startle-pulse
-ISIWindowms=[0 60]; % in ms relative to onset of pre-pulse    %added by APW 3_31_14
+% ISIWindowms=[0 60]; % in ms relative to onset of pre-pulse    %added by APW 3_31_14
 
 
 force_reprocess=0;

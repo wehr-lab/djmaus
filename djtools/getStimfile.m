@@ -10,23 +10,23 @@ stimchannel=1; %filenames and ADClines are both 1-indexed
 % ADC3: laser monitor
 
 
-if (0)
-%this helpfully prints out all the nodes and their names
-signalchain=settings.SETTINGS.SIGNALCHAIN;
-for i=1:length(signalchain)
-    processors=signalchain{i}.PROCESSOR;
-    for j=1:length(processors)
-        if iscell(processors)
-            fprintf('\n%s: %s',    processors{j}.Attributes.NodeId, processors{j}.Attributes.name)
-        else
-            if length(processors)==1
-                fprintf('\n%s: %s',    processors.Attributes.NodeId, processors.Attributes.name)
-            elseSCT
-                error('wtf')
+if (1)
+    %this helpfully prints out all the nodes and their names
+    signalchain=settings.SETTINGS.SIGNALCHAIN;
+    for i=1:length(signalchain)
+        processors=signalchain{i}.PROCESSOR;
+        for j=1:length(processors)
+            if iscell(processors)
+                fprintf('\n%s: %s',    processors{j}.Attributes.NodeId, processors{j}.Attributes.name)
+            else
+                if length(processors)==1
+                    fprintf('\n%s: %s',    processors.Attributes.NodeId, processors.Attributes.name)
+                else SCT % Not sure what this is here for, but I added a space between "else" and "SCT" TH 2017-08-30
+                    error('wtf')
+                end
             end
         end
     end
-end
 end
 
 NodeId=[];

@@ -11,18 +11,18 @@ stimchannel=1; %filenames and ADClines are both 1-indexed
 % ADC3: laser monitor
 
 
-if (1)
+if (0)
     %this helpfully prints out all the nodes and their names
     signalchain=settings.SETTINGS.SIGNALCHAIN;
     for i=1:length(signalchain)
         processors=signalchain{i}.PROCESSOR;
         for j=1:length(processors)
             if iscell(processors)
-                fprintf('\n%s: %s',    processors{j}.Attributes.NodeId, processors{j}.Attributes.name)
+                %fprintf('\n%s: %s',    processors{j}.Attributes.NodeId, processors{j}.Attributes.name)
             else
                 if length(processors)==1
-                    fprintf('\n%s: %s',    processors.Attributes.NodeId, processors.Attributes.name)
-                else SCT % Not sure what this is here for, but I added a space between "else" and "SCT" TH 2017-08-30
+                    %fprintf('\n%s: %s',    processors.Attributes.NodeId, processors.Attributes.name)
+                else  
                     error('wtf')
                 end
             end
@@ -44,10 +44,11 @@ for i=1:length(signalchain)
             if isfield(processors{j}, 'CHANNEL')
                 channels=processors{j}.CHANNEL;
                 for ch=1:length(channels)
+                    %fprintf('\n%s: %s ch %s',    processors{j}.Attributes.NodeId, processors{j}.Attributes.name, channels{ch}.Attributes.number)
                     if    str2num(channels{ch}.SELECTIONSTATE.Attributes.record)
                         %fprintf('\n%s: %s ch %s is being recorded',    processors{j}.Attributes.NodeId, processors{j}.Attributes.name, channels{ch}.Attributes.number)
-                        if  strcmp(channels{ch}.Attributes.number, '35') 
-                                             NodeId=processors{j}.Attributes.NodeId;
+                        if  strcmp(channels{ch}.Attributes.number, '35')
+                            NodeId=processors{j}.Attributes.NodeId;
                         end
                     end
                 end
@@ -58,9 +59,14 @@ for i=1:length(signalchain)
                     
                     channels=processors.CHANNEL;
                     for ch=1:length(channels)
-                        if    channels{ch}.SELECTIONSTATE.Attributes.record
-                            %fprintf('\n%s: %s ch %d is being recorded',    processors.Attributes.NodeId, processors.Attributes.name, channels{ch}.Attributes.number)
-                            %  don't bother, this is the network events
+                        if    str2num(channels{ch}.SELECTIONSTATE.Attributes.record)
+                            %fprintf('\n%s: %s ch %s is being recorded',    processors.Attributes.NodeId, processors.Attributes.name, channels{ch}.Attributes.number)
+                            if   strcmp(channels{ch}.Attributes.number, '35')
+                                NodeId=processors.Attributes.NodeId;
+                            end                            %  don't bother, this is the network events
+                            %except that on Rig 2 as of Aug 30, 2017, it's FPGA, so we need
+                            %to check for NodeID here too
+                            
                         end
                     end
                 end

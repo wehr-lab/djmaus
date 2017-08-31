@@ -72,7 +72,7 @@ fprintf('\n')
 scaledtrace=sqrt(scaledtrace1.^2 + scaledtrace2.^2 + scaledtrace3.^2 );
 
 SCTfname=getSCTfile(datadir);
-stimfile=sprintf('%s_ADC2.continuous', node);
+stimfile=getStimfile; %mw 08.30.2107 old: sprintf('%s_ADC2.continuous', node);
 [stim, stimtimestamps, stiminfo] =load_open_ephys_data(stimfile);
 
 %uncomment this to run some sanity checks

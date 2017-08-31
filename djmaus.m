@@ -679,6 +679,10 @@ else
     %try stopping
     %zeroMQwrapper('Send',SP.zhandle ,'StopRecord');
 
+    %disable play button here, to avoid delivering stimuli before notebook
+    %is initialized (which could result in a skipped stimlog entry) 
+    set(SP.Runh, 'enable', 'off')
+    
     startstr=sprintf('StartRecord');
     if ~isfield(SP, 'mouseID')
         SP.mouseID='none';
@@ -696,6 +700,11 @@ else
         SP=rmfield( SP, 'stimlog');
     end
     InitNotebookFile
+    
+    %re-enable play button here
+    set(SP.Runh, 'enable', 'on')
+    
+    
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

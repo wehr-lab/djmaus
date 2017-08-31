@@ -22,15 +22,16 @@
 %need to mount it first (outside of matlab -i.e. in windows explorer or
 %finder).
 % cd('/Volumes/D/lab/djmaus/Data/lab') %this is mac format
-cd('\\wehrrig1b\D\lab\djmaus\Data\Emily') %this is windows format
-psfilename=['Test',sprintf('Plot%s.ps',datestr(now,'YY-mm-DD_hh-MM'))];
+% cd('\\wehrrig1b\D\lab\djmaus\Data\Emily') %this is windows format
+% psfilename=['Test',sprintf('Plot%s.ps',datestr(now,'YY-mm-DD_hh-MM'))];
 
-
+% 
 % cell_list1='testGIN.txt';
 % cell_list2='testPINP.txt';
-
 cell_list1='VIPCHR2GIN.txt';
 cell_list2='VIPCHR2PINP.txt';
+
+
 
 
 xlimits=[-300 300];
@@ -87,6 +88,8 @@ while 1 %processes until end of file is reached, then breaks
         datadir=datadir{2};
         filename=strsplit(filenamestr, ': ');
         filename=filename{2};
+        clustqual=strsplit(clusterqualstr,':')
+        clustqual=clustqual{2}
         
         pathstr2=fgetl(fid2);
         filenamestr2=fgetl(fid2);
@@ -110,8 +113,8 @@ while 1 %processes until end of file is reached, then breaks
         newdatadir1=strrep(datadir, 'D:' , '\\wehrrig1b\D')
         newdatadir2=strrep(datadir2, 'D:' , '\\wehrrig1b\D');
         
-       % fprintf('\n%s', newdatadir);
-       
+        % fprintf('\n%s', newdatadir);
+        
         %here you would use the appropriate function to process and/or plot your
         %data. You could just call a PlotXXX function, and it should automatically
         %process the data if necessary. Or you could explicitly call a ProcessXXX
@@ -122,7 +125,7 @@ while 1 %processes until end of file is reached, then breaks
         
         %PlotGPIAS_PSTH(newdatadir, filename(3), filename(18))
         
-        
+      
         
         
         cd(newdatadir1)
@@ -140,68 +143,176 @@ while 1 %processes until end of file is reached, then breaks
         
         GTRsOFF=zeros(out.numgapdurs, max(out.nrepsOFF));
         GTRsON=zeros(out.numgapdurs, max(out.nrepsON));
-        
+      K9=[];
+      K10=[];
+      GiNBL=[];
+      GiNBLHZ=[];
+      repGiN=0;
+      
         for gd=1:out.numgapdurs
-            for rep=1:out.nrepsOFF(gd)
-                stOFF=out.M1OFF(gd, 1, rep).spiketimes;
-                GTRspikecountOFF=length(find(stOFF>0 & stOFF<51));
-                GTRsOFF(gd, rep)=GTRspikecountOFF;
-                %                 OFFSETspikecountOFF=length(find(stOFF(0-out.gapdurs) & stOFF<0));
-                %                 OFFSETsOFF(gd, rep)=OFFSETspikecountOFF
+            gapdurs=1:out.gapdurs;
+            for repGiN=1:out.nrepsOFF(gd)
+                stOFF=out.M1OFF(gd, 1, repGiN).spiketimes;
+                GTRspikecountOFF=length(find(stOFF>0 & stOFF<76));
+                GTRsOFF(gd, repGiN)=GTRspikecountOFF;
+%                                 OFFSETspikecountOFF=length(find(stOFF>0-gapdurs & stOFF<0));
+%                                 OFFSETsOFF(gd, rep)=OFFSETspikecountOFF
             end
-            for rep=1:out.nrepsON(gd)
-                stON=out.M1ON(gd, 1, rep).spiketimes;
-                GTRspikecountON=length(find(stON>0 & stON<51));
-                GTRsON(gd, rep)=GTRspikecountON;
+            
+            %             test(gd)=sum(OFFSETsOFF(gd, :))
+            GTRspikesOFF(gd)= sum(GTRsOFF(gd, :)); %use 'k' for black
+            
+             K9 = [GTRspikesOFF out.gapdurs(gd)];
+            
+            for repGiN=1:out.nrepsON(gd)
+                stON=out.M1ON(gd, 1, repGiN).spiketimes;
+                GTRspikecountON=length(find(stON>0 & stON<76));
+                GTRsON(gd, repGiN)=GTRspikecountON;
             end
+            
+            GTRspikesON(gd)= sum(GTRsON(gd, :));  %use 'b' for blue
+              K10 = [GTRspikesON out.gapdurs(gd)];
         end
         
-        gap0=GTRsOFF(1, :);
-        K1=[];
-        K2=[];
-        K3=[];
-        K4=[];
+        for gd=1
+            GiNBL=sum(GTRsOFF(gd,:));
+        end
+               
+        if GiNBL<0
+            GiNBLHZ=0
+        else
+            GiNBLHZ = (GiNBL*(1000/75))/repGiN
+        end
         
+        %         plot(xaxis, y1, 'k', xaxis, y2, 'b')% define xaxis, the assign y1
+%         and y2 for GTRspikesOFF and GTRspikesON with related colors
+        
+        gap0OFF=GTRsOFF(1, :);
+        gap0ON=GTRsON(1, :);
+        
+        K3=[];
+        K3a=[];
+        K4=[];
+        K4a=[];
+        K5=[];
+        K5a=[];
+        K6=[];
+        K6a=[];
+        K7=[];
+        K7a=[];
+        K8=[];
+        K8a=[];
+        
+        H3=[];
+        H4=[];
+        H5=[];
+        H6=[];
+        H7=[];
+        H8=[];
         for gd=2:out.numgapdurs
-            [h3, p3]=ttest(GTRsOFF(gd, :), gap0, [], 'right'); %  "right" is for GTRs>Gap0
-%            fprintf('\ngap %d: p=%.4f', out.gapdurs(gd), p3);
+            [h3, p3]=ttest(GTRsOFF(gd, :), gap0OFF, [], 'right'); %  "right" is for GTRs>Gap0
+%                        fprintf('\ngap %d: p=%.4f', out.gapdurs(gd), p3);
             if isnan(h3)
                 h3=0;
             end
             H3(gd)=h3;
-            if h3
-                K1 = 'GTR';
-                K2 = [K2 out.gapdurs(gd)];
+%                         if h3
+%                             K3 = 'GTR';
+%                             K3a = [K3a out.gapdurs(gd)];
+%                         end
+        end
+        
+        for gd=2:out.numgapdurs-1
+            if H3(gd) & H3(gd+1)
+                K3='GTR';
             end
         end
         
         
-        
         for gd=2:out.numgapdurs
-            [h4, p4]=ttest(GTRsOFF(gd, :), gap0, [], 'left'); %  "left" is for GTRs<Gap0
-%            fprintf('\ngap %d: p=%.4f', out.gapdurs(gd), p4);
+            [h4, p4]=ttest(GTRsOFF(gd, :), gap0OFF, [], 'left'); %  "left" is for GTRs<Gap0
+            %            fprintf('\ngap %d: p=%.4f', out.gapdurs(gd), p4);
             if isnan(h4)
                 h4=0;
             end
             H4(gd)=h4;
-            if h4
-                K3 = 'RDPGI';
-                K4 = [K4 out.gapdurs(gd)];
+            %             if h4
+            %                 K4 = 'RD';
+            %                 K4a = [K6 out.gapdurs(gd)];
+            %             end
+        end
+        
+        for gd=2:out.numgapdurs-1
+            if H4(gd) & H4(gd+1)
+                K4='RD';
             end
         end
-
         
-%         for gd=1:out.numgapdurs
-%             [h, p]=ttest(GTRsON(gd, :),GTRsOFF(gd, :), [], 'left'); %"right" is for Laser RI
-%                  fprintf('\ngap %d: p=%.4f', out.gapdurs(gd), p);
-%             if isnan(h) h=0;end
-%             H(gd)=h;
-%             if h
-%                 
-%                 K=[K out.gapdurs(gd)];
-%                
-%             end
-%         end
+        for gd=2:out.numgapdurs
+            [h5, p5]=ttest(GTRsON(gd, :), gap0ON, [], 'right'); %  "right" is for GTRs>Gap0
+%                        fprintf('\ngap %d: p=%.4f', out.gapdurs(gd), p3);
+            if isnan(h5)
+                h5=0;
+            end
+            H5(gd)=h5;
+            %             if h5
+            %                 K5 = 'GTR_ON';
+            %                 K5a = [K6 out.gapdurs(gd)];
+            %             end
+        end
+        
+        for gd=2:out.numgapdurs-1
+            if H5(gd) & H5(gd+1)
+                K5='GTR_ON';
+            end
+        end
+        
+        
+        for gd=2:out.numgapdurs
+            [h6, p6]=ttest(GTRsON(gd, :), gap0ON, [], 'left'); %  "left" is for GTRs<Gap0
+            %            fprintf('\ngap %d: p=%.4f', out.gapdurs(gd), p4);
+            if isnan(h6)
+                h6=0;
+            end
+            H6(gd)=h6;
+            %             if h6
+            %                 K6 = 'RD_ON';
+            %                 K6a = [K10 out.gapdurs(gd)];
+            %             end
+        end
+        
+        for gd=2:out.numgapdurs-1
+            if H6(gd) & H6(gd+1)
+                K6='RD_ON';
+            end
+        end
+        
+        
+        for gd=1:out.numgapdurs
+            [h7, p7]=ttest(GTRsON(gd, :),GTRsOFF(gd, :), [], 'right'); %"right" is for ON > OFF
+            %                  fprintf('\ngap %d: p=%.4f', out.gapdurs(gd), p);
+            if isnan(h7) h7=0;end
+            H7(gd)=h7;
+            if h7
+                K7= 'L_INC';
+                K7a=[K7a out.gapdurs(gd)];
+            end
+        end
+        
+        for gd=1:out.numgapdurs
+            [h8, p8]=ttest(GTRsON(gd, :),GTRsOFF(gd, :), [], 'left'); %"right" is for ON > OFF
+            %                  fprintf('\ngap %d: p=%.4f', out.gapdurs(gd), p);
+            if isnan(h8) h8=0;end
+            H8(gd)=h8;
+            if h8
+                K8= 'L_DEC';
+                K8a=[K8a out.gapdurs(gd)];
+            
+            end
+        end
+        
+        
+       
         
         cd(newdatadir2)
         [pname,f,ext]=fileparts(filename2);
@@ -211,98 +322,146 @@ while 1 %processes until end of file is reached, then breaks
         clust=str2num(split{end});
         outfilename2=sprintf('outPSTH_ch%dc%d.mat',channel, clust) ;
         
-        K5 = [];
-        K6 = [];
+        K1 = [];
+        K1a = [];
+        K2 = [];
+       
+        nmax=0;
+        xmax=0;
+       
         
         fprintf('\n%s', outfilename2')
         load(outfilename2);
         
-%  if strcmp(outfilename2, 'outPSTH_ch5c1.mat')
-%      keyboard
-%  end
-
+        %  if strcmp(outfilename2, 'outPSTH_ch5c1.mat')
+        %      keyboard
+        %  end
+        
         for pwindex=1:out.numpulsewidths
             
-            try
-                binwidth=varargin{5};
-            catch
-                binwidth=5;
-            end
+            
+            binwidth=5;
+            
             
             laserstarts=out.laserstarts;
             numlaserstarts=out.numlaserstarts;
             if numlaserstarts>1 warning('\nusing only minimum laserstart for t-test');end
             laserstart=min(laserstarts);
             ssdindex=1;
-                stop=laserstart+75;
+            stop=laserstart+75;
             
-
             
-
+           repPNP = 0;
+           totBL=0;
+           meanBLHZ=0;
+            
             clear ON OFF
-            %How about a t-test for effect of Laser in first 75 ms
-            for rep=1:out.nrepsPulse(pwindex)
-                st=out.MPulse(pwindex,rep).spiketimes;
-                spiketimes=st(st>(laserstart+20) & st<stop); % spiketimes in region
-                ON(rep)=length(spiketimes);
+            %t-test for effect of Laser in first 75 ms
+            for repPNP=1:out.nrepsPulse(pwindex)
+                st=out.MPulse(pwindex,repPNP).spiketimes;
+                spiketimes=st(st>laserstart & st<stop); % spiketimes in region
+                ON(repPNP)=length(spiketimes);
             end
-            for rep=1:out.nrepsOFF(ssdindex)
-                st=out.MSilentSoundOFF(rep).spiketimes;
-                spiketimes=st(st>(laserstart+20) & st<stop); % spiketimes in region
-                OFF(rep)=length(spiketimes);
+            for repPNP=1:out.nrepsOFF(ssdindex)
+                st=out.MSilentSoundOFF(repPNP).spiketimes;
+                spiketimes=st(st>laserstart & st<stop); % spiketimes in region
+                OFF(repPNP)=length(spiketimes);
             end
+            
+            totBL=sum(OFF);
+            
+            if totBL<1
+                meanBLHZ=0
+            else
+                meanBLHZ=(totBL*(1000/75))/repPNP
+            end
+            
+            
+            st=out.mMPulse(pwindex).spiketimes;
+            X=0-binwidth:binwidth:75+binwidth;
+            [n , x]=hist(st, X);
+            n2=n(2:end-1);
+            x2=x(2:end-1);
+            nmax=find(n2==max(n2));
+            xmax=x2(nmax);
+            
+            
+            
+            
+            
             [h1,p1]=ttest2(ON, OFF, 'tail', 'right');
-           % fprintf('\n p=%.4f', p1);
+            % fprintf('\n p=%.4f', p1);
             if isnan(h1) h1=0;end
             if h1
-                K5 = [K5 'Delayed'];
+                K1 = [K1 'D-Act'];
+                K1a = nmax;
+               
             else
-                K5 = [K5 ''];
+                K1 = [K1 'nada'];
+                K1a = ''
+                
             end
             
+           
+            
             [h2,p2]=ttest2(ON, OFF, 'tail', 'left');
-           % fprintf('\n p=%.4f', p2);
+            % fprintf('\n p=%.4f', p2);
             if isnan(h2) h2=0;end
             if h2
-                K6 = [K6 'Suppd'];
+                K2 = [K2 'Suppd'];
             else
-                K6 = [K6 'nada  '];
+                K2 = [K2 'nada'];
             end
+            
+            
         end
+        
+       
         
         if length(ON) ~=  out.nrepsPulse(pwindex)
             error('sanity check failure')
         end
-
+        
         cd(    '\\wehrrig1b\D\lab\djmaus\Data\Emily')
-        fid3=fopen('SummaryPINPwin20to75.txt', 'a');
-        fprintf(fid3, '\n%s %s %s ', newdatadir1, outfilename1, outfilename2);
-        
-
-        fprintf(fid3, '%s ', K5);
-        fprintf(fid3, '%s ', K6);
-        fprintf(fid3, '%s ', K1);
-        fprintf(fid3, '%d ', K2);
-        fprintf(fid3, '%s ', K3);
-        fprintf(fid3, '%d ', K4);
-        
-       fclose(fid3);
-
-%         cd ('\\wehrrig1b\D\lab\djmaus\Data\Emily')
+        fid3=fopen('meanBL.txt', 'a');
+       
+%                  fprintf(fid3,'\n Delayed activators or VIP cells, n=%d', totD_Act)
+%        fprintf(fid3,'\n Suppressed cells, n=%d', totSuppd)
+%                  fclose(fid3);
 %         
-%        
-%        for f=2
-%             figure(f)
-%             orient tall
-%             print(psfilename, '-dpsc2', '-append')
-%         end
-%         for f=1
-%             figure(f)
-%             orient tall
-%             print(psfilename, '-dpsc2', '-append')
-%         end
-%         i=i+1;
+%         fid3=fopen('test.txt', 'a');      
+
+
+fprintf(fid3, '\n%s %s %s\t ', newdatadir1, outfilename1, outfilename2);
+%     fprintf(fid3,'%s %d %s %s %s %s %s',K1,K1a,K2,K3,K4,K5,K6)
+%     fprintf(fid3, '%s ', K7);
+%     fprintf(fid3, '%d ', K7a);
+%     fprintf(fid3, '%s ', K8);
+%     fprintf(fid3, '%d ', K8a);
+% fprintf(fid3, '\n%s %s OF\t ', newdatadir1, outfilename1');
+% fprintf(fid3, '%d\t ', K9);
+% fprintf(fid3, '\n%s %s ON\t ', newdatadir1, outfilename1);
+% fprintf(fid3, '%d\t ', K10);
+    fprintf(fid3, '%s\t ', clustqual);
+fprintf(fid3, '%.2f\t ', meanBLHZ);
+    fprintf(fid3, '%.2f ', GiNBLHZ);
+
+
+        %trying to output duration tuning curves
         
+        %        fid4=fopen('GTR_On_v_OFF')
+        %
+        %
+        % %        for f1=figure
+        % %            plot(GTRspikesOFF)
+        % %            print(psfilename, '-dpsc2', '-append')
+        % %        end
+        % %        for f2=figure
+        % %           plot(GTRspikesON)
+        % %           print(psfilename, '-dpsc2', '-append')
+        % %        end
+        %        i=i+1;
+        %
         %make sure you are in the right directory for the output file,
         %since PlotXXX or ProcessXXX will have taken you to the individual data
         %directory

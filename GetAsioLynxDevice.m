@@ -11,7 +11,12 @@ function deviceID=GetAsioLynxDevice
 %(we use GetAsioLynxDevice to determine which soundcard is used and
 %therefore how to set amplitude of soundcard trigger)
 
-devs = PsychPortAudio('GetDevices');
+try
+    devs = PsychPortAudio('GetDevices');
+catch
+    InitializePsychSound(1);
+    devs = PsychPortAudio('GetDevices');
+end
 deviceID=[];
 for n = 1:length(devs) 
     if strcmp(devs(n).DeviceName, 'ASIO Lynx')

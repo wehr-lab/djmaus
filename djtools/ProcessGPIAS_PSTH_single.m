@@ -399,32 +399,36 @@ end
 
 %sanity check - are the stimuli where we think they are?
 if StimRecorded
-    figure %ON
-    hold on
-    offset=range(M1ONStim(:));
-    for gdindex=1:numgapdurs
-        for paindex =1:numpulseamps
-            for r=1:nrepsON(gdindex,paindex)
-                stim=M1ONStim(gdindex,paindex,r,:);
-                t=1:length(stim);t=1000*t/samprate; %in ms
-                plot(t, stim+r*offset, 'm')
+    if IL
+        figure %ON
+        hold on
+        offset=range(M1ONStim(:));
+        for gdindex=1:numgapdurs
+            for paindex =1:numpulseamps
+                for r=1:nrepsON(gdindex,paindex)
+                    stim=squeeze(M1ONStim(gdindex,paindex,r,:));
+                    t=1:length(stim);t=1000*t/samprate; %in ms
+                    plot(t, stim+r*offset, 'm')
+                end
             end
         end
+        title(' stimulus monitor, Laser ON')
     end
-    title(' stimulus monitor, Laser ON')
-      figure %OFF
+    if exist('M1OFFStim')
+    figure %OFF
     hold on
     offset=range(M1OFFStim(:));
     for gdindex=1:numgapdurs
         for paindex =1:numpulseamps
             for r=1:nrepsOFF(gdindex,paindex)
-                stim=M1OFFStim(gdindex,paindex,r,:);
+                stim=squeeze(M1OFFStim(gdindex,paindex,r,:));
                 t=1:length(stim);t=1000*t/samprate; %in ms
                 plot(t, stim+r*offset, 'm')
             end
         end
     end
     title(' stimulus monitor, Laser OFF')
+    end
 end
 
 %save to outfiles

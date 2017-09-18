@@ -55,6 +55,7 @@ for i=1:length(signalchain)
             if isfield(processors{j}, 'CHANNEL')
                 channels=processors{j}.CHANNEL;
                 for ch=1:length(channels)
+                   % fprintf('\n%s: %s ch %s',    processors{j}.Attributes.NodeId, processors{j}.Attributes.name, channels{ch}.Attributes.number)
                     if    str2num(channels{ch}.SELECTIONSTATE.Attributes.record)
                         %fprintf('\n%s: %s ch %s is being recorded',    processors{j}.Attributes.NodeId, processors{j}.Attributes.name, channels{ch}.Attributes.number)
                         if  strcmp(channels{ch}.Attributes.number, '35')

@@ -90,8 +90,8 @@ totalnumspikes=length(spiketimes);
 fprintf('\nsuccessfully loaded MClust spike data')
 Nclusters=1;
 
-%uncomment this to run some sanity checks
-% SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
+%%%uncomment this to run some sanity checks
+ SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
 
 fprintf('\ncomputing tuning curve...');
 samprate=sampleRate;
@@ -399,28 +399,33 @@ end
 
 %sanity check - are the stimuli where we think they are?
 if StimRecorded
-    figure %ON
+    if IL
+        figure %ON
     hold on
-    offset=range(M1ONStim(:));
+    offset=1.5*range(M1ONStim(:));
     for gdindex=1:numgapdurs
         for paindex =1:numpulseamps
             for r=1:nrepsON(gdindex,paindex)
-                stim=M1ONStim(gdindex,paindex,r,:);
+                stim=squeeze(M1ONStim(gdindex,paindex,r,:));
                 t=1:length(stim);t=1000*t/samprate; %in ms
                 plot(t, stim+r*offset, 'm')
             end
         end
     end
     title(' stimulus monitor, Laser ON')
-      figure %OFF
+    end
+    figure %OFF
     hold on
-    offset=range(M1OFFStim(:));
+    offset=1.5*range(M1OFFStim(:));
+    offset2=0;
     for gdindex=1:numgapdurs
         for paindex =1:numpulseamps
             for r=1:nrepsOFF(gdindex,paindex)
-                stim=M1OFFStim(gdindex,paindex,r,:);
+                stim=squeeze(M1OFFStim(gdindex,paindex,r,:));
                 t=1:length(stim);t=1000*t/samprate; %in ms
-                plot(t, stim+r*offset, 'm')
+                offset2=offset2+offset;
+                plot(t, stim+offset2, 'm')
+%                 pause(1)
             end
         end
     end
@@ -430,7 +435,7 @@ end
 %save to outfiles
 %one outfile for each cell
 
-%after squeezing cluster, saves with the following dimensions:
+%saves with the following dimensions:
 % M1ON(numgapdurs, numpulseamps, nrepsON).spiketimes
 % mM1ON(numgapdurs, numpulseamps).spiketimes
 % mM1ONspikecount(numgapdurs, numpulseamps)

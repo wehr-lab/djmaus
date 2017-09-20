@@ -739,6 +739,10 @@ try
         SP.activedir=SP.activedir([1:3 7:end]);
     end
     
+    if ~pref.local
+        SP.activedir=strrep(SP.activedir, ':', '')
+    end
+    
     d=dir(SP.activedir);
     if isempty(d)
         w=0;

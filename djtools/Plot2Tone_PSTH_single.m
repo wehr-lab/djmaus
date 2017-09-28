@@ -180,17 +180,19 @@ for findex=1:numfreqs
                     end
                 end
                 bar(x,N,1);
-                vpos=mean(ylimits);
+                %vpos=mean(ylimits);
+                vpos=ylimits(2)-2*inc;
+
                 if freqs(findex)==-1
-                    text(0, vpos, 'WN')
+                    text(0, vpos, 'WN', 'color', 'k')
                 else
-                    text(0, vpos, sprintf('%.1f kHz', freqs(findex)/1000))
+                    text(0, vpos, sprintf('%.1f kHz', freqs(findex)/1000), 'color', 'k')
                 end
                 if freqs(findex)==-1
-                    text(SOAs(SOAindex), vpos, 'WN')
+                    text(SOAs(SOAindex), vpos-2*inc, 'WN', 'color', 'r')
                 else
                     
-                    text(SOAs(SOAindex), vpos, sprintf('%.1f kHz', probefreqs(pfindex)/1000))
+                    text(SOAs(SOAindex), vpos-2*inc, sprintf('%.1f kHz', probefreqs(pfindex)/1000), 'color', 'r')
                 end
                 offsetS=ylimits(1)-.1*diff(ylimits);
                 if StimRecorded
@@ -231,7 +233,7 @@ for findex=1:numfreqs
                     set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
                 end
                 xl = xlim; yl = ylim;
-                h=text(0, range(yl),sprintf('%d ms',SOAs(SOAindex)));
+                h=text(0, range(yl),sprintf('%d ms',SOAs(SOAindex)), 'color', 'r');
                 set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal','position',[0 range(yl)*.8 0])
             end
         end
@@ -281,9 +283,10 @@ if IL
                     end
                     bar(x, N,1);
                     line(xlimits, [0 0], 'color', 'k')
-                    vpos=mean(ylimits);
-                    text(0, vpos, sprintf('%.1f kHz', freq/1000))
-                    text(SOAs(SOAindex), vpos, sprintf('%.1f kHz', probefreq/1000))
+                    %vpos=mean(ylimits);
+                    vpos=ylimits(2);
+                    text(0, vpos, sprintf('%.1f kHz', freq/1000), 'color', 'k')
+                    text(SOAs(SOAindex), vpos, sprintf('%.1f kHz', probefreq/1000),'color', 'r')
                     
                     if StimRecorded
                         Stimtrace=squeeze(mM1OFFStim(findex, pfindex, aindex, SOAindex, :));

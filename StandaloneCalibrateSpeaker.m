@@ -229,6 +229,7 @@ for lp = 1:num_loops
         xt=get(ax2, 'xtick');
         set(ax2, 'xticklabel', round(10*xt/1000)/10)
         
+        %set Analog In1 and Analog Out1 to -10dBV in the lynx mixer
         if GetXonarDevice & isempty(GetAsioLynxDevice)
             fudgefactorTone=-1.07;
             fudgefactorWN=0.79;
@@ -927,6 +928,12 @@ else
 end
 samples=reshape(samples, nstimchans, length(samples)); %ensure samples are a row vector
 samples(2,:)=0.*samples;
+
+% this swaps channels, for a test
+% fprintf('\nchannel hack')
+% samples(2,:)=samples(1,:);
+% samples(1,:)=0.*samples(1,:);
+
 
 pahandle=userdata.pahandle;
 %paInhandle=userdata.paInhandle;

@@ -198,7 +198,7 @@ function doOK(src, evt, IncludeCellcheckbox, sl, pvcheckbox)
 
 for i=1:length(sl)
     IncludeCell(i)=get(IncludeCellcheckbox(i), 'value');
-    ClustQual(i)=get(sl(i), 'value');
+    ClustQual(i)=str2num(get(sl(i), 'String'));
     PVcell(i)=get(pvcheckbox(i), 'value');
 end
 delete(gcbf);
@@ -269,10 +269,7 @@ for i=1:length(d)
          'horizontalalignment', 'right','fontsize', fontsize,'string', d(i).name); %cell name
     IncludeCellcheckbox(i)=uicontrol('style', 'checkbox', 'pos', ...
         [col1width, top-(i+2)*linespacing, 30, linesize], 'value', 1); %include cell checkbox
-    slstr(i)=uicontrol('style', 'text', 'pos', ...
-        [col1width+col2width+col3width+2, top-(i+2)*linespacing, 10, linesize], 'string', 0); %cluster quality numeric indicator
-    sl(i)=uicontrol('style', 'slider', 'pos', [col1width+col2width, top-(i+2)*linespacing, sliderwidth, linesize], ...
-        'min', 0, 'max', 5, 'sliderstep', [.2 .2], 'value', 0, 'callback', {@doSlider, slstr(i)} ); %cluster quality slider
+    sl(i)=uicontrol('style', 'edit', 'pos', [col1width+col2width, top-(i+2)*linespacing, sliderwidth, linesize] ); %cluster quality text box
     pvcheckbox(i)=uicontrol('style', 'checkbox', 'pos', ...
         [col1width+col2width+col3width+col4width, top-(i+2)*linespacing, 30, linesize]); %pvcheckbox
 end

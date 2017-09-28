@@ -61,6 +61,19 @@ SCTtrace=SCTtrace./max(abs(SCTtrace));
 plot(SCTtimestamps, SCTtrace, 'b') %plotting with data timestamps to work around wierd bug in ADC timestamps
 % plot(datatimestamps, scaledtrace, 'm') %plotting with data timestamps to work around wierd bug in ADC timestamps
 
+
+%let's plot some other signals too
+stimfile=getStimfile(datadir); %mw 08.30.2107 old: sprintf('%s_ADC2.continuous', node);
+laserfile=getLaserfile(datadir); %mw 08.30.2107 old: sprintf('%s_ADC2.continuous', node);
+[stimtrace, stimtimestamps, stiminfo] =load_open_ephys_data(stimfile);
+stimtimestamps=stimtimestamps-StartAcquisitionSec;
+[lasertrace, lasertimestamps, laserinfo] =load_open_ephys_data(laserfile);
+lasertimestamps=lasertimestamps-StartAcquisitionSec;
+plot(stimtimestamps, .1*stimtrace, 'm') 
+plot(SCTtimestamps, lasertrace, 'c') 
+
+
+
 hold on
 fprintf('plotting %d Events... ', length(Events))
 %plot "software trigs" i.e. network messages in red o's
@@ -100,5 +113,6 @@ end
 for i=1:length(Events)
     xlim([Events(i).message_timestamp_sec-2 Events(i).message_timestamp_sec+3])
     ylim([-5 2])
-    pause(.01)
+    pause(.002)
+   % pause
 end

@@ -33,15 +33,16 @@ Eventsfilename='all_channels.events';
 sampleRate=all_channels_info.header.sampleRate; %in Hz
 
 %get Events and soundcard trigger timestamps 
-[Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info);
+[Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
 %there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
 
 %check if this is an appropriate stimulus protocol
 if ~strcmp(GetPlottingFunction(datadir), 'PlotGPIAS_PSTH')
-    error('This does not appear to be a GPIAS stimulus protcol');
+pl    error('This does not appear to be a GPIAS stimulus protcol');
 end
 
-%accelerometer channels are 33, 34, 35
+%accelerometer channels are 33, 34, 35 in OpenEphys, but are stored as 32,
+%33, and 34
 node='';
 NodeIds=getNodes(pwd);
 for i=1:length(NodeIds)
@@ -69,14 +70,18 @@ fprintf('\n')
 [scaledtrace3, datatimestamps, datainfo] =load_open_ephys_data(filename3);
 
 %combine X,Y,Z accelerometer channels by RMS
-scaledtrace=sqrt(scaledtrace1.^2 + scaledtrace2.^2 + scaledtrace3.^2 );
+%scaledtrace=sqrt(scaledtrace1.^2 + scaledtrace2.^2 + scaledtrace3.^2 );
+scaledtrace=sqrt(scaledtrace2.^2);
 
 SCTfname=getSCTfile(datadir);
-stimfile=sprintf('%s_ADC2.continuous', node);
+stimfile=getStimfile(datadir); %mw 08.30.2107 old: sprintf('%s_ADC2.continuous', node);
+laserfile=getLaserfile(datadir); %mw 08.30.2107 old: sprintf('%s_ADC2.continuous', node);
 [stim, stimtimestamps, stiminfo] =load_open_ephys_data(stimfile);
+% [lasertrace, lasertimestamps, laserinfo] =load_open_ephys_data(laserfile);
+% [scttrace, scttimestamps, sctinfo] =load_open_ephys_data(SCTfname);
 
 %uncomment this to run some sanity checks
-% SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
+  %SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
 
 fprintf('\ncomputing tuning curve...');
 
@@ -186,7 +191,7 @@ nrepsON=zeros(numgapdurs, numpulseamps);
 nrepsOFF=zeros(numgapdurs, numpulseamps);
 
 xlimits=[-200 200]; %xlimits for storing traces
-startle_window=[0 150]; %hard coded integration region for startle response
+startle_window=[0 75]; %hard coded integration region for startle response
 
 fprintf('\nprocessing with xlimits [%d - %d]', xlimits(1), xlimits(2))
 fprintf('\nprocessing with startle integration window [%d - %d]', startle_window(1), startle_window(2))

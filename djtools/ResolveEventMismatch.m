@@ -123,11 +123,21 @@ elseif nstimlog==nEvents & nSCTs < nEvents
         case '2016-11-10_09-14-26_mouse-7093'
             Events=Events(1:nSCTs);
             stimlog=stimlog(1:nSCTs);
+        case '2017-08-16_11-01-22_mouse-7765'
+            Events=Events(1:nSCTs);
+            stimlog=stimlog(1:nSCTs);
         otherwise
             fprintf('\n maybe user stopped open-ephys recording manually but djmaus was still running')
             fprintf('\n investigate, and if this appears to be so, add a special case')
             error('ResolveEventMismatch: this case is not handled yet')
     end
+elseif nstimlog==nEvents & nSCTs > nEvents
+    for i=1:nEvents
+        temp(i) = Events(i).soundcard_trigger_timestamp_sec;
+    end
+    [~,ind] = intersect(all_SCTs,temp);
+    all_SCTs = all_SCTs(ind);
+    nSCTs = length(ind);
     
 else
     error('ResolveEventMismatch: this case is not handled yet')

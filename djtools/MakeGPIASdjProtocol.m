@@ -51,8 +51,9 @@ function [filename,path]=MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_s
 % creates a suitably named stimulus protocol in D:\lab\exper2.2\protocols\ASR Protocols
 %
 %example calls:
-% fixed iti of 10 seconds with interleaved laser:
-%MakeGPIASdjProtocol(80, [0 2 4 6], 1000, 1000, 25, 100, 60, 'soa', 0, 10e3, 0, 1, 5)
+% fixed iti of 15 seconds with interleaved laser:
+%MakeGPIASdjProtocol(80, [0 16], 1000, 1000, 25, 100, 50, 'isi', 0, 15e3, 0.33, 1, 5)
+%
 %
 % iti ranging from 10s to 20s (15 s on average)
 %
@@ -63,7 +64,7 @@ function [filename,path]=MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_s
 %startle offset time
 %MakeGPIASdjProtocol(80, [10], 1000, 1000, 0, 100, 60, 'soa', 0, 15e3, .33, 1, 20)
 %
-%MakeGPIASdjProtocol(80, [0 1 2 4 8 16 32 64 128 256], 1000, 1000, 0, 100, 50, 'isi', 0, 1e3, 0, 0, 15)
+%MakeGPIASdjProtocol(80, [0 1 2 4 8 16 32 64 128 256], 1000, 1000, 0, 100, 50, 'isi', 0, 2e3, 0, 1, 15)
 %
 %noiseamp=80; gapdurs=[0 1 2 4 8 16 32 64 128 256]; gapdelay=1000; poststartle=1000;
 %pulsedur=25; pulseamps=110; soa=50; soaflag='isi'; ramp=0; isi=15000; isi_var=.33; IL=1; nreps=10;

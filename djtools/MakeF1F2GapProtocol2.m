@@ -36,7 +36,7 @@ function [filename,path]=MakeF1F2GapProtocol2(F1, F2, amplitude, ...
 %
 %example calls:
 %500 ms tones with 16 and 128 ms gaps, no WN or silent sound
-% F1=4000; F2=10000; amplitude=70; include_whitenoise=0; duration=500; ramp=3; iti=1000; nrepeats=20;
+% F1=4000; F2=10000; amplitude=70; include_whitenoise=0; duration=500; ramp=2; iti=1000; nrepeats=20;
 % gapdurs=[2 4 8 16 32 64 128 256]; include_silent_sound=0;
 % MakeF1F2GapProtocol2(F1, F2, amplitude, include_whitenoise, duration, ramp, iti, nrepeats, gapdurs, include_silent_sound)
 

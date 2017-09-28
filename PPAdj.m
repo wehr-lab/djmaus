@@ -28,6 +28,16 @@ switch action
         InitPPA;
         
     case 'close'
+        try
+            % Stop playback:
+            PPAhandle=SP.PPAhandle;
+            PsychPortAudio('Stop', PPAhandle);
+            PsychPortAudio('Close', PPAhandle);
+        catch
+            djMessage('PPAdj: failed to close PPA device')
+            pause(.5)
+        end
+        
         try 
             %delete timer
             stop(SP.PPATimer);
@@ -35,17 +45,13 @@ switch action
             
             %no really, delete timer. I mean it.
             s=timerfind('TimerFcn', 'PPAdj(''PPATimer'');');
-            stop(s)
-            delete(s)
-            
-            % Stop playback:
-            PPAhandle=SP.PPAhandle;
-            PsychPortAudio('Stop', PPAhandle);
-            PsychPortAudio('Close', PPAhandle);
-       
+            if ~isempty(s)
+                stop(s)
+                delete(s)
+            end
         catch
-            djMessage('PPAdj: failed to close device or stop timer')
-            pause(.2)
+            djMessage('PPAdj: failed to stop PPA timer')
+            pause(.5)
         end
 
     case 'load'
@@ -106,6 +112,8 @@ switch action
         PsychPortAudio('Stop',SP.PPAhandle,0);
         PsychPortAudio('Close', SP.PPAhandle);
         
+    case 'camerapulse'
+        SendCameraPulse
 
 end
 
@@ -212,6 +220,26 @@ LoadPPA('var',zeros(1,200),param)
 PlaySound
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function SendCameraPulse
+global SP pref  
+%sends a TTL pulse on soundcard channel 2, intended to start/stop a pi
+%camera
+
+PPAhandle=SP.PPAhandle; %grab PPAhandle object from param
+SoundFs=SP.SoundFs; %sampling rate
+numChan=SP.numChan; %number of output channels we initialized the soundcard with
+cameratriglength=round(SoundFs/1000); %1 ms trigger
+samples=zeros(numChan, 2*cameratriglength);
+camera_pulse=zeros(1, 2*cameratriglength);
+camera_pulse(1:cameratriglength)=ones(size(1:cameratriglength));
+samples(2,:)=camera_pulse;
+PsychPortAudio('FillBuffer', PPAhandle, samples); % fill buffer now, start in PlaySound
+PlaySound
+djMessage('djPPA: sent camera pulse', 'append')
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function LoadPPA(type,where,param)
 global SP pref debugging 
@@ -235,6 +263,11 @@ switch type
         return;
 end
 
+Soundchannel1=pref.Soundchannel1;
+Soundchannel2=pref.Soundchannel2; %only used for binaural
+Soundcardtriggerchannel=pref.Soundcardtriggerchannel;
+Laserchannel=pref.Laserchannel;
+Shockchannel=pref.Shockchannel;
 
 
 if isfield(param, 'loop_flg')
@@ -249,10 +282,13 @@ numChan=SP.numChan; %number of output channels we initialized the soundcard with
 nstimchans=min(size(samples)); %number of channels of requested stimulus (i.e. mono or stereo)
 samples=reshape(samples, nstimchans, length(samples)); %ensure samples are a row vector
 silence=zeros(numChan, length(samples));
-silence(1:nstimchans,:)=samples;
+silence(Soundchannel1,:)=samples(1,:); %left channel
+if nstimchans==2
+    silence(Soundchannel2,:)=samples(2,:); %right channel
+end
 samples=silence;
 
-%last channel serves as trigger
+%Soundcardtriggerchannel serves as trigger
 trigsamples=zeros(1, length(samples));
 triglength=round(SoundFs/1000); %1 ms trigger
 
@@ -264,9 +300,17 @@ triglength=round(SoundFs/1000); %1 ms trigger
 %(this produces max output for trig amplitude, which is +10V on the Lynx,
 %which is the way we used to do it for TTL triggers)
 
-% trigsamples(1:triglength)=.25*ones(size(1:triglength)); for lynx
-% soundcard
-trigsamples(1:triglength)=ones(size(1:triglength));
+if GetAsioLynxDevice & isempty(GetXonarDevice)
+     trigsamples(1:triglength)=.25*ones(size(1:triglength)); %for lynx soundcard
+elseif GetXonarDevice & isempty(GetAsioLynxDevice)
+    trigsamples(1:triglength)=ones(size(1:triglength));
+elseif ismac
+    trigsamples(1:triglength)=ones(size(1:triglength));
+else
+    error('cannot determine soundcard type')
+end
+%Lynx delivers +- 10V, so we cut down, 
+%Xonar delivers about +-1V, so we can use full range soundcardtrigger
 %now, since djmaus is designed for open-ephys which wants 3.3V triggers, we
 %use .33 = 3.3/10
 %.25 is enough to trigger a digital TTL and is safer, so we will use that
@@ -281,13 +325,17 @@ if loop_flg
     trigsamples=0*trigsamples;
 end
 
-if pref.num_soundcard_outputchannels==2  %mw 091812
-    %only 2channel soundcard, no way you can do PPALaser
-    samples(numChan,:)=trigsamples;
-else
-    %>2 channels on card, we can leave a channel for PPALaser
-    samples(numChan-1,:)=trigsamples; %mw 081412
-end
+ %new way: specify channels in prefs. mw 08.24.2017
+ samples(Soundcardtriggerchannel,:)=trigsamples;
+
+ %old way
+%  if pref.num_soundcard_outputchannels==2  %mw 091812
+%     %only 2channel soundcard, no way you can do PPALaser
+%     samples(numChan,:)=trigsamples;
+% else
+%     %>2 channels on card, we can leave a channel for PPALaser
+%     samples(numChan-1,:)=trigsamples; %mw 081412
+% end
 
 if isfield(param, 'VarLaser') %will use variable Laser params set in protocol, so turn LaserOnOff on and disable djmaus GUI
     SP.LaserOnOff = 1;
@@ -309,6 +357,8 @@ end
 
 
 %add in a Laser pulse if djmaus laser button is turned on AND if sound param.laser==1
+laser_prepend=0;
+laser_append=0;
 on=SP.LaserOnOff;
 if on  
     if isfield(param, 'laser')
@@ -371,12 +421,14 @@ if on
                 temp=zeros(numChan,length(samples)+ -start*SoundFs/1000);
                 temp(:,(-start*SoundFs/1000)+1:end)=samples;
                 samples=temp;
+                laser_prepend=(-start*SoundFs/1000)+1;
                 
                 if width*SoundFs/1000>length(samples)
                     %need to append some silence after sound
                     temp=zeros(numChan, width*SoundFs/1000);
                     temp(:,1:length(samples))=samples;
                     samples=temp;
+                    laser_append=width*SoundFs/1000-length(samples);
                 end
                 laserpulse=zeros(1, length(samples));
                 for n=1:numpulses
@@ -390,7 +442,7 @@ if on
                     laserpulse(pstartsamp:pstopsamp)=1;
                 end
                 laserpulse(end)=0; %make sure to turn off pulse at end
-                samples(numChan,:)=laserpulse;
+                samples(Laserchannel,:)=laserpulse; %laser always goes on the last channel?
                 
             else %start >=0
                 if (start+width)*SoundFs/1000>length(samples)
@@ -398,6 +450,7 @@ if on
                     temp=zeros(numChan, (start+width)*SoundFs/1000);
                     temp(:,1:length(samples))=samples;
                     samples=temp;
+                    laser_append=width*SoundFs/1000-length(samples);
                 end
                 laserpulse=zeros(1, length(samples));
                 for n=1:numpulses
@@ -411,18 +464,96 @@ if on
                     laserpulse(pstartsamp:pstopsamp)=1;
                 end
                 laserpulse(end)=0; %make sure to turn off pulse at end
-                samples(numChan,:)=laserpulse;
+                samples(Laserchannel,:)=laserpulse;
             end
-            
-            
-           
-            
         end
     end
 end
 
-% str1=str;
 % we used to add a silent pad at the end to avoid dropouts, but that didn't really work and the problem is now solved differently anyway
+
+%add in a Shock pulse if the stimulus includes a shock
+if isfield(param, 'Shock') %if there is a shock field
+    if param.Shock %if shock is on for this stim
+        Shockstart=param.Shockstart; %ms
+        Shockpulsewidth=param.Shockpulsewidth; %ms
+        Shocknumpulses=param.Shocknumpulses; %ms
+        Shockisi=param.Shockisi; %ms
+        %insert laser pulse with specified parameters into samples
+        %note that for flashtrains, I am changing isi to actually be soa (mw 1-28-2017)
+        if length(Shockpulsewidth)>1
+            if length(Shockpulsewidth)~=Shocknumpulses;
+                djMessage('djPPA: Shock numpulses must match number of widths', 'append')
+            end
+            if length(Shockisi)~=Shocknumpulses-1;
+                djMessage('djPPA: Shock numpulses must be 1 more than number of isis', 'append')
+            end
+        end
+        if length(Shockpulsewidth)==1
+            Shockpulsewidth=repmat(Shockpulsewidth, 1, Shocknumpulses);
+        end
+        if length(Shockisi)==1
+            Shockisi=repmat(Shockisi, 1, Shocknumpulses-1);
+        end
+        Shockwidth=sum(Shockpulsewidth)+sum(Shockisi); %width of entire pulse train
+        
+        if Shockstart<0-laser_prepend %need to prepend some silence before sound
+            temp=zeros(numChan,length(samples)+ -Shockstart*SoundFs/1000);
+            temp(:,(-Shockstart*SoundFs/1000)+1:end)=samples;
+            samples=temp;
+            
+            if Shockwidth*SoundFs/1000>length(samples)
+                %need to append some silence after sound
+                temp=zeros(numChan, Shockwidth*SoundFs/1000);
+                temp(:,1:length(samples))=samples;
+                samples=temp;
+            end
+            
+            Shockpulse=zeros(1, length(samples));
+            for n=1:Shocknumpulses
+                if  n==1
+                    pShockstartsamp=1;
+                else
+                    %pShockstartsamp=pShockstartsamp+(pulsewidth(n-1)+isi(n-1))*SoundFs/1000;
+                    pShockstartsamp=pShockstartsamp+Shockisi(n-1)*SoundFs/1000; %mw 1-28-2017
+                end
+                pShockstopsamp=pShockstartsamp+Shockpulsewidth(n)*SoundFs/1000-1;
+                Shockpulse(pShockstartsamp:pShockstopsamp)=1;
+            end
+            Shockpulse(end)=0; %make sure to turn off pulse at end
+            samples(Shockchannel,:)=Shockpulse;
+            
+        else %Shockstart >=0
+            if (Shockstart+Shockwidth)*SoundFs/1000>length(samples)
+                %need to append some silence after sound
+                temp=zeros(numChan, (Shockstart+Shockwidth)*SoundFs/1000);
+                temp(:,1:length(samples))=samples;
+                samples=temp;
+            end
+            
+            Shockpulse=zeros(1, length(samples));
+            for n=1:Shocknumpulses
+                if  n==1
+                    pShockstartsamp=Shockstart*SoundFs/1000+1;
+                else
+                    pShockstartsamp=pShockstartsamp+isi(n-1)*SoundFs/1000; %mw 1-28-2017
+                end
+                pShockstopsamp=pShockstartsamp+Shockpulsewidth(n)*SoundFs/1000-1;
+                Shockpulse(pShockstartsamp:pShockstopsamp)=1;
+            end
+            Shockpulse(end)=0; %make sure to turn off pulse at end
+            samples(Shockchannel,:)=Shockpulse;
+        end
+    end
+end
+
+% figure(100)
+% t=1:length(samples);
+% t=1000*t/SoundFs;
+% plot(t, samples')
+% xlim([-100 2600])
+% xlim([-100 t(end)+100])
+% legend('1', '2', '3', '4')
 
 SP.samples= samples; %store samples for re-buffering if we're looping (used only for looping)
 

@@ -63,7 +63,7 @@ else %user specified a channel
         end
     else %user specified a channel and a cluster
         if cluster<10
-            fn=sprintf('ch%d_simpleclust_%0d.t', channel, cluster);
+            fn=sprintf('ch%d_simpleclust_0%d.t', channel, cluster);
             ProcessTC_PSTH_single(datadir, fn, xlimits, ylimits)
                     else
             fn=sprintf('ch%d_simpleclust_%d.t', channel, cluster);

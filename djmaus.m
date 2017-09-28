@@ -13,6 +13,7 @@
 
 %ISI works by setting the djTimerDelay to
 %stimulus.param.duration/1000 + stimulus.param.next/1000
+%test comment
 
 global SP pref djTimer djTimerDelay
 
@@ -305,7 +306,8 @@ switch action
     case 'LaserISI'
         SP.LaserISI=str2num(get(SP.LaserISIh, 'string'));
 
-        
+    case 'camerapulse'
+        PPAdj('camerapulse')
 end
 
 function AddUser
@@ -562,6 +564,8 @@ PPAdj('playsound')
 UpdateStimlog(stimulus);
 djMessage(stimulus.stimulus_description, 'append');
 
+% figure(100)
+% plot(samples)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function NextStimulus
@@ -624,6 +628,11 @@ switch type
         fcn='MakeSilentSound';
     case '2tone'
         fcn='Make2Tone';
+    case 'soundfile'
+        fcn='LoadSoundfile';
+    case 'AMNoise'
+        fcn='MakeAMNoise';
+    otherwise djMessage(sprintf('%s not recognized', type))
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -643,7 +652,7 @@ if SP.Record
             protocol=SP.ProtocolIndex;
             current=SP.CurrentStimulus(protocol);
             inQueue=current-status.SchedulePosition-SP.CurrStimatPPAstart;
-            Question=sprintf('stimuli have not finished playing yet (%d remaining).\nDo you really wnat to stop acquisition?', inQueue)
+            Question=sprintf('stimuli have not finished playing yet (%d remaining).\nDo you really want to stop acquisition?', inQueue)
             
             ButtonName = questdlg(Question, 'Are you sure?', 'Cancel', 'Really Stop', 'Cancel');
             if strcmp(ButtonName, 'Cancel')
@@ -670,12 +679,17 @@ else
     %try stopping
     %zeroMQwrapper('Send',SP.zhandle ,'StopRecord');
 
+    %disable play button here, to avoid delivering stimuli before notebook
+    %is initialized (which could result in a skipped stimlog entry) 
+    set(SP.Runh, 'enable', 'off')
+    
     startstr=sprintf('StartRecord');
     if ~isfield(SP, 'mouseID')
         SP.mouseID='none';
     end
     zeroMQwrapper('Send',SP.zhandle ,'StartAcquisition'); %shouldn't need to do this unless user stopped acquisition, doesn't hurt anyway
-    startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', pref.remotedatapath, SP.mouseID);
+   % startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', pref.remotedatapath, SP.mouseID);
+    startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', [pref.remotedatapath,SP.user], SP.mouseID);
     zeroMQwrapper('Send',SP.zhandle ,startstr);
     set(SP.Recordh, 'backgroundcolor',[0.9 0 0],'String','Recording...');
     set(SP.mouseIDh, 'enable', 'off');
@@ -686,6 +700,11 @@ else
         SP=rmfield( SP, 'stimlog');
     end
     InitNotebookFile
+    
+    %re-enable play button here
+    set(SP.Runh, 'enable', 'on')
+    
+    
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -715,6 +734,14 @@ try
     %SP.activedir=strrep(SP.activedir, ':', ''); %commenting out to run on
     %single-machine windows configuration - was this important for
     %2-machine config?? mw 04.11.2017
+    
+    if strcmp(SP.activedir(1:6), 'o:\d:\') %hack mw 080217
+        SP.activedir=SP.activedir([1:3 7:end]);
+    end
+    
+    if ~pref.local
+        SP.activedir=strrep(SP.activedir, ':', '')
+    end
     
     d=dir(SP.activedir);
     if isempty(d)
@@ -750,6 +777,7 @@ try
     nb.mouseGenotype=SP.mouseGenotype;
     nb.Drugs=SP.Drugs;
     nb.notes=SP.Notes;
+    nb.Reinforcement=SP.Reinforcement;
     
     save('notebook.mat', 'nb')
     fprintf('\ncreated notebook file in %s', nb.activedir)
@@ -813,7 +841,8 @@ nb.mouseDOB=SP.mouseDOB;
 nb.mouseSex=SP.mouseSex;
 nb.mouseGenotype=SP.mouseGenotype;
 nb.notes=SP.Notes;
-
+nb.Drugs=SP.Drugs;
+nb.Reinforcement=SP.Reinforcement;
 try
     cd(nb.activedir)
 save('notebook.mat', '-append', 'nb')
@@ -826,7 +855,7 @@ end
 function InitZMQ
 global SP pref
 
-%open tcp/ip connection using zeroMQ  to communicate with open ephys
+%open tcp/ip connection using zeroMQ  to communicate with openephys
 cd (pref.root)
 cd(pref.mexpath)
 try
@@ -888,7 +917,7 @@ if ~isempty(cal) %it will be empty if Init failed to load calibration
         
     else
         switch stimtype
-            case {'clicktrain', 'whitenoise', 'amnoise'} %stimuli that consist of white noise
+            case {'clicktrain', 'whitenoise', 'AMNoise'} %stimuli that consist of white noise
                try
                     findex=find(cal.logspacedfreqs==-1); %freq of -1 indicates white noise
                     atten=cal.atten(findex);
@@ -958,6 +987,15 @@ if ~isempty(cal) %it will be empty if Init failed to load calibration
                 catch
                     djMessage( 'NOT calibrated', 'append')
                 end
+            case 'soundfile'
+                %best we can do for now is use the whitenoise calibration
+                findex=find(cal.logspacedfreqs==-1); %freq of -1 indicates white noise
+                atten=cal.atten(findex);
+                stimparam.amplitude=stimparam.amplitude-atten;
+                djMessage( 'calibrated', 'append')
+            otherwise
+                djMessage( 'NOT calibrated', 'append')
+
         end
     end
 else
@@ -1178,8 +1216,10 @@ SP.LaserOnOff=0;
 
 H=e;
 %Notes edit box
-SP.Notesh=uicontrol(fig,'tag','Notes','style','edit','fontweight','bold','units','pixels',...
-    'string', '','horiz','left', 'Max', Inf, 'callback',[me ';'],'pos',[2*e+2*w  H 2*w 3*h ]);
+% SP.Notesh=uicontrol(fig,'tag','Notes','style','edit','fontweight','bold','units','pixels',...
+%     'string', '','horiz','left', 'Max', Inf, 'callback',[me ';'],'pos',[2*e+2*w  H 2*w 3*h ]);
+SP.Notesh=uicontrol(fig,'tag','Notes','style','edit','fontweight','bold','units','pixels',... %mw 07.20.2017
+    'string', '','horiz','left', 'Max', 1000, 'callback',[me ';'],'pos',[2*e+2*w  H 2*w 3*h ]);
 H=H+3*h+e;
 SP.Noteslabel=uicontrol(fig,'tag','Noteslabel','style','text','units','pixels',...
     'string', 'Notes', 'fontsize', labelfs,...
@@ -1276,6 +1316,14 @@ SP.mouseIDlabel=uicontrol(fig,'Parent',hp,'tag','mouseIDlabel','style','text','u
     'enable','inact','horiz','left','pos', [e  H w h/2]);
 H=H+h;
 
+%%%%%%%%%%%%%%%%%%
+
+%send pi camera pulse button
+ H=H+5*h+e;
+SP.camerapulse=uicontrol(fig,'tag','camerapulse','style','pushbutton','units','pixels',...
+    'fontname','Arial', ...
+    'string', 'camera','callback', [me ';'],'enable','on','horiz','left','pos',[4*e+3*w H w h ]);
+ H=H+h+e;
 
 
 set(fig,'visible','on');

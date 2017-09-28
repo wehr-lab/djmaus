@@ -90,8 +90,8 @@ totalnumspikes=length(spiketimes);
 fprintf('\nsuccessfully loaded MClust spike data')
 Nclusters=1;
 
-%uncomment this to run some sanity checks
-% SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
+%%%uncomment this to run some sanity checks
+ SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
 
 fprintf('\ncomputing tuning curve...');
 samprate=sampleRate;
@@ -272,6 +272,10 @@ for i=1:length(Events)
                 M1ON(gdindex,paindex, nrepsON(gdindex,paindex)).spiketimes=spiketimes1; % Spike times
                 M1ONspikecounts(gdindex,paindex,nrepsON(gdindex,paindex))=spikecount; % No. of spikes
                 M1spontON(gdindex,paindex, nrepsON(gdindex,paindex))=spont_spikecount; % No. of spikes in spont window, for each presentation.
+                M_LaserStart(gdindex,paindex, nrepsON(gdindex,paindex))=LaserStart(i);
+                M_LaserWidth(gdindex,paindex, nrepsON(gdindex,paindex))= LaserWidth(i);
+                M_LaserNumPulses(gdindex,paindex, nrepsON(gdindex,paindex))= LaserNumPulses(i);
+                M_LaserISI(gdindex,paindex, nrepsON(gdindex,paindex))= LaserISI(i);
                 if LaserRecorded
                     M1ONLaser(gdindex, paindex, nrepsON(gdindex,paindex),:)=Lasertrace(region);
                 end
@@ -284,12 +288,19 @@ for i=1:length(Events)
                 M1OFF(gdindex,paindex, nrepsOFF(gdindex,paindex)).spiketimes=spiketimes1;
                 M1OFFspikecounts(gdindex,paindex,nrepsOFF(gdindex,paindex))=spikecount;
                 M1spontOFF(gdindex,paindex, nrepsOFF(gdindex,paindex))=spont_spikecount;
-                if LaserRecorded
+%                 try  % The "try catch warning end" steps can be activated
+%                 if there are missing hardware triggers at eof. confirm
+%                 first that "stimlog(trialnum).param" fields matche
+%                 "Events(trialnum)" fields (ie trials are in sync).
+                    if LaserRecorded
                     M1OFFLaser(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=Lasertrace(region);
                 end
                 if StimRecorded
                     M1OFFStim(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=Stimtrace(region);
                 end
+%                 catch
+%                 warning('ignoring missing data')    
+%                 end
             end
         end
     end
@@ -334,9 +345,8 @@ else
     % Spont
     mM1spontON=mean(M1spontON,3);
     sM1spontON=std(M1spontON,[],3);
-    for clust=1:Nclusters
-        semM1spontON=sM1spontON./sqrt(max(nrepsON(:)));
-    end
+    semM1spontON=sM1spontON./sqrt(max(nrepsON(:)));
+    
 end
 if isempty(M1OFF) %only laser pulses in this file
     mM1OFFspikecount=[];
@@ -387,10 +397,45 @@ if StimRecorded
     end
 end
 
+%sanity check - are the stimuli where we think they are?
+if StimRecorded
+    if IL
+        figure %ON
+    hold on
+    offset=1.5*range(M1ONStim(:));
+    for gdindex=1:numgapdurs
+        for paindex =1:numpulseamps
+            for r=1:nrepsON(gdindex,paindex)
+                stim=squeeze(M1ONStim(gdindex,paindex,r,:));
+                t=1:length(stim);t=1000*t/samprate; %in ms
+                plot(t, stim+r*offset, 'm')
+            end
+        end
+    end
+    title(' stimulus monitor, Laser ON')
+    end
+    figure %OFF
+    hold on
+    offset=1.5*range(M1OFFStim(:));
+    offset2=0;
+    for gdindex=1:numgapdurs
+        for paindex =1:numpulseamps
+            for r=1:nrepsOFF(gdindex,paindex)
+                stim=squeeze(M1OFFStim(gdindex,paindex,r,:));
+                t=1:length(stim);t=1000*t/samprate; %in ms
+                offset2=offset2+offset;
+                plot(t, stim+offset2, 'm')
+%                 pause(1)
+            end
+        end
+    end
+    title(' stimulus monitor, Laser OFF')
+end
+
 %save to outfiles
 %one outfile for each cell
 
-%after squeezing cluster, saves with the following dimensions:
+%saves with the following dimensions:
 % M1ON(numgapdurs, numpulseamps, nrepsON).spiketimes
 % mM1ON(numgapdurs, numpulseamps).spiketimes
 % mM1ONspikecount(numgapdurs, numpulseamps)
@@ -524,6 +569,7 @@ catch
 end
 outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
 save (outfilename, 'out')
+fprintf('\nsaved %s', outfilename)
 end
 
 

@@ -372,13 +372,9 @@ if IL
                 
                 xlim(xlimits)
                 set(gca, 'fontsize', fs)
-<<<<<<< HEAD
                 %                 set(gca, 'xticklabel', '')
                 %                 set(gca, 'yticklabel', '')
-=======
-               % set(gca, 'xticklabel', '')
-               % set(gca, 'yticklabel', '')
->>>>>>> origin/master
+
                 
             end
         end

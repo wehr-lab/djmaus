@@ -173,7 +173,7 @@ end
 
 %plot the mean tuning curve OFF
 for windex=1:numw
-    figure('position',[200 100 600 600])
+    figure('position',[200 100 600 700])
     p=0;
     subplot1(numy,numx, 'Max', [.95 .9])
     for yindex=ystart:ystep:yend
@@ -371,6 +371,7 @@ if IL
                 end
                 
                 xlim(xlimits)
+                ylim(ylimits2)
                 set(gca, 'fontsize', fs)
                 %                 set(gca, 'xticklabel', '')
                 %                 set(gca, 'yticklabel', '')
@@ -412,7 +413,7 @@ end
 %plot ON/OFF together ira 07.12.17
 if IL && plotONOFF
     for windex=1:numw
-        figure('position',[1250 100 600 700])
+        figure('position',[1000 900 600 700])
         p=0;
         subplot1(numy,numx, 'Max', [.95 .9])
         for yindex=ystart:ystep:yend
@@ -478,11 +479,16 @@ if IL && plotONOFF
                     end
                 end
             end
-            bON=bar(xON, NON,1);
-            set(bON, 'facecolor', 'c', 'edgecolor', 'c');
-            bOFF=bar(xOFF, NOFF,1);
-            set(bOFF, 'facecolor', 'none', 'edgecolor', [0 0 0]);
-            line(xlimits, [0 0], 'color', 'k')
+            if 0 %use this to plot psth as histograms
+                bON=bar(xON, NON,1);
+                set(bON, 'facecolor', 'c', 'edgecolor', 'c');
+                bOFF=bar(xOFF, NOFF,1);
+                set(bOFF, 'facecolor', 'none', 'edgecolor', [0 0 0]);
+                line(xlimits, [0 0], 'color', 'k')
+            end
+            if 1 %use this to plot curves
+                plot(xOFF, NOFF, 'k', xON, NON, 'c');
+            end
             
             ylimits2(2)=ylimits(2)+offset;
             ylim(ylimits2)

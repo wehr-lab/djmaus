@@ -32,6 +32,8 @@ catch
     binwidth=5;
 end
 
+ms=10; %raster dot size
+cyan=[0 .75 .75]; %slightly darker cyan for visibility (native cyan = [0 1 1])
 
 if force_reprocess
     fprintf('\nForce re-process\n')
@@ -204,7 +206,7 @@ for windex=1:numw
                 for n=1:nrepsOFF(findex, aindex, dindex)
                     spiketimes2=M1OFF(findex, aindex, dindex, n).spiketimes;
                     offset=offset+inc;
-                    h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k');
+                    h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k', 'markersize', ms);
                 end
                 if ~isempty(mSilentSoundOFF.spiketimes) && aindex==1 && isempty(spiketimes2)
                     for n=1:length(SilentSoundOFF)
@@ -320,9 +322,9 @@ if IL
                         MLaserNumPulses=M_LaserNumPulses(findex,aindex,dindex, n);
                         MLaserISI=M_LaserISI(findex,aindex,dindex, n);
                         for np=1:MLaserNumPulses
-                            plot([MLaserStart+(np-1)*(MLaserWidth+MLaserISI) MLaserStart+(np-1)*(MLaserWidth+MLaserISI)+MLaserWidth], [1 1]+yl(2)+offset, 'c')
+                            plot([MLaserStart+(np-1)*(MLaserWidth+MLaserISI) MLaserStart+(np-1)*(MLaserWidth+MLaserISI)+MLaserWidth], [1 1]+yl(2)+offset, 'color', 'c')
                         end
-                        h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k');
+                        h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k', 'markersize', ms);
                     end
                     if ~isempty(mSilentSoundON.spiketimes) && aindex==1 && isempty(spiketimes2)
                         for n=1:length(SilentSoundON)
@@ -360,7 +362,7 @@ if IL
                         Lasertrace=squeeze(M1ONLaser(findex, aindex, dindex,rep, :));
                         Lasertrace=Lasertrace -mean(Lasertrace(1:100));
                         Lasertrace=.05*diff(ylimits)*Lasertrace;
-                        plot( t, Lasertrace+offset, 'c')
+                        plot( t, Lasertrace+offset, 'color', 'c')
                     end
                 else
                     
@@ -455,12 +457,12 @@ if IL && plotONOFF
                     for n=1:nrepsON(findex, aindex, dindex)
                         spiketimes2=M1ON(findex, aindex, dindex, n).spiketimes;
                         offset=offset+inc;
-                        h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.c');
+                        h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.', 'color', cyan, 'markersize', ms);
                     end
                     for n=1:nrepsOFF(findex, aindex, dindex)
                         spiketimes2=M1OFF(findex, aindex, dindex, n).spiketimes;
                         offset=offset+inc;
-                        h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k');
+                        h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k', 'markersize', ms);
                     end
                     
                     if ~isempty(mSilentSoundOFF.spiketimes) && aindex==1 && isempty(spiketimes2)
@@ -481,13 +483,14 @@ if IL && plotONOFF
             end
             if 0 %use this to plot psth as histograms
                 bON=bar(xON, NON,1);
-                set(bON, 'facecolor', 'c', 'edgecolor', 'c');
+                set(bON, 'facecolor', 'color', cyan, 'edgecolor', 'color', cyan);
                 bOFF=bar(xOFF, NOFF,1);
                 set(bOFF, 'facecolor', 'none', 'edgecolor', [0 0 0]);
                 line(xlimits, [0 0], 'color', 'k')
             end
             if 1 %use this to plot curves
-                plot(xOFF, NOFF, 'k', xON, NON, 'c');
+                h=plot(xOFF, NOFF, 'k', xON, NON, 'c');
+                set(h(2), 'color', cyan)
             end
             
             ylimits2(2)=ylimits(2)+offset;
@@ -515,7 +518,7 @@ if IL && plotONOFF
                     Lasertrace=squeeze(M1ONLaser(findex, aindex, dindex,rep, :));
                     Lasertrace=Lasertrace -mean(Lasertrace(1:100));
                     Lasertrace=.05*diff(ylimits)*Lasertrace;
-                    plot( t, Lasertrace+offset, 'c')
+                    plot( t, Lasertrace+offset, 'color', cyan)
                 end
             else
                 

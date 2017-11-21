@@ -71,7 +71,8 @@ fprintf('\n')
 
 %combine X,Y,Z accelerometer channels by RMS
 %scaledtrace=sqrt(scaledtrace1.^2 + scaledtrace2.^2 + scaledtrace3.^2 );
-scaledtrace=sqrt(scaledtrace2.^2);
+%scaledtrace=sqrt(scaledtrace3.^2 + scaledtrace2.^2);
+scaledtrace=sqrt(scaledtrace1.^2);
 
 SCTfname=getSCTfile(datadir);
 stimfile=getStimfile(datadir); %mw 08.30.2107 old: sprintf('%s_ADC2.continuous', node);
@@ -81,8 +82,29 @@ laserfile=getLaserfile(datadir); %mw 08.30.2107 old: sprintf('%s_ADC2.continuous
 % [scttrace, scttimestamps, sctinfo] =load_open_ephys_data(SCTfname);
 
 %uncomment this to run some sanity checks
-  %SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
+%SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
 
+%% copied this sanity check from ProcessGPIAS_PSTH_single, but it doesn't work here - TH 20171121
+%sanity check - are the stimuli where we think they are?
+% 
+%     figure
+%     offset=1.5*range(M1OFFStim(:));
+%     offset2=0;
+%     for gdindex=1:numgapdurs
+%         for paindex =1:numpulseamps
+%             for r=1:nrepsOFF(gdindex,paindex)
+%                 stim=squeeze(M1OFFStim(gdindex,paindex,r,:));
+%                 t=1:length(stim);t=1000*t/samprate; %in ms
+%                 offset2=offset2+offset;
+%                 plot(t, stim+offset2, 'm')
+% %                 pause(1)
+%             end
+%         end
+%     end
+%     title('stimulus monitor')
+
+
+%%
 fprintf('\ncomputing tuning curve...');
 
 samprate=sampleRate;

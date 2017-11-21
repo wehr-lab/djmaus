@@ -8,7 +8,7 @@ function PlotTC_PSTH_single(varargin)
 %Processes data if outfile is not found;
 
 rasters=1;
-force_reprocess=0;
+force_reprocess=1;
 
 if nargin==0
     fprintf('\nno input');

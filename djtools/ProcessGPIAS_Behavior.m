@@ -71,17 +71,18 @@ fprintf('\n')
 
 %combine X,Y,Z accelerometer channels by RMS
 %scaledtrace=sqrt(scaledtrace1.^2 + scaledtrace2.^2 + scaledtrace3.^2 );
-scaledtrace=sqrt(scaledtrace2.^2);
+%scaledtrace=sqrt(scaledtrace3.^2 + scaledtrace2.^2);
+scaledtrace=sqrt(scaledtrace1.^2);
 
 SCTfname=getSCTfile(datadir);
 stimfile=getStimfile(datadir); %mw 08.30.2107 old: sprintf('%s_ADC2.continuous', node);
 laserfile=getLaserfile(datadir); %mw 08.30.2107 old: sprintf('%s_ADC2.continuous', node);
 [stim, stimtimestamps, stiminfo] =load_open_ephys_data(stimfile);
-% [lasertrace, lasertimestamps, laserinfo] =load_open_ephys_data(laserfile);
+ [lasertrace, lasertimestamps, laserinfo] =load_open_ephys_data(laserfile);
 % [scttrace, scttimestamps, sctinfo] =load_open_ephys_data(SCTfname);
 
 %uncomment this to run some sanity checks
-  %SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
+%SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
 
 fprintf('\ncomputing tuning curve...');
 
@@ -187,6 +188,7 @@ end
 
 M1ON=[];M1OFF=[];
 M1ONstim=[];M1OFFstim=[];
+M1ONlaser=[];M1OFFlaser=[];
 nrepsON=zeros(numgapdurs, numpulseamps);
 nrepsOFF=zeros(numgapdurs, numpulseamps);
 
@@ -231,10 +233,12 @@ for i=1:length(Events)
                     nrepsON(gdindex,paindex)=nrepsON(gdindex,paindex)+1;
                     M1ON(gdindex,paindex, nrepsON(gdindex,paindex),:)=scaledtrace(region);
                     M1ONstim(gdindex, paindex, nrepsON(gdindex, paindex),:)=stim(region);
+                    M1ONlaser(gdindex, paindex, nrepsON(gdindex, paindex),:)=lasertrace(region);
                 else
                     nrepsOFF(gdindex,paindex)=nrepsOFF(gdindex,paindex)+1;
                     M1OFF(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=scaledtrace(region);
                     M1OFFstim(gdindex, paindex, nrepsOFF(gdindex, paindex),:)=stim(region);
+                    M1OFFlaser(gdindex, paindex, nrepsOFF(gdindex, paindex),:)=lasertrace(region);
                     
                     %                     figure(8),clf;hold on
                     %                     t=region;t=t/samprate;
@@ -253,6 +257,67 @@ end
 
 fprintf('\nmin num ON reps: %d\nmax num ON reps: %d', min(nrepsON(:)), max(nrepsON(:)))
 fprintf('\nmin num OFF reps: %d\nmax num OFF reps: %d',min(nrepsOFF(:)), max(nrepsOFF(:)))
+
+%sanity check - are the stimuli where we think they are?
+figure
+hold on
+offset=1.5*range(M1OFFstim(:));
+offset2=0;
+t=1:size(M1OFFstim, 4);t=1000*t/samprate; %in ms
+t=t+xlimits(1);
+for gdindex=1:numgapdurs
+    for paindex =1:numpulseamps
+        for r=1:nrepsOFF(gdindex,paindex)
+            stim=squeeze(M1OFFstim(gdindex,paindex,r,:));
+            offset2=offset2+offset;
+            plot(t, stim+offset2, 'm')
+            %                 pause(1)
+        end
+    end
+end
+if ~isempty(M1ONstim)
+    for gdindex=1:numgapdurs
+    for paindex =1:numpulseamps
+        for r=1:nrepsOFF(gdindex,paindex)
+            stim=squeeze(M1ONstim(gdindex,paindex,r,:));
+            offset2=offset2+offset;
+            plot(t, stim+offset2, 'r')
+            %                 pause(1)
+        end
+    end
+    end
+end
+title('stimulus monitor (aligned to startle pulse)')
+
+figure
+hold on
+offset=1.5*range(M1OFFlaser(:));
+offset2=0;
+t=1:size(M1OFFlaser, 4);t=1000*t/samprate; %in ms
+t=t+xlimits(1);
+for gdindex=1:numgapdurs
+    for paindex =1:numpulseamps
+        for r=1:nrepsOFF(gdindex,paindex)
+            laser=squeeze(M1OFFlaser(gdindex,paindex,r,:));
+            offset2=offset2+offset;
+            plot(t, laser+offset2, 'c')
+            %                 pause(1)
+        end
+    end
+end
+if ~isempty(M1ONlaser)
+    for gdindex=1:numgapdurs
+    for paindex =1:numpulseamps
+        for r=1:nrepsOFF(gdindex,paindex)
+            laser=squeeze(M1ONlaser(gdindex,paindex,r,:));
+            offset2=offset2+offset;
+            plot(t, laser+offset2, 'c')
+            %                 pause(1)
+        end
+    end
+    end
+end
+title('laser trace (aligned to startle pulse)')
 
 PeakON=[];
 PeakOFF=[];

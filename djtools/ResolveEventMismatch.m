@@ -93,6 +93,7 @@ if nstimlog==nEvents & nSCTs==1+ nEvents
     elseif  all_SCTs(end) > Events(end).message_timestamp_sec
         warning(sprintf('\nMismatch possibly resolved by discarding extra (last) soundcard trigger. \nFurther investigation is highly recommended!!!!!!!'))
     else
+        check_for_timestamp_discontinuities
         error('ResolveEventMismatch: this case is not handled yet')
     end
 elseif strcmp(stimlog(1).protocol_name(1:5), 'GPIAS')
@@ -127,8 +128,11 @@ elseif nstimlog==nEvents & nSCTs < nEvents
             Events=Events(1:nSCTs);
             stimlog=stimlog(1:nSCTs);
         otherwise
+            warning('There''s a problem.')
+            fprintf('\nnumber of soundcardtriggers is less than the number of Events & stimuli in stimlog')
             fprintf('\n maybe user stopped open-ephys recording manually but djmaus was still running')
             fprintf('\n investigate, and if this appears to be so, add a special case')
+            check_for_timestamp_discontinuities
             error('ResolveEventMismatch: this case is not handled yet')
     end
 elseif nstimlog==nEvents & nSCTs > nEvents
@@ -140,14 +144,44 @@ elseif nstimlog==nEvents & nSCTs > nEvents
     nSCTs = length(ind);
     
 else
+    check_for_timestamp_discontinuities
     error('ResolveEventMismatch: this case is not handled yet')
 end
 
 
+function check_for_timestamp_discontinuities
+        warning('checking for timestamp discontinuities...')
+    SCTfname=getSCTfile(pwd);
+    if isempty(SCTfname)
+        warning('could not find soundcard trigger file')
+    else
+        [SCTtrace, SCTtimestamps, SCTinfo] =load_open_ephys_data(SCTfname);
+            sampleRate=SCTinfo.header.sampleRate; %in Hz
+    end
+        % are there discontinuities in the timestamps?
+      d=  (sampleRate*unique(diff(SCTtimestamps)));
+    fprintf('\nhere are the unique values of dt (in units of 1/sampleRate) ')
+    fprintf('\nthese should all be 1.0000 to within machine precision ')
+    fprintf('\n%.4f', d)
+    fprintf('\n')
+    fprintf('\nif there are some values >> 1.0000, this means there are discontinuities ')
+    fprintf('\nin the timestamps. This is fatal (non-recoverable) and indicates drop-outs by ')
+    fprintf('\nopen-ephys. On rigs where this happens a lot, we have (mostly?) solved it by ')
+    fprintf('\nswitching to a 2-computer set-up. \n\n')
+    if any(d>1.1)
+        error('ResolveEventMismatch: there apppear to be discontinuities in the timestamps. This is fatal (non-recoverable) and indicates drop-outs by open-ephys. See above message');
+    else
+        fprintf('\nThere don''t appear to be any timestamp discontinuities \n\n')
+
+    end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %if you want to investigate the situation, here are some things to try:
 if 0
+    
+    
+    
+    
     %look for StartAcquisitionSec = xxx in command window and execute to set StartAcquisitionSec
     SCTfname=getSCTfile(pwd);
     if isempty(SCTfname)
@@ -156,10 +190,32 @@ if 0
         [SCTtrace, SCTtimestamps, SCTinfo] =load_open_ephys_data(SCTfname);
     end
     
-    %here I'm loading a data channel to get good timestamps - the ADC timestamps are screwed up
-    %datafname=getContinuousFilename( pwd, 1 );
-    %[scaledtrace, datatimestamps, datainfo] =load_open_ephys_data(datafname);
-    
+    %all this is just to get StartAcquisitionSec
+    messagesfilename='messages.events';
+    [messages] = GetNetworkEvents(messagesfilename);
+    Eventsfilename='all_channels.events';
+    [all_channels_data, all_channels_timestamps, all_channels_info] = load_open_ephys_data(Eventsfilename);
+    sampleRate=all_channels_info.header.sampleRate; %in Hz
+    for i=1:length(messages)
+        str=messages{i};
+        str2=strsplit(str);
+        timestamp=str2num(str2{1});
+        Events_type=str2{2};
+        if strcmp(deblank(Events_type), 'StartAcquisition')
+            %if present, a convenient way to find start acquisition time
+            %for some reason not always present, though
+            StartAcquisitionSamples=timestamp;
+            StartAcquisitionSec=timestamp/sampleRate;
+            fprintf('\nStartAcquisitionSec=%g', StartAcquisitionSec)
+            break
+        elseif strcmp(deblank(Events_type), 'Software')
+            StartAcquisitionSamples=timestamp;
+            StartAcquisitionSec=timestamp/sampleRate;
+            fprintf('\nStartAcquisitionSec=%g', StartAcquisitionSec)
+            break
+        end
+    end
+        
     SCTtimestamps=SCTtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
     %datatimestamps=datatimestamps-StartAcquisitionSec;
     

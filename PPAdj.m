@@ -195,7 +195,7 @@ buffPos = 0;
 playbackonly=1;
 try PPAhandle = PsychPortAudio('Open', deviceid, playbackonly, reqlatencyclass, SoundFs, numChan, buffSize, suggestedLatency);
 catch
-    error(sprintf('Could not open soundcard device id %d. Call PrintDevices and confirm that the soundcard DeviceIndex matches pref.soundcarddeviceID (in djPrefs)\n', deviceid));
+error(sprintf('Could not open soundcard device id %d. Call PrintDevices and confirm that the soundcard DeviceIndex matches pref.soundcarddeviceID (in djPrefs)\n', deviceid));
 end
 %runMode = 0; %default, turns off soundcard after playback
 runMode = 1; %leaves soundcard on (hot), uses more resources but may solve dropouts? mw 08.25.09: so far so good.

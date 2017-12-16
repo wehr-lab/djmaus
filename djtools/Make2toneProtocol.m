@@ -158,11 +158,10 @@ for rep=1:nrepeats
                                     stimuli(k).param.ramp=ramp;
                                     stimuli(k).param.next=iti;
                                     stimuli(k).param.SOA=SOAs(i);
-                                    stimuli(k).stimulus_description=sprintf('2tone masker frequency: %d probe frequency:%d masker amplitude: %d probe amplitude: %d masker duration: %d probe duration: %d isi %d laser %d ramp %d next %d', masker_logspacedfreqs(mf), probe_logspacedfreqs(pf), ...
-                                        masker_linspacedamplitudes(ma), probe_linspacedamplitudes(pa), masker_durs(md), probe_durs(pd), SOAs(i), lasers(l), ramp, iti);
+                                    stimuli(k).stimulus_description=GetParamStr(stimuli(k));
                                     stimuli(k).protocol_name=name;
                                     stimuli(k).protocol_description=description;
-                                    stimuli(k).PlottingFunction='Plot2tone_PSTH';
+                                    stimuli(k).PlottingFunction='Plot2Tone_PSTH';
                                     stimuli(k).version='djmaus';
                                 end
                             end
@@ -178,11 +177,10 @@ for rep=1:nrepeats
                         stimuli(k).param.laser=lasers(l);
                         stimuli(k).param.ramp=ramp;
                         stimuli(k).param.next=iti;
-                        stimuli(k).stimulus_description=sprintf('WN frequency:%d amplitude: %d duration: %d laser %d ramp %d next %d',  probe_logspacedfreqs(pf), ...
-                            probe_linspacedamplitudes(pa),  probe_durs(pd), lasers(l), ramp, iti);
+                        stimuli(k).stimulus_description=GetParamStr(stimuli(k));
                         stimuli(k).protocol_name=name;
                         stimuli(k).protocol_description=description;
-                        stimuli(k).PlottingFunction='Plot2tone_PSTH';
+                        stimuli(k).PlottingFunction='Plot2Tone_PSTH';
                         stimuli(k).version='djmaus';
                         
                     else
@@ -195,11 +193,10 @@ for rep=1:nrepeats
                         stimuli(k).param.laser=lasers(l);
                         stimuli(k).param.ramp=ramp;
                         stimuli(k).param.next=iti;
-                        stimuli(k).stimulus_description=sprintf('tone frequency:%d amplitude: %d duration: %d laser %d ramp %d next %d',  probe_logspacedfreqs(pf), ...
-                            probe_linspacedamplitudes(pa),  probe_durs(pd), lasers(l), ramp, iti);
+                        stimuli(k).stimulus_description=GetParamStr(stimuli(k));
                         stimuli(k).protocol_name=name;
                         stimuli(k).protocol_description=description;
-                        stimuli(k).PlottingFunction='Plot2tone_PSTH';
+                        stimuli(k).PlottingFunction='Plot2Tone_PSTH';
                         stimuli(k).version='djmaus';
                     end
                     
@@ -214,15 +211,10 @@ for rep=1:nrepeats
         stimuli(k).param.duration=mean(masker_durs)+mean(probe_durs)+mean(SOAs); %make an average duration silent sound
         stimuli(k).param.next=iti;
         stimuli(k).param.laser=lasers(l);
-        %        stimuli(k).param.VarLaser=0;
-        %         stimuli(k).param.VarLaserstart=0;
-        %         stimuli(k).param.VarLaserpulsewidth=[];
-        %         stimuli(k).param.VarLasernumpulses=[];
-        %         stimuli(k).param.VarLaserisi=[];
-        stimuli(k).stimulus_description=sprintf('2tone silentsound %d duration',stimuli(k).param.duration);
+        stimuli(k).stimulus_description=GetParamStr(stimuli(k));
         stimuli(k).protocol_name=name;
         stimuli(k).protocol_description=description;
-        stimuli(k).PlottingFunction='Plot2tone_PSTH';
+        stimuli(k).PlottingFunction='Plot2Tone_PSTH';
         stimuli(k).version='djmaus';
     end
     

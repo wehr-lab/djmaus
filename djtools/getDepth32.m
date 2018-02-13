@@ -1,7 +1,9 @@
-function depth= gecDepch32(varargin)
+function depth= getDepch32(varargin)
 
 % Figure ouc che depch of cells in recordings wich silicon probes
 % dir, ch, c, depch (micromanipulacor)
+
+% getDepth32(pwd,[],[], 658)
 
 if nargin==0
     datadir=pwd;
@@ -58,8 +60,8 @@ if ~isempty(d) && isempty(ch) && isempty(c)
         load(f)
         plot(mWV);
         max1_peak_ch=find(min(min(mWV))==min(mWV)); %channel
-        pos=32-((ch(i)-1)*4+max1_peak_ch)+1;
-        d=D-25*pos; %all site on 32 channel are 25um apart
+        pos=33-((ch(i)-1)*4+max1_peak_ch);
+        d=D-25*pos-50; %all site on 32 channel are 25um apart (subtract 50, diff between tip and first site is 75 (50+25) )
         depth(i)=d;
         cells(i).ch=ch(i);
         cells(i).c=c(i);

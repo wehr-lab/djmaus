@@ -163,6 +163,7 @@ for i=1:length(Events)
     
 
 end
+
 freqs=unique(allfreqs);
 amps=unique(allamps);
 durs=unique(alldurs);
@@ -264,7 +265,9 @@ j=0;
 inRange=0;
 M1ONLaser=[];
 M1ONStim=[];
-
+if exist('Events.mat')
+    load('Events.mat')
+end
 t=0; w=0; m=0; n=0;
 for i=1:length(Events)
     if strcmp(Events(i).type, '2tone') | ...
@@ -288,6 +291,7 @@ for i=1:length(Events)
             inRange=inRange+ spikecount; %accumulate total spikecount in region
             spiketimes1=(spiketimes1-pos)*1000;%covert to ms after tone onset
             spont_spikecount=length(find(st<start & st>(start-(stop-start)))); % No. spikes in a region of same length preceding response window
+            
             if strcmp(Events(i).type, '2tone') || strcmp(Events(i).type, 'whitenoise')
                 freq=-1;
                 probefreq=Events(i).probefreq;
@@ -521,7 +525,7 @@ end
 
 try
     out.nb=nb;
-    out.stimlog=stimlog;
+    out.stimlog=stimlog; 
     out.user=nb.user;
 catch
     out.nb='notebook file missing';

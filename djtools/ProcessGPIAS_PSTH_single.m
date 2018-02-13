@@ -91,7 +91,7 @@ fprintf('\nsuccessfully loaded MClust spike data')
 Nclusters=1;
 
 %%%uncomment this to run some sanity checks
- SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
+ %SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
 
 fprintf('\ncomputing tuning curve...');
 samprate=sampleRate;

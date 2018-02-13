@@ -32,10 +32,15 @@ Eventsfilename='all_channels.events';
 [all_channels_data, all_channels_timestamps, all_channels_info] = load_open_ephys_data(Eventsfilename);
 sampleRate=all_channels_info.header.sampleRate; %in Hz
 
-%get Events and soundcard trigger timestamps 
+
+if exist('Events.mat')
+    load('Events.mat')
+    [~, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
+else
+    %get Events and soundcard trigger timestamps 
 [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
 %there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
-
+end
 %check if this is an appropriate stimulus protocol
 if ~strcmp(GetPlottingFunction(datadir), 'PlotGPIAS_PSTH')
 pl    error('This does not appear to be a GPIAS stimulus protcol');
@@ -50,19 +55,28 @@ filename='112_ADC4.continuous';
 
 fprintf('\n')
 [scaledtrace, datatimestamps, datainfo] =load_open_ephys_data(filename);
-scaledtrace=(scaledtrace+5)./3.0303;
-%combine X,Y,Z accelerometer channels by RMS
-
+if sum(scaledtrace<-4.999)>0 %this is actually a pretty good estimate of actual shape of the peak of startle response in case it gets cut off
+    missing=find(scaledtrace<-4.999);
+    scaledtrace(missing)=NaN;
+    scaledtrace=fillmissing(scaledtrace, 'spline');
+    figure; plot(scaledtrace)
+    fprintf('n Some traces were truncated. Used fillmissing to estimate the peak based on shape\n')
+end
 
 SCTfname=getSCTfile(datadir);
 stimfile=getStimfile(datadir); %mw 08.30.2107 old: sprintf('%s_ADC2.continuous', node);
+if isempty(stimfile)
+stimfile='105_ADC1.continuous';
+end
+laserfile='105_ADC3.continuous';
+SCTfname='105_ADC2.continuous';
 laserfile=getLaserfile(datadir); %mw 08.30.2107 old: sprintf('%s_ADC2.continuous', node);
 [stim, stimtimestamps, stiminfo] =load_open_ephys_data(stimfile);
 % [lasertrace, lasertimestamps, laserinfo] =load_open_ephys_data(laserfile);
 % [scttrace, scttimestamps, sctinfo] =load_open_ephys_data(SCTfname);
 
 %uncomment this to run some sanity checks
-  %SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
+%SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
 
 fprintf('\ncomputing tuning curve...');
 
@@ -243,22 +257,31 @@ mM1ON=mean(M1ON, 3);
 mM1OFFstim=mean(M1OFFstim, 3);
 mM1ONstim=mean(M1ONstim, 3);
 
-
+Peak_loc=[500:1000]; %samples, avoid getting later movements post startle
 % Accumulate startle response across trials using peak rectified signal in region
 start=(startle_window(1)-xlimits(1))*samprate/1000;
 stop=start+diff(startle_window)*samprate/1000;
 PeakON=nan(numgapdurs, numpulseamps, max(nrepsON(:)));
 PeakOFF=nan(numgapdurs, numpulseamps, max(nrepsOFF(:)));
 for paindex=1:numpulseamps
-    for gdindex=1:numgapdurs; % Hardcoded.
-        for k=1:nrepsON(gdindex, paindex);
+    for gdindex=1:numgapdurs % Hardcoded.
+        for k=1:nrepsON(gdindex, paindex)
             traceON=squeeze(M1ON(gdindex,paindex, k, start:stop));
+            traceON=traceON-median(traceON(1:1000));
             PeakON(gdindex, paindex, k)=max(abs(traceON));
         end
-        for k=1:nrepsOFF(gdindex, paindex);
+        figure;
+        hold on
+        for k=1:nrepsOFF(gdindex, paindex)
             traceOFF=squeeze(M1OFF(gdindex,paindex, k, start:stop));
-            PeakOFF(gdindex, paindex, k)=max(abs(traceOFF));
+            traceOFF=traceOFF-median(traceOFF(1:500));
+            plot(traceOFF);
+            PeakOFF(gdindex, paindex, k)=min(traceOFF(Peak_loc));
+            plot(mean(find(PeakOFF(gdindex, paindex,k)==traceOFF(Peak_loc)))+Peak_loc(1), PeakOFF(gdindex, paindex,k),'r*')
+            PeakOFF2(gdindex, paindex, k)=max(traceOFF(Peak_loc(end):Peak_loc(end)+500)); %look at the positive peak as well just in case
+            plot(mean(find(PeakOFF2(gdindex, paindex,k)==traceOFF(Peak_loc(end):Peak_loc(end)+500)))+Peak_loc(end), PeakOFF2(gdindex, paindex,k),'b*')
         end
+        ylabel(sprintf('%d ms',gapdurs(gdindex)));
         if isempty(PeakON)
             mPeakON=[];
             semPeakON=[];
@@ -308,9 +331,9 @@ for paindex=1:numpulseamps
     else
         percentGPIAS_OFF(1)=nan;
         pOFF(1)=nan;
-        for p=2:numgapdurs;
-            m1=mPeakOFF(1, paindex);
-            m2=mPeakOFF(p, paindex);
+        for p=2:numgapdurs
+            m1=abs(mPeakOFF(1, paindex));
+            m2=abs(mPeakOFF(p, paindex));
             percentGPIAS_OFF(p)=((m1-m2)/m1)*100;
             A=PeakOFF(1,paindex, 1:nrepsOFF(1, paindex));
             B=PeakOFF(p,paindex, 1:nrepsOFF(p, paindex));
@@ -377,6 +400,7 @@ out.xlimits=xlimits;
 out.startle_window=startle_window;
 out.samprate=samprate;
 out.datadir=datadir;
+out.PeakOFF2=PeakOFF2;
 try
     out.nb=nb;
     out.stimlog=stimlog;

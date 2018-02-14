@@ -50,6 +50,7 @@ cd(datadir)
 %check if this is an appropriate stimulus protocol
 switch (GetPlottingFunction(datadir))
     case 'PlotPINP_PSTH'
+    case 'PlotSustainedSuppression'
         %fine
     otherwise
         error('This stimulus protcol does not appear to be a PINP protocol.')

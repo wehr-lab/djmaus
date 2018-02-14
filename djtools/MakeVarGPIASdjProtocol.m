@@ -241,5 +241,3 @@ cd('GPIAS Protocols')
 save(filename, 'stimuli')
 
 fprintf('\nwrote file %s \n in directory %s', filename, pwd)
-
-%  keyboard

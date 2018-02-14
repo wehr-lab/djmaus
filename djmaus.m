@@ -679,13 +679,13 @@ if SP.Record
     SP.Record=0;
     set(SP.mouseIDh, 'enable', 'on');
     set(SP.mouseIDMenuh, 'enable', 'on');
-    if pref.camera_rec==1 %set the camera to be turned off when stopped recording
-        SP.Campulse=0;
-        set(SP.camerapulse, 'backgroundcolor',[0 0.9 0],'String','Camera Stopped');
-        PPAdj('camerapulse_off')
-    else
-        fprintf('\n camera not recording\n')
-    end
+%     if pref.camera_rec==1 %set the camera to be turned off when stopped recording
+%         SP.Campulse=0;
+%         set(SP.camerapulse, 'backgroundcolor',[0 0.9 0],'String','Camera Stopped');
+%         PPAdj('camerapulse_off')
+%     else
+%         fprintf('\n camera not recording\n')
+%     end
 
     UpdateNotebookFile
     try
@@ -716,13 +716,13 @@ else
     if isfield(SP, 'stimlog')
         SP=rmfield( SP, 'stimlog');
     end
-    if pref.camera_rec==1 %set the camera to be triggered when you start recording
-        SP.Campulse=1;
-        set(SP.camerapulse, 'backgroundcolor',[0.9 0 0],'String','Camera Recording');
-        PPAdj('camerapulse_on')
-    else
-        fprintf('\n camera not recording\n')
-    end
+%     if pref.camera_rec==1 %set the camera to be triggered when you start recording
+%         SP.Campulse=1;
+%         set(SP.camerapulse, 'backgroundcolor',[0.9 0 0],'String','Camera Recording');
+%         PPAdj('camerapulse_on')
+%     else
+%         fprintf('\n camera not recording\n')
+%     end
     InitNotebookFile
     
     %re-enable play button here

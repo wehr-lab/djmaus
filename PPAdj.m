@@ -510,6 +510,7 @@ if on
     end
 end
 
+
 % we used to add a silent pad at the end to avoid dropouts, but that didn't really work and the problem is now solved differently anyway
 
 %add in a Shock pulse if the stimulus includes a shock

@@ -1,6 +1,6 @@
-function depth= getDepch32(varargin)
+function depth= getDepth32(varargin)
 
-% Figure ouc che depch of cells in recordings wich silicon probes
+% Figure ouc the depth of cells in recordings wich silicon probes
 % dir, ch, c, depch (micromanipulacor)
 
 % getDepth32(pwd,[],[], 658)
@@ -46,6 +46,9 @@ if isempty(d)
     catch
         fprintf('\nCannot calculate cell depth\n')
     end
+end
+if ischar(d)
+    d=str2num(d);
 end
 D=sqrt(d^2+d^2);
 if ~isempty(d) && isempty(ch) && isempty(c)

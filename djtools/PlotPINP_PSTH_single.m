@@ -282,7 +282,7 @@ for pwindex=1:numpulsewidths
     if ~isempty(yl) ylim(yl); end
     
     %xlim(xlimits)
-        xlim([-200 pulsewidths(pwindex)+200]);
+    xlim([-200 pulsewidths(pwindex)+200]);
     set(gca, 'fontsize', fs)
     h=title(sprintf('%s: \nSilent Sound with single laser pulse, tetrode%d cell%d, nreps: %d-%d',datadir,channel,out.cluster,min(nrepsOFF),max(nrepsOFF)));
     set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
@@ -325,11 +325,23 @@ for tpwindex=1:numtrainpulsewidths
             
             hold on
             spiketimes1=mMTrain(tnpindex,tpwindex,tiindex).spiketimes;
-            X=xlimits(1):binwidth:xlimits(2); %specify bin centers
-            [N, x]=hist(spiketimes1, X);
-            N=N./nrepsTrain(tnpindex,tpwindex,tiindex); %normalize to spike rate (averaged across trials)
-            N=1000*N./binwidth; %normalize to spike rate in Hz
-            bar(x,N,1);
+            
+            %use this code to plot histograms
+            %             X=xlimits(1):binwidth:xlimits(2); %specify bin centers
+            %             [N, x]=hist(spiketimes1, X);
+            %             N=N./nrepsTrain(tnpindex,tpwindex,tiindex); %normalize to spike rate (averaged across trials)
+            %             N=1000*N./binwidth; %normalize to spike rate in Hz
+            %             bar(x,N,1);
+            
+            %use this code to plot smoothed firing rate
+            my_xlimits=xlimits;
+            [t, fr]=GaussSmooth(spiketimes1, 5, my_xlimits);
+            fr=fr./nrepsTrain(tnpindex,tpwindex,tiindex);
+            plot(t, fr, 'k')
+            xlabel('time, ms'); ylabel('firing rate, Hz')
+            
+            
+            
             %offset=0;
             %yl=ylim;
             yl=ylimits;
@@ -341,6 +353,42 @@ for tpwindex=1:numtrainpulsewidths
                     offset=offset+inc;
                     h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k');
                 end
+            end
+            
+            %compute reliability
+            npulses=trainnumpulses(tnpindex);
+            trainisi=trainisis(tiindex);
+            P=[];
+            for pnum=1:npulses
+                offset=-yl(2)/2;
+                start=0+(pnum-1)*trainisi;
+                stop=start+50;
+                for rep=1:nrepsTrain(tnpindex,tpwindex,tiindex)
+                    spiketimes2=MTrain(tnpindex,tpwindex,tiindex, rep).spiketimes;
+                    st=spiketimes2(find(spiketimes2>start & spiketimes2<stop));
+                    offset=offset+inc;
+                    h=plot(st, yl(2)+ones(size(st))+offset, '.r');
+                    p_rep(rep)=~isempty(st);
+                end
+                P(pnum)=mean(p_rep);
+            end
+            str= [sprintf('reliability p=') sprintf('%.2f, ', P)];str=str(1:end-2);
+            text(xl(1)+25, .95*yl(2),str, 'fontsize', 12)
+            fprintf('\nch%d cell %d: %s',channel, clust, str)
+            
+            %compute latencies
+            L=[];
+            for pnum=1:npulses
+                %fr is 10 samples/ms
+                start=1+round(10*(0+(pnum-1)*trainisi)-10*my_xlimits(1));
+                stop=start+100*10;
+                
+                frwin=fr(start:stop);
+                [pk, pki]=find(frwin==max(frwin)); 
+                %pki is index of peak, in 10x ms relative to laser onset
+                pki=pki(1);
+                L(pnum)=pki/10;
+                
             end
             
             if StimRecorded
@@ -372,7 +420,7 @@ for tpwindex=1:numtrainpulsewidths
                 trainisi=trainisis(tiindex);
                 trainpulsewidth=trainpulsewidths(tpwindex);
                 for pnum=1:trainnumpulses(tnpindex)
-%                     line([laserstart laserstart+trainpulsewidth], ylimits(1)+[0 0], 'color', 'c', 'linewidth', 5)
+                    %                     line([laserstart laserstart+trainpulsewidth], ylimits(1)+[0 0], 'color', 'c', 'linewidth', 5)
                     line([laserstart+trainisi*(pnum-1) laserstart+trainisi*(pnum-1)+trainpulsewidth], ylimits(1)+[0 0], 'color', 'c', 'linewidth', 5)
                 end
             end
@@ -388,6 +436,52 @@ for tpwindex=1:numtrainpulsewidths
 end
 out.p=P;
 
+<<<<<<< HEAD
 save(outfilename, 'out')
+=======
+%plot reliability
+figure
+%subplot1(2,2, 'XTickL', 'All', 'YTickL', 'All')
+subplot(221)
+h=plot(1:npulses, P, 'o-');
+ylim([0 1])
+xlim([0 npulses+1])
+xlabel('pulse number')
+ylabel('reliability')
+set(h, 'markersize', 10, 'markerfacecolor', 'k')
+% str= sprintf('%.2f, ', P);str=str(1:end-2);
+% text(1, .5,'reliability: p=', 'fontsize', 10)
+% text(1, .4, str, 'fontsize', 10)
+title( sprintf('mean reliability: p=%.2f +- %.2f', mean(P), std(P)))
 
+%plot latency
+subplot(222)
+h=plot(1:npulses, L, 'o-');
+ylim([0 max(L)])
+xlim([0 npulses+1])
+xlabel('pulse number')
+ylabel('latency')
+set(h, 'markersize', 10, 'markerfacecolor', 'k')
+% str= sprintf('%.2f, ', L);str=str(1:end-2);
+% text(1, 2,'latency: L=', 'fontsize', 10)
+% text(1, 1, str, 'fontsize', 10)
+title( sprintf('mean latency: L=%.2f +- %.1f', mean(L), std(L)))
+>>>>>>> 5ecc524e0490af55eaae33bd93e9bdd076d5d6ad
 
+%plot latency vs. reliability
+subplot(223)
+h=plot(L,P, 'o');
+xlim([0 max(L)+1])
+ylim([0 max(P)+1])
+ylabel('reliability')
+xlabel('latency')
+set(h, 'markersize', 10, 'markerfacecolor', 'k')
+
+% wd=pwd;
+% cd /Users/mikewehr/Documents/Data
+% fnum=get(gcf, 'number');
+% for f=fnum-3:fnum
+%     figure(f)
+%     print -append -dpsc2 PlotPINP_PSTH-output.ps
+% end
+% cd(wd)

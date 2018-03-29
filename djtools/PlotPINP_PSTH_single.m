@@ -9,7 +9,7 @@ function PlotPINP_PSTH_single(varargin)
 %Processes data if outfile is not found;
 
 rasters=1;
-force_reprocess=0;
+force_reprocess=1;
 
 if nargin==0
     fprintf('\nno input');
@@ -306,8 +306,10 @@ for pwindex=1:numpulsewidths
     xl=xlim;
     text(xl(1)+25, .95*yl(2), sprintf('h=%d, p=%.4f effect of laser (t-test) 0-75ms', h,p), 'fontsize', 14)
     fprintf('\nch%d cell %d: h=%d, p=%.4f effect of laser (1-tailed t-test) 0-75ms',channel, clust, h,p)
+    out.ON(pwindex).spiketimes=ON;
+    out.OFF(pwindex).spiketimes=OFF;
 end
-
+P=p;
 %plot the psth for silent sound with laser train
 for tpwindex=1:numtrainpulsewidths
     
@@ -384,6 +386,8 @@ for tpwindex=1:numtrainpulsewidths
         end
     end
 end
+out.p=P;
 
+save(outfilename, 'out')
 
 

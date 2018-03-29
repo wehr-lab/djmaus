@@ -37,7 +37,7 @@ split=strsplit(f, '_');
 ch=strsplit(split{1}, 'ch');
 channel=str2num(ch{2});
 clust=str2num(split{end});
-
+cell=clust;
 fprintf('\n%s', mfilename)
 fprintf('\nchannel %d, cluster %d', channel, clust)
 fprintf('\nprocessing with xlimits [%d-%d]', xlimits(1), xlimits(2))
@@ -121,6 +121,11 @@ alltrainisis=[];
 alltrainpulsewidths=[];
 allpulsewidths=[];
 allsilentsounddurs=[];
+if exist('Events.mat')
+    load('Events.mat')
+else
+save('Events.mat','Events')
+end
 for i=1:length(Events)
     if  strcmp(Events(i).type, 'silentsound')
         j=j+1;
@@ -372,8 +377,8 @@ end
 
 out.tetrode=channel;
 out.channel=channel;
-out.cluster=clust; %there are some redundant names here
-out.cell=clust;
+out.cluster=cell; %there are some redundant names here
+out.cell=cell;
 
 out.MPulse=MPulse;
 out.MSilentSoundOFF=MSilentSoundOFF;
@@ -433,6 +438,6 @@ catch
     out.user='unknown';
 end
 out.t_filename=filename;
-outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
+outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, cell);
 save (outfilename, 'out')
 

@@ -18,7 +18,7 @@
 %note: it's possible that restarting windows after re-compiling is helpful.
 
 % 1. make sure mex is setup properly and a compiler is available
-mex -setup
+mex -setup C++
 
 % it helps to execute this from within the directory
 % cd ('/Users/mikewehr/Documents/Analysis/plugin GUI/plugin-GUI/Resources/Matlab')

@@ -881,7 +881,7 @@ global SP pref
 
 %open tcp/ip connection using zeroMQ  to communicate with openephys
 cd (pref.root)
-cd(pref.mexpath)
+%cd(pref.mexpath)
 try
     %zeroMQwrapper('CloseThread', url); %crashes matlab
     SP.zhandle=zeroMQwrapper('StartConnectThread', pref.zmqurl);

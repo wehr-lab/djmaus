@@ -20,9 +20,9 @@ er=0; % manually fix SCT if there are too many
 % get all SCT timestamps
 sound_index=0;
 
-[scttrace, scttimestamps, sctinfo] =load_open_ephys_data('114_ADC2.continuous');
-StartAcquisitionSec=scttimestamps(1); %added 5.21.18 ira (messages timestamp is different from countinuous files
-StartAcquisitionSamples=scttimestamps(1)*30e3;
+cont_files=dir('*.continuous');
+[~, timestamps, ~] =load_open_ephys_data(cont_files(1).name); %grab any continuous file in the recording
+StartAcquisitionSamples=timestamps(1)*30e3;
 
 for i=1:length(messages)
     str=messages{i};

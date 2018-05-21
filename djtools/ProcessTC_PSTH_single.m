@@ -91,25 +91,26 @@ sampleRate=all_channels_info.header.sampleRate; %in Hz
 %there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
 [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
 
-% if exist('Events.mat')
-%     load('Events.mat')
-%     sprintf('loaded Events file \n')
-% else
-%     [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
-%     save('Events.mat','Events')
-%     save('StartAcquisitionSec.mat','StartAcquisitionSec')
-% end
-% if exist('StartAcquisitionSec.mat')
-%     load('StartAcquisitionSec.mat')
-% else
-%     [~, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
-%     save('StartAcquisitionSec.mat','StartAcquisitionSec')
-% end
-% try
-%     fprintf('\nNumber of logged stimuli in notebook: %d', length(stimlog));
-% catch
-%     fprintf('\nCould not find stimlog, no logged stimuli in notebook!!');
-% end
+if exist('Events.mat')
+    load('Events.mat')
+    sprintf('loaded Events file \n')
+else
+    [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
+    save('Events.mat','Events')
+    save('StartAcquisitionSec.mat','StartAcquisitionSec')
+end
+if exist('StartAcquisitionSec.mat')
+    load('StartAcquisitionSec.mat')
+else
+    [~, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
+    save('StartAcquisitionSec.mat','StartAcquisitionSec')
+end
+
+try
+    fprintf('\nNumber of logged stimuli in notebook: %d', length(stimlog));
+catch
+    fprintf('\nCould not find stimlog, no logged stimuli in notebook!!');
+end
 
 %check if this is an appropriate stimulus protocol
 switch (GetPlottingFunction(datadir))

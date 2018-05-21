@@ -402,13 +402,16 @@ if StimRecorded
     if IL
         figure %ON
     hold on
+    offset2=0;
     offset=1.5*range(M1ONStim(:));
     for gdindex=1:numgapdurs
         for paindex =1:numpulseamps
             for r=1:nrepsON(gdindex,paindex)
                 stim=squeeze(M1ONStim(gdindex,paindex,r,:));
                 t=1:length(stim);t=1000*t/samprate; %in ms
-                plot(t, stim+r*offset, 'm')
+                t=t+xlimits(1); %correct for xlim 
+                offset2=offset2+offset;
+                plot(t, stim+offset2, 'm')
             end
         end
     end
@@ -423,6 +426,7 @@ if StimRecorded
             for r=1:nrepsOFF(gdindex,paindex)
                 stim=squeeze(M1OFFStim(gdindex,paindex,r,:));
                 t=1:length(stim);t=1000*t/samprate; %in ms
+                t=t+xlimits(1); %correct for xlim 
                 offset2=offset2+offset;
                 plot(t, stim+offset2, 'm')
 %                 pause(1)

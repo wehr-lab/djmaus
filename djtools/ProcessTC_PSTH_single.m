@@ -88,14 +88,28 @@ Eventsfilename='all_channels.events';
 sampleRate=all_channels_info.header.sampleRate; %in Hz
 
 %get Events and soundcard trigger timestamps
-[Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
 %there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
+[Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
 
-try
-    fprintf('\nNumber of logged stimuli in notebook: %d', length(stimlog));
-catch
-    fprintf('\nCould not find stimlog, no logged stimuli in notebook!!');
-end
+% if exist('Events.mat')
+%     load('Events.mat')
+%     sprintf('loaded Events file \n')
+% else
+%     [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
+%     save('Events.mat','Events')
+%     save('StartAcquisitionSec.mat','StartAcquisitionSec')
+% end
+% if exist('StartAcquisitionSec.mat')
+%     load('StartAcquisitionSec.mat')
+% else
+%     [~, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
+%     save('StartAcquisitionSec.mat','StartAcquisitionSec')
+% end
+% try
+%     fprintf('\nNumber of logged stimuli in notebook: %d', length(stimlog));
+% catch
+%     fprintf('\nCould not find stimlog, no logged stimuli in notebook!!');
+% end
 
 %check if this is an appropriate stimulus protocol
 switch (GetPlottingFunction(datadir))
@@ -119,7 +133,7 @@ fprintf('\nsuccessfully loaded MClust spike data')
 Nclusters=1;
 
 %uncomment this to run some sanity checks
-%SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
+SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
 
 
 fprintf('\ncomputing tuning curve...');
@@ -224,7 +238,8 @@ end
 if LaserRecorded
     try
         [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data(getLaserfile('.'));
-        Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+        %Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+        Lasertimestamps=Lasertimestamps-Lasertimestamps(1);
         Lasertrace=Lasertrace./max(abs(Lasertrace));
         fprintf('\nsuccessfully loaded laser trace')
     catch
@@ -236,7 +251,8 @@ end
 if StimRecorded
     try
         [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(getStimfile('.'));
-        Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+        %Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+        Stimtimestamps=Stimtimestamps-Stimtimestamps(1);
         Stimtrace=Stimtrace./max(abs(Stimtrace));
         fprintf('\nsuccessfully loaded stim trace')
     catch

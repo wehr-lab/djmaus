@@ -706,7 +706,9 @@ else
     end
     zeroMQwrapper('Send',SP.zhandle ,'StartAcquisition'); %shouldn't need to do this unless user stopped acquisition, doesn't hurt anyway
    % startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', pref.remotedatapath, SP.mouseID);
-    startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', [pref.remotedatapath,SP.user], SP.mouseID);
+    %startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', [pref.remotedatapath,SP.user], SP.mouseID);
+    %trying to fix double user name bug mw 05032018
+    startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', [pref.remotedatapath], SP.mouseID);
     zeroMQwrapper('Send',SP.zhandle ,startstr);
     set(SP.Recordh, 'backgroundcolor',[0.9 0 0],'String','Recording...');
     set(SP.mouseIDh, 'enable', 'off');
@@ -881,7 +883,7 @@ global SP pref
 
 %open tcp/ip connection using zeroMQ  to communicate with openephys
 cd (pref.root)
-cd(pref.mexpath)
+%cd(pref.mexpath)
 try
     %zeroMQwrapper('CloseThread', url); %crashes matlab
     SP.zhandle=zeroMQwrapper('StartConnectThread', pref.zmqurl);

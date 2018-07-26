@@ -12,6 +12,7 @@ function [pulses_ms,puls_ms, motion_on_ms, motion_off_ms]=getBallMotion(varargin
 
 %djPrefs;
 %global pref
+plot_FR=1;
 if nargin==0
     fprintf('\nno input\n')
 else
@@ -61,7 +62,7 @@ start_record=all_channels_timestamps(1);%getFirstTimestamp;
 motion_on=motion_on-start_record; %start at 0
 motion_off=motion_off-start_record;
 pulses=pulses-start_record;
-    
+
 if motion_off(2)<motion_on(1)
     motion_off(1)=[]; %this needs investigating
     pulses(1)=[];
@@ -76,38 +77,84 @@ j=0;
 pulses_ms=pulses*1000;
 motion_on_ms=motion_on*1000;
 motion_off_ms=motion_off*1000;
-for i=1:length(pulses_ms)
-    if sum(pulses_ms(i)==motion_off_ms)
+for i=1:length(pulses_ms);
+    if sum(pulses_ms(i)==motion_off_ms);
         ind(i)=0;
     else
         ind(i)=1;
     end
 end
-puls_ms=[pulses_ms' ind']; %creat a matrix of all pulses and their id
+puls_s=[pulses' ind']; %creat a matrix of all pulses and their id
 
+if motion_off(1)<motion_on(1)
+    for i=1:num_pulses-2
+        m(i)=(motion_on_ms(i)-motion_off_ms(i+1))/(motion_on_ms(i+1)-motion_on_ms(i));
+    end
+else
+    for i=1:num_pulses-1
+        m(i)=(motion_on_ms(i)-motion_off_ms(i))/(motion_on_ms(i+1)-motion_on_ms(i));
+    end
+end
 
-
-% if motion_off(1)<motion_on(1)
-%     moves=pul*-1; %flip sign so that positive # would mean forward
+% if exist('moves_trace.mat')
+% load('moves_trace.mat')
 % else
-%     moves=pul;
+moves_trace=smooth(m, 'rlowess');
+moves_trace=moves_trace-median(moves_trace);
+load('ball_motion_test.mat'); %load test points from ball (add more for accuraccy if needed)
+[r,m,b] =regression(X,Y);
+moves_trace=b+m*moves_trace; %convert it to cm/sec
+save('moves_trace.mat','moves_trace');
 % end
-% moves=moves-mean(moves); %center at 0
-% moves=(moves*6.4)*1000; %max speed of the ball is about 32 cm/s
-%figure; plot(1:length(velocity), velocity)
-% tic
-% moves=smooth(moves, 'rlowess');
-% toc
-% figure; plot(1:length(moves), moves)
-% yticks1=[-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5]*6.4;
+
+%center at 0
+%moves_trace=(moves_trace*6.4); %max speed of the ball is about 32 cm/s
+
+% figure; plot(moves_trace);
+% yticks1=[-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5];
 % yticks(yticks1)
 % for i=1:length(yticks1)
 % yticklabel1{i}=sprintf('%.1f', yticks1(i));
-% end
+%  end
 % yticklabels(yticklabel1);
 % ylabel('cm/s')
-figure; plot(diff(pulses_ms));
-save('moves.mat','pulses_ms','puls_ms', 'motion_on_ms', 'motion_off_ms')
+% save('moves.mat','pulses_ms','puls_ms', 'motion_on_ms', 'motion_off_ms');
+
+
+%%%%
+% if plot_FR==1
+%     files=dir('*.t');
+%     for i=1:length(files)
+%     figure; plot(moves_trace); hold on
+%     filename=files(i).name;
+%     spiketimes=read_MClust_output(filename)'/10000;
+%     spiketimes=spiketimes-all_channels_timestamps(1);
+%     spiketimes=spiketimes*1000; %convert to ms
+%     spiketimes1=spiketimes/10; %to match spiketimes of moves_trace
+%     X=1:50:length(moves_trace); %specify bin centers
+%     [N, x]=hist(spiketimes1, X);
+%     M=abs(moves_trace);
+%     M1=find(M>0.01);
+%     N=N./5; %firing rate
+%
+%     plot(x,N);
+%     [M, x]=hist(M1, X);
+%     [R,P] = corrcoef(M,N);
+%     m1=find(M>.001);
+%     m2=find(M<.002);
+%     title(sprintf('R=%.4f P= %.4f, mFR move=%.4f mFR stop %.4f', R(1,2), P(1,2), mean(N(m1)), mean(N(m2))))
+%     figure; plot(M,N,'ko')
+%     title(sprintf('R=%.4f P= %.4f', R(1,2), P(1,2)))
+%
+%     cells(i).name=filename;
+%     cells(i).stats= [R P];
+%     cells(i).FR= [N(m1) N(m2)];
+%
+%
+%
+%     end
+% %     save('cells_motion.mat','cells')
+% end
 
 
 

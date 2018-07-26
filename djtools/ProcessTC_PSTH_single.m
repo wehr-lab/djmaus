@@ -124,17 +124,26 @@ switch (GetPlottingFunction(datadir))
         error('This stimulus protcol does not appear to have any tones or whitenoise.')
 end
 
-%read MClust .t file
+%read MClust .t file or Kilosort
+
+if exist('params.py','file')
+    fprintf('\nreading KiloSort output cell %d', clust)
+    load('cells.mat')
+    spiketimes=double(cells(clust).spiketimes)';
+    spiketimes=spiketimes/30e3; %convert to seconds
+else
 fprintf('\nreading MClust output file %s', filename)
 spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
 %correct for OE start time, so that time starts at 0
 spiketimes=spiketimes-StartAcquisitionSec;
+end
+
 totalnumspikes=length(spiketimes);
 fprintf('\nsuccessfully loaded MClust spike data')
 Nclusters=1;
 
 %uncomment this to run some sanity checks
-SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
+%SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
 
 
 fprintf('\ncomputing tuning curve...');

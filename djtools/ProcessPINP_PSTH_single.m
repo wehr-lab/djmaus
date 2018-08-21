@@ -90,18 +90,22 @@ sampleRate=all_channels_info.header.sampleRate; %in Hz
 %get Events and soundcard trigger timestamps
 [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
 %there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
-
+save('StartAcquisitionSec.mat','StartAcquisitionSec')
 try
     fprintf('\nNumber of logged stimuli in notebook: %d', length(stimlog));
 catch
     fprintf('\nCould not find stimlog, no logged stimuli in notebook!!');
 end
 
-%read MClust .t file
+if exist('params.py','file') || exist('dirs.mat','file') 
+    fprintf('\nreading KiloSort output cell %d', clust)
+    spiketimes=readKiloSortOutput(clust, sampleRate);
+else
 fprintf('\nreading MClust output file %s', filename)
 spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
 %correct for OE start time, so that time starts at 0
 spiketimes=spiketimes-StartAcquisitionSec;
+end
 totalnumspikes=length(spiketimes);
 fprintf('\nsuccessfully loaded MClust spike data')
 Nclusters=1;

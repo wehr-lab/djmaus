@@ -126,11 +126,9 @@ end
 
 %read MClust .t file or Kilosort
 
-if exist('params.py','file')
+if exist('params.py','file') || exist('dirs.mat','file') 
     fprintf('\nreading KiloSort output cell %d', clust)
-    load('cells.mat')
-    spiketimes=double(cells(clust).spiketimes)';
-    spiketimes=spiketimes/30e3; %convert to seconds
+    spiketimes=readKiloSortOutput(clust, sampleRate);
 else
 fprintf('\nreading MClust output file %s', filename)
 spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds

@@ -29,11 +29,11 @@ try
     xlimits=varargin{3};
 end
 if isempty(xlimits)
-    %     xlimits=[-100 200];
+         xlimits=[-100 200];
     s=GetStimParams(datadir);
     durs=s.durs;
     dur=max(durs);
-    xlimits=[-.5*dur 1.5*dur]; %default x limits for axis
+   % xlimits=[-.5*dur 1.5*dur]; %default x limits for axis
 end
 try
     ylimits=varargin{4};

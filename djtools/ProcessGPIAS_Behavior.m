@@ -72,11 +72,11 @@ fprintf('\n')
 scaledtrace=sqrt(scaledtrace1.^2 + scaledtrace2.^2 + scaledtrace3.^2 );
 
 SCTfname=getSCTfile(datadir);
-stimfile=getStimfile; %mw 08.30.2107 old: sprintf('%s_ADC2.continuous', node);
+stimfile=getStimfile(datadir); %mw 08.30.2107 old: sprintf('%s_ADC2.continuous', node);
 [stim, stimtimestamps, stiminfo] =load_open_ephys_data(stimfile);
 
 %uncomment this to run some sanity checks
-SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
+%SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
 
 fprintf('\ncomputing tuning curve...');
 

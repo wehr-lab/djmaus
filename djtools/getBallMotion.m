@@ -99,8 +99,8 @@ end
 % if exist('moves_trace.mat')
 % load('moves_trace.mat')
 % else
-moves_trace=smooth(m, 'rlowess');
-moves_trace=moves_trace-median(moves_trace);
+m=m-median(m);
+moves_trace=movmedian(m, 20);
 load('ball_motion_test.mat'); %load test points from ball (add more for accuraccy if needed)
 [r,m,b] =regression(X,Y);
 moves_trace=b+m*moves_trace; %convert it to cm/sec

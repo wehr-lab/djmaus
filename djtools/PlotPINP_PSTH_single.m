@@ -9,7 +9,7 @@ function PlotPINP_PSTH_single(varargin)
 %Processes data if outfile is not found;
 
 rasters=1;
-force_reprocess=0;
+force_reprocess=1;
 
 if nargin==0
     fprintf('\nno input');
@@ -53,7 +53,7 @@ fprintf('\nlooking for %s', outfilename)
 
 cd(datadir)
 
-if exist(outfilename,'file')
+if exist(outfilename,'file') 
     load(outfilename)
     fprintf('\nloaded outfile')
 else
@@ -61,7 +61,6 @@ else
     ProcessPINP_PSTH_single(datadir,  t_filename, xlimits, ylimits);
     load(outfilename);
 end
-
 %if xlimits are requested but don't match those in outfile, force preprocess
 if ~isempty(xlimits)
     if out.xlimits(1)>xlimits(1) | out.xlimits(2)<xlimits(2) %xlimits in outfile are too narrow, so reprocess
@@ -111,6 +110,11 @@ nexts=out.nexts;
 next=min(nexts);
 laserstarts=out.laserstarts;
 numlaserstarts=out.numlaserstarts;
+try
+KiloSort_ID=out.KiloSort_ID;
+catch
+KiloSort_ID=-1;  
+end
 
 
 LaserRecorded=out.LaserRecorded;
@@ -214,7 +218,7 @@ for dindex=1:numsilentsounddurs
     %     xlim(xlimits) %(makes less sense for silent sound)
     xlim([-next/2 silentsounddurs(dindex)+next/2]);
     set(gca, 'fontsize', fs)
-    h=title(sprintf('%s: \nSilent Sound no laser, tetrode%d cell%d, nreps: %d-%d',datadir,channel,out.cluster,min(nrepsOFF),max(nrepsOFF)));
+    h=title(sprintf('%s: \nSilent Sound no laser, tetrode%d cell%d, KD=%d, nreps: %d-%d',datadir,channel,out.cluster,KiloSort_ID,min(nrepsOFF),max(nrepsOFF)));
     set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
 end
 close
@@ -285,7 +289,7 @@ for pwindex=1:numpulsewidths
     %xlim(xlimits)
     xlim([-200 pulsewidths(pwindex)+200]);
     set(gca, 'fontsize', fs)
-    h=title(sprintf('%s: \nSilent Sound with single laser pulse, tetrode%d cell%d, nreps: %d-%d',datadir,channel,out.cluster,min(nrepsOFF),max(nrepsOFF)));
+    h=title(sprintf('%s: \nSilent Sound with single laser pulse, tetrode%d cell%d, KS=%d, nreps: %d-%d',datadir,channel,out.cluster,KiloSort_ID,min(nrepsOFF),max(nrepsOFF)));
     set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
     
     
@@ -428,7 +432,7 @@ for tpwindex=1:numtrainpulsewidths
             xlim(xlimits)
             %xlim([-next/2 silentsounddurs(dindex)+next/2]);
             set(gca, 'fontsize', fs)
-            h=title(sprintf('%s: \nSilent Sound with laser train, tetrode%d cell%d, nreps: %d-%d',datadir,channel,out.cluster,min(nrepsOFF),max(nrepsOFF)));
+            h=title(sprintf('%s: \nSilent Sound with laser train, tetrode%d cell%d, KS=%d, nreps: %d-%d',datadir,channel,out.cluster,KiloSort_ID,min(nrepsOFF),max(nrepsOFF)));
             set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
         end
     end

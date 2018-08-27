@@ -97,17 +97,19 @@ catch
     fprintf('\nCould not find stimlog, no logged stimuli in notebook!!');
 end
 
-if exist('params.py','file') || exist('dirs.mat','file') 
+if exist('params.py','file') || channel==-1 
     fprintf('\nreading KiloSort output cell %d', clust)
-    spiketimes=readKiloSortOutput(clust, sampleRate);
+    [spiketimes, KS_ID]=readKiloSortOutput(clust, sampleRate);
 else
-fprintf('\nreading MClust output file %s', filename)
-spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
-%correct for OE start time, so that time starts at 0
-spiketimes=spiketimes-StartAcquisitionSec;
+    fprintf('\nreading MClust output file %s', filename)
+    spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
+    %correct for OE start time, so that time starts at 0
+    spiketimes=spiketimes-StartAcquisitionSec;
+    fprintf('\nsuccessfully loaded MClust spike data')
+    KS_ID=-1;
 end
 totalnumspikes=length(spiketimes);
-fprintf('\nsuccessfully loaded MClust spike data')
+
 Nclusters=1;
 
 %uncomment this to run some sanity checks
@@ -431,6 +433,8 @@ out.LaserRecorded=LaserRecorded; %whether the laser signal was hooked up and rec
 out.StimRecorded=StimRecorded; %%whether the sound stimulus signal was hooked up and recorded as a continuous channel
 out.laserstarts=laserstarts;
 out.numlaserstarts=numlaserstarts;
+
+out. KiloSort_ID=KS_ID;
 
 try
     out.nb=nb;

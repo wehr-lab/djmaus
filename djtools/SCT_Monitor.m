@@ -20,7 +20,7 @@ end
 %     datafname=getContinuousFilename( pwd, 1 );
 %     [scaledtrace, datatimestamps, datainfo] =load_open_ephys_data(datafname);
 
-SCTtimestamps=SCTtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+%SCTtimestamps=SCTtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
 
 
 %sanity check

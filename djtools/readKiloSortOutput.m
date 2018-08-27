@@ -1,4 +1,4 @@
-function spiketimes=readKiloSortOutput(cellnum, sampleRate)
+function [spiketimes, cell_ID]=readKiloSortOutput(cellnum, sampleRate) %output spiketimes and Kilosort ID number
 %reads Kilosort output, finds cell's spiking time
 % plot's statistics about this cell
 %

@@ -1,8 +1,18 @@
+<<<<<<< HEAD
 function [pathname] = uigetdir2(start_path, dialog_title)
+=======
+function [pathname] = uigetfile_n_dir(start_path, dialog_title)
+>>>>>>> f2143cfd74a66f9f3877bb57c8a2c98ede027402
 % Pick multiple directories and/or files
 
 import javax.swing.JFileChooser;
 
+<<<<<<< HEAD
+=======
+% if nargin == 0 || start_path == '' || start_path == 0 % Allow a null argument.
+%     start_path = pwd;
+% end
+>>>>>>> f2143cfd74a66f9f3877bb57c8a2c98ede027402
 
 jchooser = javaObjectEDT('javax.swing.JFileChooser', start_path);
 

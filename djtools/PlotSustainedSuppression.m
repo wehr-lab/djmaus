@@ -1,19 +1,21 @@
-function PlotGPIAS_PSTH(varargin)
+function PlotSustainedSuppression(varargin)
 
-%plots clustered spiking GPIAS data from djmaus
+%plots clustered spiking PINP data from djmaus
 %
-% usage: PlotGPIAS_PSTH([datapath], [tetrode], [clust], [xlimits],[ylimits], [binwidth])
-% (all inputs are optional)
+% usage: PlotSustainedSuppression([datadir], [tetrode], [clust], [xlimits],[ylimits], [binwidth])
+% Everything is optional.
+% if omitted, the following defaults are used:
 %     datadir defaults to the current directory
 %     tetrode defaults to all tetrodes in data directory
 %     cluster defaults to all clusters
-%     xlimits defaults to [-1.5*max(gapdurs) 2*soa];
+%     xlimits defaults to [0 200]
 %     ylimits defaults to an autoscaled value
 %
-% tetrode number should be an integer
+% channel (tetrode) number should be an integer
 % clust can be an integer or an array of integers
 %
 %Processes data if outfile is not found;
+
 
 try
     datadir=varargin{1};
@@ -33,7 +35,7 @@ try
 catch
     clust=[]; %to plot all clusts
 end
-if ischar(clust)
+if strcmp('char',class(clust))
     clust=str2num(clust);
 end
 try
@@ -55,32 +57,31 @@ end
 cd(datadir)
 if isempty(channel)     %default to all tetrodes
     d=dir('*.t');
+    if isempty(d) fprintf('\nno .t files found'), end
     for i=1:length(d)
         fn=d(i).name;
-        PlotGPIAS_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
+        PlotSustainedSuppression_single(datadir, fn, xlimits, ylimits)
     end
-    if isempty(d)
-        fprintf('\nNo clustered data found (no .t files in this directory)')
-    end
-    
 else %user specified a channel
     if isempty(clust) % default to all clusters
         d=dir(sprintf('ch%d*.t', channel));
         for i=1:length(d)
             fn=d(i).name;
-            PlotGPIAS_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
+            PlotSustainedSuppression_single(datadir, fn, xlimits, ylimits)
         end
     else %user specified a channel and a cluster
         if clust<10
             fn=sprintf('ch%d_simpleclust_0%d.t', channel, clust);
-            PlotGPIAS_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
+            PlotSustainedSuppression_single(datadir, fn, xlimits, ylimits)
         else
-            for j=1:length(clust)
-            fn=sprintf('ch%d_simpleclust_%d.t', channel, clust(j));
-            PlotGPIAS_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
-            end
-            
+            fn=sprintf('ch%d_simpleclust_%d.t', channel, clust);
+            PlotSustainedSuppression_single(datadir, fn, xlimits, ylimits)
         end
     end
 end
+
+
+
+
+
 

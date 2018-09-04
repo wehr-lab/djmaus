@@ -1,21 +1,20 @@
 clear all
-close all
 dbstop if error
 
-dir = pwd;
-filename = '*.mp4'; %data file
-thresh = 0.85; %pupil threshold for binarization
-puprange = [15 100]; %set
+dir = pwd; %E:\djmaus-data\iraira\2017-11-26_16-15-50_mouse-7827
+filename = '2018-06-11_11-43-31.mp4'; %data file
+thresh = 0.87; %pupil threshold for binarization
+puprange = [5 100]; %set
 
 %%closed loop parameters
 pupercent = 0.15; %set range pupil radius window
 pupchange = 0.25; %acceptable percent change in radius per framerange
 framerange = 1; %number of frames to smooth over
-a=VideoReader('2017-11-29_20-02-28.mp4');
-length=a.Duration*a.FrameRate;
+a=VideoReader(filename);
+length1=a.Duration*a.FrameRate;
 j=0;
 %collect all frames in matrix data
-for i=1:10:length-10
+for i=1:10:length1-10
 j=j+1;    
 frame=read(a,i); %read frame one by one
 grey_frame= rgb2gray(frame); %convert to grey scale
@@ -36,17 +35,24 @@ horiz = (cent(4,1) - xc); %1/2 x search range
 vert = (yc - cent(3,2)); %1/2 y search range
 puprad = yc - cent(2,2); %initial pupil radius
 % puprange = [round(puprad - puprad*pupercent) round(puprad + puprad*pupercent)]; %range of pupil sizes to search over
-ddata = double(data); 
+%ddata = double(data); 
+ddata=data;
 binmaxx = cent(5,1);
 binmaxy = cent(5,2);
 for i = 1:size(data,3)
     binmax(i) = mean(mean(mean(ddata(binmaxy-3:binmaxy+3,binmaxx-3:binmaxx+3,i))));
 end
 for i = 1:size(ddata,3)
-    bindata(:,:,i) = (ddata(yc-vert:yc+vert,xc-horiz:xc+horiz,i)/binmax(i) > thresh);
+%     bindata(:,:,i) = (ddata(yc-vert:yc+vert,xc-horiz:xc+horiz,i)/binmax(i) > thresh);
+
+bindata(:,:,i)=imbinarize(ddata(:,:,i), 'adaptive', 'ForegroundPolarity', 'dark');
+se = strel('disk',2);
+ddata(:,:,i) = bwareaopen(ddata(:,:,i),10);
+bindata(:,:,i)=imclose(bindata(:,:,i),se);
 end
+
 figure
-imshow(bindata(:,:,100))
+imshow(bindata(:,:,size(bindata,3)))
 
 %convert from uint8 into doubles and threshold, then binarize
 
@@ -56,17 +62,23 @@ rad = nan(size(data,3),1);
 centroid(1,:) = [horiz vert];
 rad(1,1) = puprad;
 for n = 2:size(data,3)
-    [center,radii,metric] = imfindcircles(bindata(:,:,n),puprange,'Sensitivity',0.995, 'ObjectPolarity','dark','Method','twostage');
+    find_best_fit=[];
+    [center,radii,metric] = imfindcircles(bindata(:,:,n),puprange,'Sensitivity',0.885, 'ObjectPolarity','dark','Method','PhaseCode', 'EdgeThreshold',.7);
     if(isempty(center))
         centroid(n,:) = [NaN NaN]; % could not find anything...
         rad(n) = NaN;
     else
-        [~,idx] = max(metric); % pick the circle with best score
+        for idx=1:length(metric)
+        find_best_fit(idx)=abs(diff([radii(idx),mean(rad(1:n-1))]))+ abs(diff([center(idx,1),mean(centroid(1:n-1,1))]))+ abs(diff([center(idx,2),mean(centroid(1:n-1,2))]))-metric(idx)*2;
+        end   
+        
+        [~,idx] = min(find_best_fit); % pick the circle with best score
+        
         centroid(n,:) = center(idx,:);
         rad(n,:) = radii(idx);
     end
-    imshow(bindata(:,:,n));
-    circle2(center(:,1),center(:,2),radii)
+%     imshow(bindata(:,:,n));
+%     circle2(center(:,1),center(:,2),radii)
     %%closed loop execution
 %     if n>framerange && (isnan(rad(n-1)) | isnan(rad(n))) %if it's a nan or preceeded by all nans don't change puprange
 %         puprange = puprange;
@@ -93,7 +105,7 @@ ylim([5 55])
 
 % %
 h3 = figure
-for i = 1:size(data,1)
+for i = 1:size(data,3)
  
     subplot(1,2,1)
     imshow(data(yc-vert:yc+vert,xc-horiz:xc+horiz,i));
@@ -114,8 +126,9 @@ for i = 1:size(data,1)
 end
 
 %%%%%
+name='pdr.mat';
 
 
-save(fullfile(dir,name),'centroid','rad','h2','-append');
+  save(name,'centroid','rad','h2','-append');
 
 

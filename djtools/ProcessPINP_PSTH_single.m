@@ -90,20 +90,26 @@ sampleRate=all_channels_info.header.sampleRate; %in Hz
 %get Events and soundcard trigger timestamps
 [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
 %there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
-
+save('StartAcquisitionSec.mat','StartAcquisitionSec')
 try
     fprintf('\nNumber of logged stimuli in notebook: %d', length(stimlog));
 catch
     fprintf('\nCould not find stimlog, no logged stimuli in notebook!!');
 end
 
-%read MClust .t file
-fprintf('\nreading MClust output file %s', filename)
-spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
-%correct for OE start time, so that time starts at 0
-spiketimes=spiketimes-StartAcquisitionSec;
+if exist('params.py','file') || channel==-1 
+    fprintf('\nreading KiloSort output cell %d', clust)
+    [spiketimes, KS_ID]=readKiloSortOutput(clust, sampleRate);
+else
+    fprintf('\nreading MClust output file %s', filename)
+    spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
+    %correct for OE start time, so that time starts at 0
+    spiketimes=spiketimes-StartAcquisitionSec;
+    fprintf('\nsuccessfully loaded MClust spike data')
+    KS_ID=-1;
+end
 totalnumspikes=length(spiketimes);
-fprintf('\nsuccessfully loaded MClust spike data')
+
 Nclusters=1;
 
 %uncomment this to run some sanity checks
@@ -427,6 +433,8 @@ out.LaserRecorded=LaserRecorded; %whether the laser signal was hooked up and rec
 out.StimRecorded=StimRecorded; %%whether the sound stimulus signal was hooked up and recorded as a continuous channel
 out.laserstarts=laserstarts;
 out.numlaserstarts=numlaserstarts;
+
+out. KiloSort_ID=KS_ID;
 
 try
     out.nb=nb;

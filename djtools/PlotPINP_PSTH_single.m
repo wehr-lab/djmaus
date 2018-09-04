@@ -53,7 +53,7 @@ fprintf('\nlooking for %s', outfilename)
 
 cd(datadir)
 
-if exist(outfilename,'file')
+if exist(outfilename,'file') 
     load(outfilename)
     fprintf('\nloaded outfile')
 else
@@ -61,7 +61,6 @@ else
     ProcessPINP_PSTH_single(datadir,  t_filename, xlimits, ylimits);
     load(outfilename);
 end
-
 %if xlimits are requested but don't match those in outfile, force preprocess
 if ~isempty(xlimits)
     if out.xlimits(1)>xlimits(1) | out.xlimits(2)<xlimits(2) %xlimits in outfile are too narrow, so reprocess
@@ -111,6 +110,11 @@ nexts=out.nexts;
 next=min(nexts);
 laserstarts=out.laserstarts;
 numlaserstarts=out.numlaserstarts;
+try
+KiloSort_ID=out.KiloSort_ID;
+catch
+KiloSort_ID=-1;  
+end
 
 
 LaserRecorded=out.LaserRecorded;
@@ -214,9 +218,10 @@ for dindex=1:numsilentsounddurs
     %     xlim(xlimits) %(makes less sense for silent sound)
     xlim([-next/2 silentsounddurs(dindex)+next/2]);
     set(gca, 'fontsize', fs)
-    h=title(sprintf('%s: \nSilent Sound no laser, tetrode%d cell%d, nreps: %d-%d',datadir,channel,out.cluster,min(nrepsOFF),max(nrepsOFF)));
+    h=title(sprintf('%s: \nSilent Sound no laser, tetrode%d cell%d, KD=%d, nreps: %d-%d',datadir,channel,out.cluster,KiloSort_ID,min(nrepsOFF),max(nrepsOFF)));
     set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
 end
+close
 
 %plot the psth for silent sound with single laser pulse
 figure
@@ -284,7 +289,7 @@ for pwindex=1:numpulsewidths
     %xlim(xlimits)
     xlim([-200 pulsewidths(pwindex)+200]);
     set(gca, 'fontsize', fs)
-    h=title(sprintf('%s: \nSilent Sound with single laser pulse, tetrode%d cell%d, nreps: %d-%d',datadir,channel,out.cluster,min(nrepsOFF),max(nrepsOFF)));
+    h=title(sprintf('%s: \nSilent Sound with single laser pulse, tetrode%d cell%d, KS=%d, nreps: %d-%d',datadir,channel,out.cluster,KiloSort_ID,min(nrepsOFF),max(nrepsOFF)));
     set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
     
     
@@ -301,15 +306,13 @@ for pwindex=1:numpulsewidths
         spiketimes=st(st>laserstart & st<stop); % spiketimes in region
         OFF(rep)=length(spiketimes);
     end
-    [h,p]=ttest2(ON, OFF, 'tail', 'right');
+    [h,p_pulse]=ttest2(ON, OFF, 'tail', 'right');
     yl=ylim;
     xl=xlim;
-    text(xl(1)+25, .95*yl(2), sprintf('h=%d, p=%.4f effect of laser (t-test) 0-75ms', h,p), 'fontsize', 14)
-    fprintf('\nch%d cell %d: h=%d, p=%.4f effect of laser (1-tailed t-test) 0-75ms',channel, clust, h,p)
-    out.ON(pwindex).spiketimes=ON;
-    out.OFF(pwindex).spiketimes=OFF;
+    text(xl(1)+25, .95*yl(2), sprintf('h=%d, p=%.4f effect of laser (t-test) 0-75ms', h,p_pulse), 'fontsize', 14)
+    fprintf('\nch%d cell %d: h=%d, p=%.4f effect of laser (1-tailed t-test) 0-75ms',channel, clust, h,p_pulse)
 end
-P=p;
+
 %plot the psth for silent sound with laser train
 for tpwindex=1:numtrainpulsewidths
     
@@ -429,16 +432,30 @@ for tpwindex=1:numtrainpulsewidths
             xlim(xlimits)
             %xlim([-next/2 silentsounddurs(dindex)+next/2]);
             set(gca, 'fontsize', fs)
-            h=title(sprintf('%s: \nSilent Sound with laser train, tetrode%d cell%d, nreps: %d-%d',datadir,channel,out.cluster,min(nrepsOFF),max(nrepsOFF)));
+            h=title(sprintf('%s: \nSilent Sound with laser train, tetrode%d cell%d, KS=%d, nreps: %d-%d',datadir,channel,out.cluster,KiloSort_ID,min(nrepsOFF),max(nrepsOFF)));
             set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
         end
     end
+   for rep=1:nrepsTrain(tnpindex,tpwindex,tiindex)
+        stop=0+1000;
+        st=MTrain(:,:,:,rep).spiketimes;
+        spiketimes=st(st>laserstart & st<stop); % spiketimes in region
+        ON(rep)=length(spiketimes);
+    end
+    for rep=1:nrepsOFF(ssdindex)
+        stop=laserstart+1000;
+        st=MSilentSoundOFF(rep).spiketimes;
+        spiketimes=st(st>0 & st<stop); % spiketimes in region
+        OFF(rep)=length(spiketimes);
+    end
+    [h,p_train]=ttest2(ON, OFF, 'tail', 'right');
+    
+    set(gcf, 'Position', [601 423 857 420])
+    %text(xl(1)+25, .95*yl(2), sprintf('h=%d, p=%.4f effect of laser (t-test) 0-1000ms', h,p_train), 'fontsize', 14)
+    fprintf('\nch%d cell %d: h=%d, p=%.4f effect of laser (1-tailed t-test) 0-1000ms',channel, clust, h,p_train)
+    
 end
-out.p=P;
 
-<<<<<<< HEAD
-save(outfilename, 'out')
-=======
 %plot reliability
 figure
 %subplot1(2,2, 'XTickL', 'All', 'YTickL', 'All')
@@ -466,7 +483,6 @@ set(h, 'markersize', 10, 'markerfacecolor', 'k')
 % text(1, 2,'latency: L=', 'fontsize', 10)
 % text(1, 1, str, 'fontsize', 10)
 title( sprintf('mean latency: L=%.2f +- %.1f', mean(L), std(L)))
->>>>>>> 5ecc524e0490af55eaae33bd93e9bdd076d5d6ad
 
 %plot latency vs. reliability
 subplot(223)
@@ -476,7 +492,12 @@ ylim([0 max(P)+1])
 ylabel('reliability')
 xlabel('latency')
 set(h, 'markersize', 10, 'markerfacecolor', 'k')
-
+out.L=L;
+out.P=P;
+out.p_train=p_train;
+out.p_pulse=p_pulse;
+save(outfilename, 'out')
+%close all
 % wd=pwd;
 % cd /Users/mikewehr/Documents/Data
 % fnum=get(gcf, 'number');

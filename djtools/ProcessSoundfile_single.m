@@ -1,8 +1,8 @@
-function ProcessTC_PSTH_single(varargin)
+function ProcessSoundfile_single(varargin)
 
 %processes a single .t file of clustered spiking tuning curve data from djmaus
 %
-% usage: ProcessTC_PSTH(datadir, t_filename, [xlimits],[ylimits])
+% usage: ProcessSoundfile_single(datadir, t_filename, [xlimits],[ylimits])
 % (xlimits, ylimits are optional)
 % xlimits default to [0 200]
 % channel (tetrode) number should be an integer, if omitted you will be prompted for it
@@ -10,7 +10,7 @@ function ProcessTC_PSTH_single(varargin)
 
 %processes a single .t file of clustered spiking tuning curve data from djmaus
 %
-% usage: ProcessTC_PSTH(datadir, t_filename, [xlimits],[ylimits])
+% usage: ProcessSoundfile_single(datadir, t_filename, [xlimits],[ylimits])
 % (xlimits, ylimits are optional)
 % xlimits default to [0 200]
 % channel (tetrode) number should be an integer, if omitted you will be prompted for it
@@ -29,11 +29,11 @@ try
     xlimits=varargin{3};
 end
 if isempty(xlimits)
-         xlimits=[-100 200];
+    %     xlimits=[-100 200];
     s=GetStimParams(datadir);
     durs=s.durs;
     dur=max(durs);
-   % xlimits=[-.5*dur 1.5*dur]; %default x limits for axis
+    xlimits=[-.5*dur 1.5*dur]; %default x limits for axis
 end
 try
     ylimits=varargin{4};
@@ -88,23 +88,8 @@ Eventsfilename='all_channels.events';
 sampleRate=all_channels_info.header.sampleRate; %in Hz
 
 %get Events and soundcard trigger timestamps
-%there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
 [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
-
-if exist('Events.mat')
-    load('Events.mat')
-    sprintf('loaded Events file \n')
-else
-    [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
-    save('Events.mat','Events')
-    save('StartAcquisitionSec.mat','StartAcquisitionSec')
-end
-if exist('StartAcquisitionSec.mat')
-    load('StartAcquisitionSec.mat')
-else
-    [~, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
-    save('StartAcquisitionSec.mat','StartAcquisitionSec')
-end
+%there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
 
 try
     fprintf('\nNumber of logged stimuli in notebook: %d', length(stimlog));
@@ -114,28 +99,17 @@ end
 
 %check if this is an appropriate stimulus protocol
 switch (GetPlottingFunction(datadir))
-    case 'PlotTC_PSTH'
+    case 'PlotSoundfile'
         %that's fine
-    case 'PlotMGB_LGN'
-        %also fine, for now
-    case 'PlotPINP_PSTH'
-        %fine
     otherwise
-        error('This stimulus protcol does not appear to have any tones or whitenoise.')
+        error('This does not appear to be a soundfile stimulus protcol ')
 end
 
-%read MClust .t file or Kilosort
-
-if exist('params.py','file') || exist('dirs.mat','file') 
-    fprintf('\nreading KiloSort output cell %d', clust)
-    spiketimes=readKiloSortOutput(clust, sampleRate);
-else
+%read MClust .t file
 fprintf('\nreading MClust output file %s', filename)
 spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
 %correct for OE start time, so that time starts at 0
 spiketimes=spiketimes-StartAcquisitionSec;
-end
-
 totalnumspikes=length(spiketimes);
 fprintf('\nsuccessfully loaded MClust spike data')
 Nclusters=1;
@@ -150,37 +124,28 @@ samprate=sampleRate;
 
 %get freqs/amps
 j=0;
-allfreqs=[];
+alldurs=[];
 allamps=[];
+allsourcefiles={};
 for i=1:length(Events)
-    if strcmp(Events(i).type, '2tone') |strcmp(Events(i).type, 'tone') ...
-            |strcmp(Events(i).type, 'fmtone') | strcmp(Events(i).type, 'whitenoise') ...
-            | strcmp(Events(i).type, 'grating') |strcmp(Events(i).type, 'silentsound')
+    if strcmp(Events(i).type, 'soundfile')
         j=j+1;
+        alldurs(j)=round(Events(i).duration); %rounding to nearest ms for simplicity
+        %(some stimuli have erroneous fractional durations)
+        allamps(j)=Events(i).amplitude;
+        allsourcefiles{j}=Events(i).sourcefile;
+    elseif strcmp(Events(i).type, 'silentsound')
+        allfreqs(j)=-1;
+        allamps(j)=-1000;
         alldurs(j)=Events(i).duration;
-        if strcmp(Events(i).type, 'tone') | strcmp(Events(i).type, '2tone')
-            allamps(j)=Events(i).amplitude;
-            allfreqs(j)=Events(i).frequency;
-        elseif strcmp(Events(i).type, 'whitenoise')
-            allamps(j)=Events(i).amplitude;
-            allfreqs(j)=-1;
-        elseif strcmp(Events(i).type, 'fmtone')
-            allamps(j)=Events(i).amplitude;
-            allfreqs(j)=Events(i).carrier_frequency;
-        elseif strcmp(Events(i).type, 'grating')
-            allfreqs(j)=Events(i).angle*1000;
-            allamps(j)=Events(i).spatialfrequency;
-        elseif strcmp(Events(i).type, 'silentsound')
-            allfreqs(j)=-1;
-            allamps(j)=-1000;
-            alldurs(j)=Events(i).duration;
-        end
     end
 end
-freqs=unique(allfreqs);
+
+
+sourcefiles=unique(allsourcefiles);
 amps=unique(allamps);
 durs=unique(alldurs);
-numfreqs=length(freqs);
+numsourcefiles=length(sourcefiles);
 numamps=length(amps);
 numdurs=length(durs);
 
@@ -204,7 +169,7 @@ for i=1:length(Events)
         
     elseif isfield(Events(i), 'laser') & ~isfield(Events(i), 'LaserOnOff')
         %Not sure about this one. Assume no laser for now, but investigate.
-        warning('ProcessTC_LFP: Cannot tell if laser button was turned on in djmaus GUI');
+        warning('ProcessSoundfile_single: Cannot tell if laser button was turned on in djmaus GUI');
         LaserTrials(i)=0;
         Events(i).laser=0;
     elseif ~isfield(Events(i), 'laser') & ~isfield(Events(i), 'LaserOnOff')
@@ -246,8 +211,7 @@ end
 if LaserRecorded
     try
         [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data(getLaserfile('.'));
-        %Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
-        Lasertimestamps=Lasertimestamps-Lasertimestamps(1);
+        Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
         Lasertrace=Lasertrace./max(abs(Lasertrace));
         fprintf('\nsuccessfully loaded laser trace')
     catch
@@ -259,8 +223,7 @@ end
 if StimRecorded
     try
         [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(getStimfile('.'));
-        %Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
-        Stimtimestamps=Stimtimestamps-Stimtimestamps(1);
+        Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
         Stimtrace=Stimtrace./max(abs(Stimtrace));
         fprintf('\nsuccessfully loaded stim trace')
     catch
@@ -271,9 +234,9 @@ else
 end
 
 M1=[];M1ON=[];M1OFF=[];
-nreps=zeros(numfreqs, numamps, numdurs);
-nrepsON=zeros(numfreqs, numamps, numdurs);
-nrepsOFF=zeros(numfreqs, numamps, numdurs);
+nreps=zeros(numsourcefiles, numamps, numdurs);
+nrepsON=zeros(numsourcefiles, numamps, numdurs);
+nrepsOFF=zeros(numsourcefiles, numamps, numdurs);
 nreps_ssON=0;
 nreps_ssOFF=0;
 %extract the traces into a big matrix M
@@ -294,8 +257,7 @@ SilentSoundOFFLaser=[];
 
 
 for i=1:length(Events)
-    if strcmp(Events(i).type, 'tone') | strcmp(Events(i).type, 'whitenoise') | ...
-            strcmp(Events(i).type, 'fmtone') | strcmp(Events(i).type, '2tone')| strcmp(Events(i).type, 'grating') | ...
+    if strcmp(Events(i).type, 'soundfile')       | ...
             strcmp(Events(i).type, 'silentsound')
         if  isfield(Events(i), 'soundcard_trigger_timestamp_sec')
             pos=Events(i).soundcard_trigger_timestamp_sec;
@@ -317,18 +279,12 @@ for i=1:length(Events)
             %                %commented out by ira 09-05-2013
             %             else
             switch Events(i).type
-                case {'tone', '2tone'}
-                    freq=Events(i).frequency;
-                    amp=Events(i).amplitude;
-                case 'fmtone'
-                    freq=Events(i).carrier_frequency;
+                case {'soundfile'}
+                    sourcefile=Events(i).sourcefile;
                     amp=Events(i).amplitude;
                 case 'whitenoise'
                     freq=-1;
                     amp=Events(i).amplitude;
-                case 'grating'
-                    amp=Events(i).spatialfrequency;
-                    freq=Events(i).angle*1000;
             end
             
             st=spiketimes; %are in seconds
@@ -370,38 +326,38 @@ for i=1:length(Events)
                     end
                 end
             else
-                dur=Events(i).duration;
-                findex= find(freqs==freq);
+                dur=round(Events(i).duration);
+                sourcefileidx= find(strcmp(sourcefiles,sourcefile));
                 aindex= find(amps==amp);
                 dindex= find(durs==dur);
-                nreps(findex, aindex, dindex)=nreps(findex, aindex, dindex)+1;
+                nreps(sourcefileidx, aindex, dindex)=nreps(sourcefileidx, aindex, dindex)+1;
                 
                 
                 if laser
-                    nrepsON(findex, aindex, dindex)=nrepsON(findex, aindex, dindex)+1;
-                    M1ON(findex,aindex,dindex, nrepsON(findex, aindex, dindex)).spiketimes=spiketimes1; % Spike times
-                    M1ONspikecounts(findex,aindex,dindex,nrepsON(findex, aindex, dindex))=spikecount; % No. of spikes
-                    M1spontON(findex,aindex,dindex, nrepsON(findex, aindex, dindex))=spont_spikecount; % No. of spikes in spont window, for each presentation.
-                    M_LaserStart(findex,aindex,dindex, nrepsON(findex, aindex, dindex))=LaserStart(i);
-                    M_LaserWidth(findex,aindex,dindex, nrepsON(findex, aindex, dindex))= LaserWidth(i);
-                    M_LaserNumPulses(findex,aindex,dindex, nrepsON(findex, aindex, dindex))= LaserNumPulses(i);
-                    M_LaserISI(findex,aindex,dindex, nrepsON(findex, aindex, dindex))= LaserISI(i);
+                    nrepsON(sourcefileidx, aindex, dindex)=nrepsON(sourcefileidx, aindex, dindex)+1;
+                    M1ON(sourcefileidx,aindex,dindex, nrepsON(sourcefileidx, aindex, dindex)).spiketimes=spiketimes1; % Spike times
+                    M1ONspikecounts(sourcefileidx,aindex,dindex,nrepsON(sourcefileidx, aindex, dindex))=spikecount; % No. of spikes
+                    M1spontON(sourcefileidx,aindex,dindex, nrepsON(sourcefileidx, aindex, dindex))=spont_spikecount; % No. of spikes in spont window, for each presentation.
+                    M_LaserStart(sourcefileidx,aindex,dindex, nrepsON(sourcefileidx, aindex, dindex))=LaserStart(i);
+                    M_LaserWidth(sourcefileidx,aindex,dindex, nrepsON(sourcefileidx, aindex, dindex))= LaserWidth(i);
+                    M_LaserNumPulses(sourcefileidx,aindex,dindex, nrepsON(sourcefileidx, aindex, dindex))= LaserNumPulses(i);
+                    M_LaserISI(sourcefileidx,aindex,dindex, nrepsON(sourcefileidx, aindex, dindex))= LaserISI(i);
                     if LaserRecorded
-                        M1ONLaser(findex,aindex,dindex, nrepsON(findex, aindex, dindex),:)=Lasertrace(region);
+                        M1ONLaser(sourcefileidx,aindex,dindex, nrepsON(sourcefileidx, aindex, dindex),:)=Lasertrace(region);
                     end
                     if StimRecorded
-                        M1ONStim(findex,aindex,dindex, nrepsON(findex, aindex, dindex),:)=Stimtrace(region);
+                        M1ONStim(sourcefileidx,aindex,dindex, nrepsON(sourcefileidx, aindex, dindex),:)=Stimtrace(region);
                     end
                 else
-                    nrepsOFF(findex, aindex, dindex)=nrepsOFF(findex, aindex, dindex)+1;
-                    M1OFF(findex,aindex,dindex, nrepsOFF(findex, aindex, dindex)).spiketimes=spiketimes1;
-                    M1OFFspikecounts(findex,aindex,dindex,nrepsOFF(findex, aindex, dindex))=spikecount;
-                    M1spontOFF(findex,aindex,dindex, nrepsOFF(findex, aindex, dindex))=spont_spikecount;
+                    nrepsOFF(sourcefileidx, aindex, dindex)=nrepsOFF(sourcefileidx, aindex, dindex)+1;
+                    M1OFF(sourcefileidx,aindex,dindex, nrepsOFF(sourcefileidx, aindex, dindex)).spiketimes=spiketimes1;
+                    M1OFFspikecounts(sourcefileidx,aindex,dindex,nrepsOFF(sourcefileidx, aindex, dindex))=spikecount;
+                    M1spontOFF(sourcefileidx,aindex,dindex, nrepsOFF(sourcefileidx, aindex, dindex))=spont_spikecount;
                     if LaserRecorded
-                        M1OFFLaser(findex,aindex,dindex, nrepsOFF(findex, aindex, dindex),:)=Lasertrace(region);
+                        M1OFFLaser(sourcefileidx,aindex,dindex, nrepsOFF(sourcefileidx, aindex, dindex),:)=Lasertrace(region);
                     end
                     if StimRecorded
-                        M1OFFStim(findex,aindex,dindex, nrepsOFF(findex, aindex, dindex),:)=Stimtrace(region);
+                        M1OFFStim(sourcefileidx,aindex,dindex, nrepsOFF(sourcefileidx, aindex, dindex),:)=Stimtrace(region);
                     end
                 end
             end
@@ -422,25 +378,25 @@ mM1OFF=[];
 % Accumulate spiketimes across trials, for psth...
 for dindex=1:length(durs); % Hardcoded.
     for aindex=[numamps:-1:1]
-        for findex=1:numfreqs
+        for sourcefileidx=1:numsourcefiles
             
             % on
             spiketimesON=[];
             spikecountsON=[];
-            for rep=1:nrepsON(findex, aindex, dindex)
-                spiketimesON=[spiketimesON M1ON(findex, aindex, dindex, rep).spiketimes];
+            for rep=1:nrepsON(sourcefileidx, aindex, dindex)
+                spiketimesON=[spiketimesON M1ON(sourcefileidx, aindex, dindex, rep).spiketimes];
             end
             
             % All spiketimes for a given f/a/d combo, for psth:
-            mM1ON(findex, aindex, dindex).spiketimes=spiketimesON;
+            mM1ON(sourcefileidx, aindex, dindex).spiketimes=spiketimesON;
             
             % off
             spiketimesOFF=[];
             spikecountsOFF=[];
-            for rep=1:nrepsOFF(findex, aindex, dindex)
-                spiketimesOFF=[spiketimesOFF M1OFF(findex, aindex, dindex, rep).spiketimes];
+            for rep=1:nrepsOFF(sourcefileidx, aindex, dindex)
+                spiketimesOFF=[spiketimesOFF M1OFF(sourcefileidx, aindex, dindex, rep).spiketimes];
             end
-            mM1OFF(findex, aindex, dindex).spiketimes=spiketimesOFF;
+            mM1OFF(sourcefileidx, aindex, dindex).spiketimes=spiketimesOFF;
         end
     end
 end
@@ -460,17 +416,17 @@ mSilentSoundOFF.spiketimes=spiketimesOFF;
 %average laser and stimulus monitor M matrices across trials
 if LaserRecorded
     for aindex=1:numamps
-        for findex=1:numfreqs
+        for sourcefileidx=1:numsourcefiles
             for dindex=1:numdurs
-                if nrepsON(findex, aindex, dindex)>0
-                    mM1ONLaser(findex, aindex, dindex,:)=mean(M1ONLaser(findex, aindex, dindex, 1:nrepsON(findex, aindex, dindex),:), 4);
+                if nrepsON(sourcefileidx, aindex, dindex)>0
+                    mM1ONLaser(sourcefileidx, aindex, dindex,:)=mean(M1ONLaser(sourcefileidx, aindex, dindex, 1:nrepsON(sourcefileidx, aindex, dindex),:), 4);
                 else %no reps for this stim, since rep=0
-                    mM1ONLaser(findex, aindex, dindex,:)=zeros(size(region));
+                    mM1ONLaser(sourcefileidx, aindex, dindex,:)=zeros(size(region));
                 end
-                if nrepsOFF(findex, aindex, dindex)>0
-                    mM1OFFLaser(findex, aindex, dindex,:)=mean(M1OFFLaser(findex, aindex, dindex, 1:nrepsOFF(findex, aindex, dindex),:), 4);
+                if nrepsOFF(sourcefileidx, aindex, dindex)>0
+                    mM1OFFLaser(sourcefileidx, aindex, dindex,:)=mean(M1OFFLaser(sourcefileidx, aindex, dindex, 1:nrepsOFF(sourcefileidx, aindex, dindex),:), 4);
                 else %no reps for this stim, since rep=0
-                    mM1OFFLaser(findex, aindex, dindex,:)=zeros(size(region));
+                    mM1OFFLaser(sourcefileidx, aindex, dindex,:)=zeros(size(region));
                 end
             end
         end
@@ -478,17 +434,17 @@ if LaserRecorded
 end
 if StimRecorded
     for aindex=1:numamps
-        for findex=1:numfreqs
+        for sourcefileidx=1:numsourcefiles
             for dindex=1:numdurs
-                if nrepsON(findex, aindex, dindex)>0
-                    mM1ONStim(findex, aindex, dindex,:)=mean(M1ONStim(findex, aindex, dindex, 1:nrepsON(findex, aindex, dindex),:), 4);
+                if nrepsON(sourcefileidx, aindex, dindex)>0
+                    mM1ONStim(sourcefileidx, aindex, dindex,:)=mean(M1ONStim(sourcefileidx, aindex, dindex, 1:nrepsON(sourcefileidx, aindex, dindex),:), 4);
                 else %no reps for this stim, since rep=0
-                    mM1ONStim(findex, aindex, dindex,:)=zeros(size(region));
+                    mM1ONStim(sourcefileidx, aindex, dindex,:)=zeros(size(region));
                 end
-                if nrepsOFF(findex, aindex, dindex)>0
-                    mM1OFFStim(findex, aindex, dindex,:)=mean(M1OFFStim(findex, aindex, dindex, 1:nrepsOFF(findex, aindex, dindex),:), 4);
+                if nrepsOFF(sourcefileidx, aindex, dindex)>0
+                    mM1OFFStim(sourcefileidx, aindex, dindex,:)=mean(M1OFFStim(sourcefileidx, aindex, dindex, 1:nrepsOFF(sourcefileidx, aindex, dindex),:), 4);
                 else %no reps for this stim, since rep=0
-                    mM1OFFStim(findex, aindex, dindex,:)=zeros(size(region));
+                    mM1OFFStim(sourcefileidx, aindex, dindex,:)=zeros(size(region));
                 end
             end
         end
@@ -509,7 +465,7 @@ else
         % Spont
         mM1spontON=mean(M1spontON,4);
         sM1spontON=std(M1spontON,[],4);
-        semM1spontON(:,:)=sM1spontON./sqrt(max(nrepsON(:)));
+        semM1spontON=sM1spontON./sqrt(max(nrepsON(:)));
     else
         mM1ONspikecount=[];
         sM1ONspikecount=[];
@@ -536,7 +492,7 @@ else
         % Spont
         mM1spontOFF=mean(M1spontOFF,4);
         sM1spontOFF=std(M1spontOFF,[],4);
-        semM1spontOFF(:,:)=sM1spontOFF./sqrt(max(nrepsOFF(:)));
+        semM1spontOFF=sM1spontOFF./sqrt(max(nrepsOFF(:)));
     else
         mM1OFFspikecount=[];
         sM1OFFspikecount=[];
@@ -611,10 +567,10 @@ out.mM1spontOFF=mM1spontOFF;
 out.sM1spontOFF=sM1spontOFF;
 out.semM1spontOFF=semM1spontOFF;
 out.amps=amps;
-out.freqs=freqs;
 out.durs=durs;
+out.sourcefiles=sourcefiles;
 out.numamps=numamps;
-out.numfreqs=numfreqs;
+out.numsourcefiles=numsourcefiles;
 out.numdurs=numdurs;
 out.nreps=nreps;
 out.nrepsON=nrepsON;

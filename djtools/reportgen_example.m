@@ -8,11 +8,7 @@ for i=1:20
     plot(randn(1, 100)+i)
 end
 xlabel('stuff')
-<<<<<<< HEAD
 set(gcf, 'pos', [   680    84   551   894])
-=======
-set(gcf, 'pos', [225 1932  560 1000])
->>>>>>> f2143cfd74a66f9f3877bb57c8a2c98ede027402
 figure
 plot(randn(5))
 xlabel('stuff')
@@ -26,40 +22,29 @@ import mlreportgen.report.*
 import mlreportgen.dom.*
 
 % Create a report object
-<<<<<<< HEAD
-% rpt = Report('example', 'html');
- rpt = Report('example', 'pdf');
-=======
-rpt = Report('NMF','pdf');
-% rpt = Report('NMF', 'html');
->>>>>>> f2143cfd74a66f9f3877bb57c8a2c98ede027402
+%  rpt = Report('example', 'html');
+rpt = Report('example', 'pdf');
 
 % Add a title page
 % To customize additional title page properties, see mlreportgen.report.TitlePage.
 tp = TitlePage;
-<<<<<<< HEAD
 tp.Title = 'MouseID_Experimentat';
-=======
+
 tp.Title = 'some plots';
->>>>>>> f2143cfd74a66f9f3877bb57c8a2c98ede027402
 tp.Subtitle = 'various stuff';
 tp.Author = 'Mike';
 add(rpt,tp);
 
 % Add default table of contents
 add(rpt,TableOfContents);
-<<<<<<< HEAD
 chap=Chapter;
-    chap.Title = 'this is a chapter';
+chap.Title = 'this is a chapter';
 para=Paragraph ('here is some text');
 add(chap, para);
 add(rpt, chap);
 
-for i=1:5
-=======
 
 for i=1:1
->>>>>>> f2143cfd74a66f9f3877bb57c8a2c98ede027402
     % Add a section
     ch(i) = Section;
     ch(i).Title = sprintf('cell %d', i);
@@ -74,48 +59,30 @@ for i=1:1
     for j=1:3
         fig(j)=Figure(figure(j));
         figi(j) = Image(getSnapshotImage(fig(j),rpt));
-<<<<<<< HEAD
-    end
-    
-    table=Table(2);
-=======
         figi(j).Style = {ScaleToFit};
     end
     
     table=Table(2);
-    %     table.TableEntriesStyle = {Width('3in'), Height('3in')};  % example with all cells set to 3x3 in
->>>>>>> f2143cfd74a66f9f3877bb57c8a2c98ede027402
+    %          table.TableEntriesStyle = {Width('3in'), Height('3in')};  % example with all cells set to 3x3 in
     table.Border = 'single';
     table.ColSep = 'single';
     table.RowSep = 'single';
     row = TableRow;
     te = TableEntry(figi(1));
-<<<<<<< HEAD
-%    te = TableEntry('1');
-    te.RowSpan = 2;
-    te.ColSpan = 1;
-    append(row, te);
-    append(row, TableEntry(figi(2)));
-%     append(row, TableEntry('2'));
-    append(table,row);
-    row = TableRow;
-   append(row, TableEntry(figi(3)));
-%     append(row, TableEntry('3'));
-=======
-    te.RowSpan = 2;
-    te.ColSpan = 1;
     te.Style={Width('3in'), Height('6in')};
+    te.RowSpan = 2;
+    te.ColSpan = 1;
     append(row, te);
+    
     te = TableEntry(figi(2));
     te.Style={Width('3in'), Height('3in')};
-    
     append(row, te);
     append(table,row);
+    
     row = TableRow;
     te = TableEntry(figi(3));
     te.Style={Width('3in'), Height('3in')};
     append(row, te);
->>>>>>> f2143cfd74a66f9f3877bb57c8a2c98ede027402
     append(table,row);
     
     

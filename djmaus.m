@@ -1,4 +1,4 @@
- function djmaus(varargin)
+function djmaus(varargin)
 
 % Plays a bunch of different stimuli stored in a .mat file ('protocol')
 % Uses PPA sound which requires PsychToolbox. Download from psychtoolbox.org.
@@ -40,6 +40,7 @@ end
 switch action
     case 'Init'
         SP.user='lab';
+        SP.Campulse=0;
         djPrefs;
         InitializeGUI;
         InitZMQ %initialize zeroMQ connection to open-ephys
@@ -145,7 +146,7 @@ switch action
         outstring=textwrap(pnh(1),{name{protocol_choice}});
         set(pnh,'String',outstring);
         SP.NRepeats=0;
-        djMessage(['0/' num2str(SP.NStimuli(protocol_choice)) ' stimuli, ' num2str(SP.NRepeats), ' repeats' ]);
+        djMessage([int2str(current(protocol_choice)), '/' num2str(SP.NStimuli(protocol_choice)) ' stimuli, ' num2str(SP.NRepeats), ' repeats' ]);
         %this is a hack to solve the problem where after running a seamless
         %protocol, then regular protocols don't play any sound
         PPAdj('init');
@@ -307,7 +308,16 @@ switch action
         SP.LaserISI=str2num(get(SP.LaserISIh, 'string'));
 
     case 'camerapulse'
-        PPAdj('camerapulse')
+         if SP.Campulse
+            %we want to stop
+            set(SP.camerapulse,'backgroundcolor',[0 0.9 0],'String','Camera Stopped');
+            SP.Campulse=0;
+            PPAdj('camerapulse_off')
+        else
+            set(SP.camerapulse, 'backgroundcolor',[0.9 0 0],'String','Camera Recording');
+            SP.Campulse=1;
+            PPAdj('camerapulse_on')
+        end
 end
 
 function AddUser
@@ -669,6 +679,13 @@ if SP.Record
     SP.Record=0;
     set(SP.mouseIDh, 'enable', 'on');
     set(SP.mouseIDMenuh, 'enable', 'on');
+    if pref.camera_rec==1 %set the camera to be turned off when stopped recording
+        SP.Campulse=0;
+        set(SP.camerapulse, 'backgroundcolor',[0 0.9 0],'String','Camera Stopped');
+        PPAdj('camerapulse_off')
+    else
+        fprintf('\n camera not recording\n')
+    end
 
     UpdateNotebookFile
     try
@@ -689,7 +706,9 @@ else
     end
     zeroMQwrapper('Send',SP.zhandle ,'StartAcquisition'); %shouldn't need to do this unless user stopped acquisition, doesn't hurt anyway
    % startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', pref.remotedatapath, SP.mouseID);
-    startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', [pref.remotedatapath,SP.user], SP.mouseID);
+    %startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', [pref.remotedatapath,SP.user], SP.mouseID);
+    %trying to fix double user name bug mw 05032018
+    startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', [pref.remotedatapath], SP.mouseID);
     zeroMQwrapper('Send',SP.zhandle ,startstr);
     set(SP.Recordh, 'backgroundcolor',[0.9 0 0],'String','Recording...');
     set(SP.mouseIDh, 'enable', 'off');
@@ -698,6 +717,13 @@ else
     SP.stimcounter=0;
     if isfield(SP, 'stimlog')
         SP=rmfield( SP, 'stimlog');
+    end
+    if pref.camera_rec==1 %set the camera to be triggered when you start recording
+        SP.Campulse=1;
+        set(SP.camerapulse, 'backgroundcolor',[0.9 0 0],'String','Camera Recording');
+        PPAdj('camerapulse_on')
+    else
+        fprintf('\n camera not recording\n')
     end
     InitNotebookFile
     
@@ -737,6 +763,10 @@ try
     
     if strcmp(SP.activedir(1:6), 'o:\d:\') %hack mw 080217
         SP.activedir=SP.activedir([1:3 7:end]);
+    end
+    
+    if ~pref.local
+        SP.activedir=strrep(SP.activedir, ':', '')
     end
     
     d=dir(SP.activedir);
@@ -853,7 +883,7 @@ global SP pref
 
 %open tcp/ip connection using zeroMQ  to communicate with openephys
 cd (pref.root)
-cd(pref.mexpath)
+%cd(pref.mexpath)
 try
     %zeroMQwrapper('CloseThread', url); %crashes matlab
     SP.zhandle=zeroMQwrapper('StartConnectThread', pref.zmqurl);
@@ -1035,6 +1065,7 @@ if isfield(SP, 'fig')
     end
 end
 fig = figure;
+
 SP.fig=fig;
 set(fig,'visible','off');
 set(fig,'visible','off','numbertitle','off','name','djmaus',...
@@ -1321,6 +1352,11 @@ SP.camerapulse=uicontrol(fig,'tag','camerapulse','style','pushbutton','units','p
     'string', 'camera','callback', [me ';'],'enable','on','horiz','left','pos',[4*e+3*w H w h ]);
  H=H+h+e;
 
+%  %Run button
+% SP.Run=0;
+% SP.Runh=uicontrol(fig,'tag','Run','style','togglebutton','units','pixels','fontweight','bold',...
+%     'fontsize',12,'fontname','Arial','backgroundcolor',[0.75 0.75 0.75], ...
+%     'string', 'Play','callback', [me ';'],'enable','off','horiz','left','pos',[e H w 2*h ]);
 
 set(fig,'visible','on');
 

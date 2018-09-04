@@ -2,7 +2,7 @@ function out=PPAdj(varargin)
 
 % djmaus module that initializes, loads, and plays sounds using PsychToolbox PortAudio (PPA) routines
 %note: this module requires that PsychToolbox is installed. Freely available from psychtoolbox.org
-        
+
 global SP debugging
 debugging=0; %print out helpful info for debugging
 
@@ -38,7 +38,7 @@ switch action
             pause(.5)
         end
         
-        try 
+        try
             %delete timer
             stop(SP.PPATimer);
             delete(SP.PPATimer);
@@ -53,18 +53,18 @@ switch action
             djMessage('PPAdj: failed to stop PPA timer')
             pause(.5)
         end
-
+        
     case 'load'
         if nargin<3
             return;
         end
-            if nargin==4
-                LoadPPA(varargin{2},varargin{3},varargin{4});
-            else
-                param.channel=1;
-                LoadPPA(varargin{2},varargin{3},param); % first channel is the default channel
-            end
-
+        if nargin==4
+            LoadPPA(varargin{2},varargin{3},varargin{4});
+        else
+            param.channel=1;
+            LoadPPA(varargin{2},varargin{3},param); % first channel is the default channel
+        end
+        
         
         
         
@@ -77,44 +77,47 @@ switch action
             h=SP.PPAactive;
             if status.Active==0; %device not running
                 set(h, 'string', sprintf('PPA not running, XRuns=%g, CPUload=%.3f', status.XRuns, status.CPULoad), 'backgroundcolor', [.5 .5 .5])
-%                 if ~SP.Run
-%                     set(SP.Runh, 'backgroundcolor', [0 1 0], 'Value', 0)
-%                 end
+                %                 if ~SP.Run
+                %                     set(SP.Runh, 'backgroundcolor', [0 1 0], 'Value', 0)
+                %                 end
             elseif status.Active==1; %device running
                 protocol=SP.ProtocolIndex;
                 current=SP.CurrentStimulus(protocol);
                 inQueue=current-status.SchedulePosition-SP.CurrStimatPPAstart;
                 set(h, 'string', sprintf('PPA running, inQueue=%d, XRuns=%g, CPUload=%.3f', inQueue, status.XRuns, status.CPULoad), 'backgroundcolor', [1 .5 .5])
-
+                
                 if status.XRuns>0
                     fprintf('\nXRun')
                     set(h,'backgroundcolor', [1 0 0])
                 end
-            
-%                 if ~SP.Run
-%                    set(SP.Runh, 'backgroundcolor', [1 .5 .5])
-%                 end
+                
+                %                 if ~SP.Run
+                %                    set(SP.Runh, 'backgroundcolor', [1 .5 .5])
+                %                 end
                 
             end
         catch
             djMessage('ppatimer could not check status', 'append')
             h=SP.PPAactive;
             set(h, 'string', '', 'backgroundcolor', [.4 .4 .4])
-
+            
         end
         
         
     case 'playsound'
         PlaySound;
         
-    case 'stop' 
+    case 'stop'
         % Stop playback:
         PsychPortAudio('Stop',SP.PPAhandle,0);
         PsychPortAudio('Close', SP.PPAhandle);
         
-    case 'camerapulse'
-        SendCameraPulse
-
+    case 'camerapulse_on'
+        SendCameraPulse_on
+        
+    case 'camerapulse_off'
+        SendCameraPulse_off
+        
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -134,10 +137,10 @@ if isfield(SP, 'PPAhandle')
         pause(.2)
     end
 end
-% Verbosity:  0 = Shut up. 1 = Print errors, 2 = Print also warnings, 
+% Verbosity:  0 = Shut up. 1 = Print errors, 2 = Print also warnings,
 % 3 = Print also some info, 4 = Print more useful info (default), >5 = Be very
 % verbose (mostly for debugging the driver itself).
-PsychPortAudio('Verbosity', 0); 
+PsychPortAudio('Verbosity', 0);
 
 % Initialize driver, request low-latency preinit:
 %InitializePsychSound(1); %  InitializePsychSound([reallyneedlowlatency=1])
@@ -192,7 +195,7 @@ buffPos = 0;
 playbackonly=1;
 try PPAhandle = PsychPortAudio('Open', deviceid, playbackonly, reqlatencyclass, SoundFs, numChan, buffSize, suggestedLatency);
 catch
-    error(sprintf('Could not open soundcard device id %d. Call PrintDevices and confirm that the soundcard DeviceIndex matches pref.soundcarddeviceID (in djPrefs)\n', deviceid));
+error(sprintf('Could not open soundcard device id %d. Call PrintDevices and confirm that the soundcard DeviceIndex matches pref.soundcarddeviceID (in djPrefs)\n', deviceid));
 end
 %runMode = 0; %default, turns off soundcard after playback
 runMode = 1; %leaves soundcard on (hot), uses more resources but may solve dropouts? mw 08.25.09: so far so good.
@@ -206,7 +209,7 @@ end
 SP.PPAhandle=PPAhandle; % hold the PsychPortAudio object
 SP.numChan=numChan; %param to hold number of output channels with which we initialized card (num rows of samples must match this)
 SP.SoundFs=SoundFs; %param to hold the sampling rate
-SP.Samples=[]; %param to hold the samples, used only for looping
+SP.samples=[]; %param to hold the samples, used only for looping
 SP.loop_flg=0; %param to store loop flag
 SP.seamless=0; %param to store whether transition should be seamless or not
 SP.buffers=[]; %param to store pointers to buffers for later deletion
@@ -214,19 +217,22 @@ djMessage( sprintf('Initialized PsychPortAudio with device %d, reqlatencyclass %
 
 %trying to workaround dropout on first sound after initialization by
 %playing dummy tone here
-%
-param=[]; %do I need to put stuff in param?
-LoadPPA('var',zeros(1,200),param)
+% old way: call to LoadPPA followed by PlaySound
+% % param=[]; %
+% % LoadPPA('var',zeros(1,200),param)
+% % PlaySound
+%ne way: using low-level call instead, to avoid delivering a stray soundcard trigger
+PsychPortAudio('FillBuffer', PPAhandle, zeros(numChan,200)); % fill buffer with brief silence
 PlaySound
+%commenting out above to see if it's still necessary mw 09.28.17
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function SendCameraPulse
-global SP pref  
-%sends a TTL pulse on soundcard channel 2, intended to start/stop a pi
+function SendCameraPulse_on
+global SP pref
+%sends a TTL pulse on soundcard channel 5, intended to start/stop a pi
 %camera
-
+SP.seamless=0;
+CampulseOn=pref.CampulseOn;
 PPAhandle=SP.PPAhandle; %grab PPAhandle object from param
 SoundFs=SP.SoundFs; %sampling rate
 numChan=SP.numChan; %number of output channels we initialized the soundcard with
@@ -234,15 +240,47 @@ cameratriglength=round(SoundFs/1000); %1 ms trigger
 samples=zeros(numChan, 2*cameratriglength);
 camera_pulse=zeros(1, 2*cameratriglength);
 camera_pulse(1:cameratriglength)=ones(size(1:cameratriglength));
-samples(2,:)=camera_pulse;
-PsychPortAudio('FillBuffer', PPAhandle, samples); % fill buffer now, start in PlaySound
-PlaySound
-djMessage('djPPA: sent camera pulse', 'append')
+samples(CampulseOn,:)=camera_pulse;
 
+try
+    PsychPortAudio('UseSchedule', PPAhandle, 0);   %mw 09.28.17
+    PsychPortAudio('FillBuffer', PPAhandle, samples); % fill buffer now, start in PlaySound
+    PlaySound
+    djMessage('djPPA: sent camera ON pulse', 'append')
+catch
+    fprintf('camera button does not work during gap stimuli')
+    djMessage('djPPA: camera button disabled during gap stimuli', 'append')
+end
+
+function SendCameraPulse_off
+global SP pref
+%sends a TTL pulse on soundcard channel 6, intended to start/stop a pi
+%camera
+
+SP.seamless=0;
+CampulseOff=pref.CampulseOff;
+PPAhandle=SP.PPAhandle; %grab PPAhandle object from param
+SoundFs=SP.SoundFs; %sampling rate
+numChan=SP.numChan; %number of output channels we initialized the soundcard with
+cameratriglength=round(SoundFs/1000); %1 ms trigger
+samples=zeros(numChan, 2*cameratriglength);
+camera_pulse=zeros(1, 2*cameratriglength);
+camera_pulse(1:cameratriglength)=ones(size(1:cameratriglength));
+samples(CampulseOff,:)=camera_pulse;
+
+try
+    PsychPortAudio('UseSchedule', PPAhandle, 0);   %mw 09.28.17
+    PsychPortAudio('FillBuffer', PPAhandle, samples); % fill buffer now, start in PlaySound
+    PlaySound
+    djMessage('djPPA: sent camera OFF pulse', 'append')
+catch
+    fprintf('camera button does not work during gap stimuli')
+    djMessage('djPPA: camera button disabled during gap stimuli', 'append')
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function LoadPPA(type,where,param)
-global SP pref debugging 
+global SP pref debugging
 % loads data. type can be either 'file' or 'var'
 str='';
 switch type
@@ -268,6 +306,8 @@ Soundchannel2=pref.Soundchannel2; %only used for binaural
 Soundcardtriggerchannel=pref.Soundcardtriggerchannel;
 Laserchannel=pref.Laserchannel;
 Shockchannel=pref.Shockchannel;
+CampulseOff=pref.CampulseOff;
+CampulseOn=pref.CampulseOn;
 
 
 if isfield(param, 'loop_flg')
@@ -301,7 +341,7 @@ triglength=round(SoundFs/1000); %1 ms trigger
 %which is the way we used to do it for TTL triggers)
 
 if GetAsioLynxDevice & isempty(GetXonarDevice)
-     trigsamples(1:triglength)=.25*ones(size(1:triglength)); %for lynx soundcard
+    trigsamples(1:triglength)=.25*ones(size(1:triglength)); %for lynx soundcard
 elseif GetXonarDevice & isempty(GetAsioLynxDevice)
     trigsamples(1:triglength)=ones(size(1:triglength));
 elseif ismac
@@ -309,7 +349,7 @@ elseif ismac
 else
     error('cannot determine soundcard type')
 end
-%Lynx delivers +- 10V, so we cut down, 
+%Lynx delivers +- 10V, so we cut down,
 %Xonar delivers about +-1V, so we can use full range soundcardtrigger
 %now, since djmaus is designed for open-ephys which wants 3.3V triggers, we
 %use .33 = 3.3/10
@@ -325,10 +365,10 @@ if loop_flg
     trigsamples=0*trigsamples;
 end
 
- %new way: specify channels in prefs. mw 08.24.2017
- samples(Soundcardtriggerchannel,:)=trigsamples;
+%new way: specify channels in prefs. mw 08.24.2017
+samples(Soundcardtriggerchannel,:)=trigsamples;
 
- %old way
+%old way
 %  if pref.num_soundcard_outputchannels==2  %mw 091812
 %     %only 2channel soundcard, no way you can do PPALaser
 %     samples(numChan,:)=trigsamples;
@@ -352,7 +392,7 @@ else
     set(SP.LaserWidthh, 'enable', 'on')
     set(SP.LaserOnOffh, 'enable', 'on')
     djmaus('LaserOnOff')
-
+    
 end
 
 
@@ -360,7 +400,7 @@ end
 laser_prepend=0;
 laser_append=0;
 on=SP.LaserOnOff;
-if on  
+if on
     if isfield(param, 'laser')
         if param.laser %then deliver a laser pulse
             djMessage('Laser pulse', 'append');
@@ -474,6 +514,7 @@ end
 
 %add in a Shock pulse if the stimulus includes a shock
 if isfield(param, 'Shock') %if there is a shock field
+    fprintf('\n shock stim')
     if param.Shock %if shock is on for this stim
         Shockstart=param.Shockstart; %ms
         Shockpulsewidth=param.Shockpulsewidth; %ms
@@ -711,7 +752,7 @@ end
 function PlaySound
 global SP
 PPAhandle=SP.PPAhandle;
-samples=SP.samples; %get samples (simulus vector)
+% samples=SP.samples; %get samples (simulus vector)
 seamless=SP.seamless; %whether transition should be seamless or not
 loop_flg=SP.loop_flg; %get loop flag
 
@@ -727,9 +768,7 @@ else %not seamless
         %when=GetSecs+.1; %this extra latency prevents dropouts somehow
         when=0; %use this to start immediately
         waitForStart=0;
-        
         PsychPortAudio('Start', PPAhandle,nreps,when,waitForStart);
-        %PsychPortAudio('RefillBuffer', PPAhandle, 0, samples, 0); %this doesn't work
     end
 end
 

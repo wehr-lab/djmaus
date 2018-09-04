@@ -27,7 +27,7 @@ Should work on mac, linux, windows.
 		install macports from www.macports.org/install.php
 		relaunch your terminal
 		sudo port install zmq3
-    	win: 	Seems to work without explicitly installing zeromq, but if you need to, here is the link:
+    win: 	Seems to work without explicitly installing zeromq, but if you need to, here is the link:
 		http://miru.hk/archive/ZeroMQ-4.0.4~miru1.0-x64.exe
 
 7. If the zeroMQwrapper mex file doesn't work (check with test_zeroMQ_wrapper.m), you might need to compile the mex from source code. 
@@ -80,3 +80,7 @@ if you're using open-ephys and djmaus on different computers, be sure to turn sh
 the open-ephys computer, and change the permissions to full. Right click on D:, properties, sharing.
 
 -On Windows, if you get 'v140 tools not installed' error in Visual Studio: right click open-ephys project - Properties - General - in building tools scroll bar select v140 tools that are installed. 
+
+-if you are using two computers, one to record with OE and another one to manage stimuli with djmaus, you will need to allow djmaus make changes on OE computer.
+to do that: go to your OE computer -> this PC, right click on the drive where the data s stored -> properties -> sharing -> advanced sharing , the drive should be selected, you click Add, give it a name, click OK. 
+default sharing is set to read only, so in Advanced Sharing go to Permissions and check Full Control or Change. 

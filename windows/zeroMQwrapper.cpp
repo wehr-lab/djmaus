@@ -119,7 +119,8 @@ DWORD WINAPI MyThreadFunction( LPVOID lpParam )
 //
 //                 fclose(fp);
                     
-                    mexPrintf("\nzmq wrapper: GetRecordingPath returned %s \n", pData->reply);
+                 //   mexPrintf("\nzmq wrapper: GetRecordingPath returned %s \n", pData->reply);
+                    //mw 05032018
                     
                     //put mymsg in plhs somehow?;
                 }

@@ -24,13 +24,13 @@ SCTtimestamps=SCTtimestamps-StartAcquisitionSec; %zero timestamps to start of ac
 
 
 %sanity check
-% fid=fopen('temp.txt', 'w');
-% for i=1:length(all_channels_timestamps)
-%     fprintf(fid, '%f, eventType %d, Id %d, channel %d\n', ...
-%         all_channels_timestamps(i), all_channels_info.eventType(i), ...
-%         all_channels_info.eventId(i), all_channels_data(i));
-% end
-% fclose(fid);
+fid=fopen('temp.txt', 'w');
+for i=1:length(all_channels_timestamps)
+    fprintf(fid, '%f, eventType %d, Id %d, channel %d\n', ...
+        all_channels_timestamps(i), all_channels_info.eventType(i), ...
+        all_channels_info.eventId(i), all_channels_data(i));
+end
+fclose(fid);
 
 
 
@@ -60,6 +60,19 @@ SCTtrace=SCTtrace./max(abs(SCTtrace));
 %     scaledtrace=scaledtrace./max(abs(scaledtrace));
 plot(SCTtimestamps, SCTtrace, 'b') %plotting with data timestamps to work around wierd bug in ADC timestamps
 % plot(datatimestamps, scaledtrace, 'm') %plotting with data timestamps to work around wierd bug in ADC timestamps
+
+
+%let's plot some other signals too
+stimfile=getStimfile(datadir); %mw 08.30.2107 old: sprintf('%s_ADC2.continuous', node);
+laserfile=getLaserfile(datadir); %mw 08.30.2017 old: sprintf('%s_ADC2.continuous', node);
+[stimtrace, stimtimestamps, stiminfo] =load_open_ephys_data(stimfile);
+stimtimestamps=stimtimestamps-StartAcquisitionSec;
+[lasertrace, lasertimestamps, laserinfo] =load_open_ephys_data(laserfile);
+lasertimestamps=lasertimestamps-StartAcquisitionSec;
+plot(stimtimestamps, .1*stimtrace, 'm') 
+plot(SCTtimestamps, .1*lasertrace, 'c') 
+title('SCT Monitor sanity check')
+
 
 hold on
 fprintf('plotting %d Events... ', length(Events))
@@ -100,5 +113,17 @@ end
 for i=1:length(Events)
     xlim([Events(i).message_timestamp_sec-2 Events(i).message_timestamp_sec+3])
     ylim([-5 2])
-    pause(.01)
+    pause(.002)
+   % pause
 end
+
+%Plot successive timestamp values in order to see if they skip ahead or
+%double back, which would cause a problem in plotting any data. TH
+%2017-11-21
+figure
+hold off
+plot(SCTtimestamps, 'b')
+xlabel("Index")
+ylabel("SCT time stamp values")
+title("Time Stamps. -Look for deviations from straight line.")
+

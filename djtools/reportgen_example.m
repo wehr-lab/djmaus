@@ -22,8 +22,8 @@ import mlreportgen.report.*
 import mlreportgen.dom.*
 
 % Create a report object
-%rpt = Report('NMF','pdf');
- rpt = Report('NMF', 'html');
+rpt = Report('NMF','pdf');
+% rpt = Report('NMF', 'html');
 
 % Add a title page
 % To customize additional title page properties, see mlreportgen.report.TitlePage.
@@ -36,7 +36,7 @@ add(rpt,tp);
 % Add default table of contents
 add(rpt,TableOfContents);
 
-for i=1:5
+for i=1:1
     % Add a section
     ch(i) = Section;
     ch(i).Title = sprintf('cell %d', i);
@@ -51,9 +51,11 @@ for i=1:5
     for j=1:3
         fig(j)=Figure(figure(j));
         figi(j) = Image(getSnapshotImage(fig(j),rpt));
+        figi(j).Style = {ScaleToFit};
     end
     
     table=Table(2);
+    %     table.TableEntriesStyle = {Width('3in'), Height('3in')};  % example with all cells set to 3x3 in
     table.Border = 'single';
     table.ColSep = 'single';
     table.RowSep = 'single';
@@ -61,11 +63,17 @@ for i=1:5
     te = TableEntry(figi(1));
     te.RowSpan = 2;
     te.ColSpan = 1;
+    te.Style={Width('3in'), Height('6in')};
     append(row, te);
-    append(row, TableEntry(figi(2)));
+    te = TableEntry(figi(2));
+    te.Style={Width('3in'), Height('3in')};
+    
+    append(row, te);
     append(table,row);
     row = TableRow;
-    append(row, TableEntry(figi(3)));
+    te = TableEntry(figi(3));
+    te.Style={Width('3in'), Height('3in')};
+    append(row, te);
     append(table,row);
     
     

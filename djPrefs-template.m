@@ -12,6 +12,11 @@ catch
     pref.soundcarddeviceID=42;
 end
 pref.num_soundcard_outputchannels=4;
+pref.Soundchannel1=1; %the sound
+pref.Soundchannel2=nan; %no binaural
+pref.Soundcardtriggerchannel=3;
+pref.Laserchannel=4;
+pref.Shockchannel=2;
 pref.reqlatencyclass=0; %Rig1: saw dropouts with 0, fewer 1, fewer with 2, still some with 3
 pref.suggestedLatency=.01;
 pref.SoundFs=192000;

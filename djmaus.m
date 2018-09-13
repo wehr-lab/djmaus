@@ -630,6 +630,8 @@ switch type
         fcn='MakeAsymGPIAS';
     case 'GPIAS'
         fcn='MakeGPIAS';
+    case 'toneGPIAS'
+        fcn='MakeToneGPIAS';
     case 'noise'
         fcn='MakeNoise';   
     case 'clicktrain'

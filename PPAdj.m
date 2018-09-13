@@ -589,13 +589,15 @@ if isfield(param, 'Shock') %if there is a shock field
     end
 end
 
-% figure(100)
 % t=1:length(samples);
 % t=1000*t/SoundFs;
+% figure(100)
 % plot(t, samples')
-% xlim([-100 2600])
-% xlim([-100 t(end)+100])
-% legend('1', '2', '3', '4')
+% xlim([-1 1])
+% figure(101)
+% plot(t, samples)
+% xlim([ t(end)-1  t(end)+1])
+
 
 SP.samples= samples; %store samples for re-buffering if we're looping (used only for looping)
 
@@ -634,7 +636,7 @@ if isfield(param, 'seamless')
             when=GetSecs+.1;
             %when=GetSecs+2;
             PsychPortAudio('Start', PPAhandle,nreps,when,0);
-            
+                       
         else %already started, just add to schedule
             %mw 07.03.2014 trying new strategy to try to solve "screwups"
             %instead of gotime/pause, I will check for free slots at

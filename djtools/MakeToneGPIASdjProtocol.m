@@ -69,7 +69,7 @@ function [filename,path]=MakeToneGPIASdjProtocol(carrier_freq, carrier_amp, gapd
 %MaketoneGPIASdjProtocol(8000, 80, [0 1 2 4 8 16 32 64 128 256], 1000, 1000, 0, 100, 50, 'isi', 0, 2e3, 0, 1, 15)
 %
 %carrier_freq=8000; carrier_amp=80; gapdurs=[0 2 4 8 16 32 64 128 ]; gapdelay=1000; poststartle=1000;
-%pulsedur=25; pulseamps=110; soa=50; soaflag='isi'; ramp=0; isi=5000; isi_var=0; IL=0; nreps=10;
+%pulsedur=25; pulseamps=110; soa=50; soaflag='isi'; ramp=3; isi=5000; isi_var=0; IL=0; nreps=10;
 %MakeToneGPIASdjProtocol(carrier_freq, carrier_amp, gapdurs, gapdelay, poststartle, pulsedur, pulseamps, soa, soaflag, ramp, isi, isi_var, IL, nreps)
 
 if ~strcmp(soaflag, 'isi')
@@ -136,6 +136,10 @@ else
 end
 
 gpias_duration=gapdelay+max(rand_gapdurs)+soa+pulsedur+post_startle_duration; %actual duration
+
+%round gpias duration to nearest number of complete cyles of tone 
+%(so the phases line up)
+gpias_duration=round(gpias_duration/(1000/carrier_freq))*1000/carrier_freq;
 
 %note: for seamless playing of sounds, all buffers must be identical in
 %length. So we are making short noise segments and using variable numbers

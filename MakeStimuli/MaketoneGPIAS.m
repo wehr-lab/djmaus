@@ -59,10 +59,11 @@ gapdur_samples=gapdur*samplerate/1000;
 gapdelay_samples=gapdelay*samplerate/1000;
 SOA_samples=SOA*samplerate/1000;
 
-noise_params=params;
+tone_params=params;
 %noise_params.duration=params.duration+5000; %make it a second longer to cover up isi
-noise_params.duration=params.duration; %don't make it a second longer to cover up isi
-continuous_noise=MakeWhiteNoise(noise_params, samplerate);
+tone_params.duration=params.duration; %don't make it a second longer to cover up isi
+tone_params.ramp=0; 
+continuous_tone=MakeTone(tone_params, samplerate);
 %continuous noise
 % amplitude=1*(10.^((noiseamp-pref.maxSPL)/20)); %in volts (-1<x<1), i.e. pref.maxSPL=+_1V
 % duration_s=continuous_noise_dur/1000;                     % adjust the duration to seconds
@@ -73,11 +74,17 @@ continuous_noise=MakeWhiteNoise(noise_params, samplerate);
 % noise((end-ledge+1):end)=noise((end-ledge+1):end).*edge;
 % noise=noise./(max(abs(noise)));             % normalize, so we could fit to +/-10V
 
-%insert Gap 
+%insert Gap with ramps
 % the following line is for gapdelay specifying time to gap onset
 %continuous_noise(gapdelay_samples:gapdelay_samples+gapdur_samples)=zeros(size(gapdelay_samples:gapdelay_samples+gapdur_samples));
 % the following line is for gapdelay specifying time to gap offset
-continuous_noise(gapdelay_samples-gapdur_samples:gapdelay_samples)=zeros(size(gapdelay_samples-gapdur_samples:gapdelay_samples));
+gapstart=gapdelay_samples-gapdur_samples;
+gapstop=gapdelay_samples;
+continuous_tone(gapstart:gapstop)= zeros(size(gapstart:gapstop));
+% % ramp_samples=ramp*samplerate;
+    [edge,ledge]=MakeEdge(ramp,samplerate);     % and add the edge
+    continuous_tone(gapstart-ledge+1:gapstart)=continuous_tone(gapstart-ledge+1:gapstart).*edge;
+   continuous_tone(gapstop:gapstop+ledge-1)=continuous_tone(gapstop:gapstop+ledge-1).*fliplr(edge);
 
 %pulse
 if pulsedur>0 %allow for no pulse if duration ==0
@@ -85,9 +92,9 @@ if pulsedur>0 %allow for no pulse if duration ==0
     duration_s=pulsedur/1000;                     % adjust the duration to secondst=0:1/samplerate:duration_s;                  % length of the sampled trial
     t=0:1/samplerate:duration_s;                  % length of the sampled trial
     noisepulse=randn(1,round(duration_s*samplerate)+1);       % corresponds to t=0:1/samplerate:duration;
-    [edge,ledge]=MakeEdge(ramp,samplerate);     % and add the edge
-    noisepulse(1:ledge)=noisepulse(1:ledge).*fliplr(edge);
-    noisepulse((end-ledge+1):end)=noisepulse((end-ledge+1):end).*edge;
+   % [edge,ledge]=MakeEdge(ramp,samplerate);     % and add the edge
+   % noisepulse(1:ledge)=noisepulse(1:ledge).*fliplr(edge);
+   % noisepulse((end-ledge+1):end)=noisepulse((end-ledge+1):end).*edge;
     noisepulse=noisepulse./(max(abs(noisepulse)));             % normalize, so we could fit to +/-10V
     pulse=amplitude.*noisepulse;
     
@@ -96,16 +103,16 @@ if pulsedur>0 %allow for no pulse if duration ==0
         case 'isi'
             pulse_start=gapdelay_samples+SOA_samples;
             pulse_stop=pulse_start+length(pulse);
-            continuous_noise(pulse_start+1:pulse_stop)=pulse;
+            continuous_tone(pulse_start+1:pulse_stop)=pulse;
         case 'soa'
             pulse_start=gapdelay_samples-gapdur_samples+SOA_samples;
             pulse_stop=pulse_start+length(pulse);
-            continuous_noise(pulse_start+1:pulse_stop)=pulse;
+            continuous_tone(pulse_start+1:pulse_stop)=pulse;
     end
 end
 
-tone=continuous_noise;
-% figure(2)
-% plot(tone)
-
+tone=continuous_tone;
+ figure(2)
+ plot(tone)
+xlabel('time')
 

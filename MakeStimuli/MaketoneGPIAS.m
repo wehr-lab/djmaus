@@ -1,11 +1,11 @@
-function tone=MakeGPIAS(varargin)
+function tone=MakeToneGPIAS(varargin)
 
 % Note: now we use absolute SPL instead of attenuation!!!
 
 
 global pref
 
-% Creates a GPIAS consisting of a continuous background noise, a gap, and a startle pulse. 
+% Creates a GPIAS consisting of a continuous background tone, a gap, and a startle pulse. 
 %
 % given frequency, attenuation, duration, at a
 % given sample rate, with an ascending/descending ramp of a given length,

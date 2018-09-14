@@ -7,7 +7,7 @@ function PlotGPIAS_PSTH_single(varargin)
 %
 %Processes data if outfile is not found;
 
-
+plotOFFON=1;
 rasters=0;
 force_reprocess=1;
 
@@ -277,7 +277,7 @@ if IL
             %set(gca, 'yticklabel', '')
                         
             if StimRecorded
-                Stimtrace=squeeze(mM1OFFStim(gdindex,paindex, :));
+                Stimtrace=squeeze(mM1ONStim(gdindex,paindex, :));
                 Stimtrace=Stimtrace -mean(Stimtrace(1:100));
                 Stimtrace=.05*diff(ylimits)*Stimtrace;
                 t=1:length(Stimtrace);
@@ -289,8 +289,8 @@ if IL
                 %do nothing
             end
             if LaserRecorded
-                for rep=1:nrepsOFF(gdindex,paindex)
-                    Lasertrace=squeeze(M1OFFLaser(gdindex,paindex,rep, :));
+                for rep=1:nrepsON(gdindex,paindex)
+                    Lasertrace=squeeze(M1ONLaser(gdindex,paindex,rep, :));
                     Lasertrace=Lasertrace -mean(Lasertrace(1:100));
                     Lasertrace=.05*diff(ylimits)*Lasertrace;
                     plot( t, Lasertrace+offset, 'c')
@@ -318,7 +318,109 @@ if IL
     %turn on ytick for bottom-most plot
     set(gca, 'yticklabelmode', 'auto');
     
+
 end %            %plot the mean tuning curve ON
+
+if IL % plot the mean tuning curve OFF/ON
+    if plotOFFON==1
+            
+    figure('position',[1200 200 600 750])
+    p=0;
+    subplot1(numgapdurs, numpulseamps, 'Max', [.95 .9])
+    for paindex=1:numpulseamps
+        for gdindex=1:numgapdurs
+            p=p+1;
+            subplot1(p)
+            hold on
+            spiketimesON=mM1ON(gdindex,paindex).spiketimes; %spiketimes are in ms relative to gap termination
+            spiketimesOFF=mM1OFF(gdindex,paindex).spiketimes; %spiketimes are in ms relative to gap termination
+            X=xlimits(1):binwidth:xlimits(2); %specify bin centers
+            [NON, xON]=hist(spiketimesON, X);
+            [NOFF, xOFF]=hist(spiketimesOFF, X);
+            NON=NON./nrepsON(gdindex,paindex); %normalize to spike rate (averaged across trials)
+            NOFF=NOFF./nrepsOFF(gdindex,paindex); 
+            NON=1000*NON./binwidth; %normalize to spike rate in Hz
+            NOFF=1000*NOFF./binwidth; %normalize to spike rate in Hz
+            offset=0;
+            yl=ylimits;
+            max_rep=max(max(nrepsON(:)), max(nrepsOFF(:)));
+            inc=(yl(2))/max_rep;
+            if rasters==1
+                for n=1:nrepsOFF(gdindex,paindex)
+                    spiketimes2=M1OFF(gdindex,paindex, n).spiketimes;
+                    offset=offset+inc;
+                    h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k');
+                end
+                for n=1:nrepsON(gdindex,paindex)
+                    spiketimes2=M1ON(gdindex,paindex, n).spiketimes;
+                    offset=offset+inc;
+                    h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.g');
+                end
+                        
+
+            end
+            bar(xON, NON,1,'facecolor','g','edgecolor','g');
+            bar(xOFF, NOFF,1,'facecolor','none','edgecolor','k');
+            
+            if gapdurs(gdindex)>0
+                line([0 0],[ylim],'color','m')
+                line(-[(gapdurs(gdindex)) (gapdurs(gdindex))],[ylim],'color','m')
+            end
+            line(xlimits, [0 0], 'color', 'k')
+            ylimits2(2)=ylimits(2)*2+offset;
+            ylimits2(1)=-2;
+            ylim(ylimits2)
+            
+            xlim(xlimits)
+            set(gca, 'fontsize', fs)
+            %set(gca, 'xticklabel', '')
+            %set(gca, 'yticklabel', '')
+                        
+            if StimRecorded
+                Stimtrace=squeeze(mM1ONStim(gdindex,paindex, :));
+                Stimtrace=Stimtrace -mean(Stimtrace(1:100));
+                Stimtrace=.05*diff(ylimits)*Stimtrace;
+                t=1:length(Stimtrace);
+                t=1000*t/out.samprate; %convert to ms
+                t=t+out.xlimits(1); %correct for xlim in original processing call
+                offset=ylimits(1)+.1*diff(ylimits);
+                plot(t, Stimtrace+offset, 'm')
+            else
+                %do nothing
+            end
+            if LaserRecorded
+                for rep=1:nrepsON(gdindex,paindex)
+                    Lasertrace=squeeze(M1ONLaser(gdindex,paindex,rep, :));
+                    Lasertrace=Lasertrace -mean(Lasertrace(1:100));
+                    Lasertrace=.05*diff(ylimits)*Lasertrace;
+                    plot( t, Lasertrace+offset, 'c')
+                end
+            end
+            
+        end
+    end
+    
+    subplot1(1)
+    h=title(sprintf('%s: \ntetrode%d cell%d, nreps: %d-%d, OFF/ON',datadir,channel,out.cluster,min(nrepsON(:)),max(nrepsON(:))));
+    set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
+    
+    %label amps and freqs
+    p=0;
+        for gdindex=1:numgapdurs
+        p=p+1;
+        subplot1(p)
+        vpos=ylimits(2);
+        text(xlimits(1), vpos, sprintf('%d', gapdurs(gdindex)), 'color', 'r')
+            if gdindex<numgapdurs
+                set(gca, 'yticklabel', '');
+            end
+    end
+    %turn on ytick for bottom-most plot
+    set(gca, 'yticklabelmode', 'auto');
+    end
+    
+end %plot ON OFF
+
 
 
 

@@ -32,7 +32,7 @@ function [filename,path]=MakeSoundfiledjProtocol(amplitude, dur, include_whiteno
 % ------------------------------------------------------------------------
 %
 % example call: 
-% amp= 80; dur=[]; include_whitenoise= 1; interleave_laser= 1; include_silent_sound= 1; isi= 800; nrepeats= 20;
+% amp= 80; dur=[]; include_whitenoise= 1; interleave_laser= 0; include_silent_sound= 1; isi= 800; nrepeats= 20;
 %MakeSoundfiledjProtocol(amp, dur, include_whitenoise, interleave_laser, include_silent_sound, isi, nrepeats)
 
 

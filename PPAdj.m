@@ -195,7 +195,7 @@ buffPos = 0;
 playbackonly=1;
 try PPAhandle = PsychPortAudio('Open', deviceid, playbackonly, reqlatencyclass, SoundFs, numChan, buffSize, suggestedLatency);
 catch
-    error(sprintf('Could not open soundcard device id %d. Call PrintDevices and confirm that the soundcard DeviceIndex matches pref.soundcarddeviceID (in djPrefs)\n', deviceid));
+error(sprintf('Could not open soundcard device id %d. Call PrintDevices and confirm that the soundcard DeviceIndex matches pref.soundcarddeviceID (in djPrefs)\n', deviceid));
 end
 %runMode = 0; %default, turns off soundcard after playback
 runMode = 1; %leaves soundcard on (hot), uses more resources but may solve dropouts? mw 08.25.09: so far so good.
@@ -510,6 +510,7 @@ if on
     end
 end
 
+
 % we used to add a silent pad at the end to avoid dropouts, but that didn't really work and the problem is now solved differently anyway
 
 %add in a Shock pulse if the stimulus includes a shock
@@ -588,13 +589,15 @@ if isfield(param, 'Shock') %if there is a shock field
     end
 end
 
-% figure(100)
-% t=1:length(samples);
+% t=1:length(samples(1,:));
 % t=1000*t/SoundFs;
-% plot(t, samples')
-% xlim([-100 2600])
-% xlim([-100 t(end)+100])
-% legend('1', '2', '3', '4')
+% figure(100)
+% plot(t, samples(1,:), 'o-')
+% xlim([-1 1])
+% figure(101)
+% plot(t, samples(1,:), 'o-')
+% xlim([ t(end)-1  t(end)+1])
+
 
 SP.samples= samples; %store samples for re-buffering if we're looping (used only for looping)
 
@@ -633,7 +636,7 @@ if isfield(param, 'seamless')
             when=GetSecs+.1;
             %when=GetSecs+2;
             PsychPortAudio('Start', PPAhandle,nreps,when,0);
-            
+                       
         else %already started, just add to schedule
             %mw 07.03.2014 trying new strategy to try to solve "screwups"
             %instead of gotime/pause, I will check for free slots at

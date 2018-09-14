@@ -1,3 +1,4 @@
+
 function JustPlotIt(varargin )
 % tries to figure out the appropriate way to plot the data in a data
 % directory, and does it. 

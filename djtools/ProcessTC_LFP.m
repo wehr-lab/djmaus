@@ -63,7 +63,7 @@ cd(pref.datapath)
 cd(datadir)
 filename=getContinuousFilename('.', channel);
 if exist(filename, 'file')~=2 %couldn't find it
-    filename=sprintf('100_CH%d.continuous', channel);
+    filename=sprintf('114_CH%d.continuous', channel);
 end
 if exist(filename, 'file')~=2 %couldn't find it
     error(sprintf('could not find data file %s in datadir %s', filename, datadir))
@@ -125,6 +125,10 @@ messagesfilename='messages.events';
 
 
 sound_index=0;
+cont_files=dir('*.continuous');
+[~, timestamps, ~] =load_open_ephys_data(cont_files(1).name);
+StartAcquisitionSec=timestamps(1);
+StartAcquisitionSamples=timestamps(1)*30e3;
 for i=1:length(messages)
     str=messages{i};
     str2=strsplit(str);
@@ -133,12 +137,12 @@ for i=1:length(messages)
     if strcmp(deblank(Events_type), 'StartAcquisition')
         %if present, a convenient way to find start acquisition time
         %for some reason not always present, though
-        StartAcquisitionSamples=timestamp;
-        StartAcquisitionSec=timestamp/sampleRate;
+%         StartAcquisitionSamples=timestamp;
+%         StartAcquisitionSec=timestamp/sampleRate;
         check1=StartAcquisitionSamples;
     elseif strcmp(deblank(Events_type), 'Software')
-        StartAcquisitionSamples=timestamp;
-        StartAcquisitionSec=timestamp/sampleRate;
+%         StartAcquisitionSamples=timestamp;
+%         StartAcquisitionSec=timestamp/sampleRate;
         check2=StartAcquisitionSamples;
     elseif strcmp(Events_type, 'TrialType')
         sound_index=sound_index+1;
@@ -186,6 +190,11 @@ for i=1:length(messages)
     end
 end
 
+if ~exist('Events.mat')
+save('Events.mat', 'Events')
+elseif exist('Events.mat')
+    load('Events.mat')
+end
 datatimestamps=datatimestamps-StartAcquisitionSec;
 
 if exist('check1', 'var') & exist('check2', 'var')
@@ -195,7 +204,7 @@ fprintf('\nNumber of sound events (from network messages): %d', length(Events));
 fprintf('\nNumber of hardware triggers (soundcardtrig TTLs): %d', length(all_SCTs));
 if length(Events) ~=  length(all_SCTs)
     warning('ProcessTC_LFP: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
-    [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog  );
+    %[Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog  );
 end
 
 %messages is a list of all network event, which includes the stimuli
@@ -219,13 +228,15 @@ Lasertrace=0*scaledtrace;
 stimtrace=0*scaledtrace;
 try
     [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data(getLaserfile('.'));
-    Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+    %Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+    Lasertimestamps=Lasertimestamps-Lasertimestamps(1);
    % Lasertrace=Lasertrace./max(abs(Lasertrace));
     fprintf('\nsuccessfully loaded laser trace')
 end
 try
     [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(getStimfile('.'));
-    Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+    %Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+    Stimtimestamps=Stimtimestamps-Stimtimestamps(1);
   %  Stimtrace=Stimtrace./max(abs(Stimtrace));
     fprintf('\nsuccessfully loaded stim trace')
 end

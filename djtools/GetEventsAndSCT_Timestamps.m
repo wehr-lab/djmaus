@@ -16,9 +16,14 @@ function [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sa
 %your configuration, and is listed in the settings.xml. For example, 100
 %might be the Rhythm FPGA, and 102 the bandpass filter (depending on your
 %config).
-
+er=0; % manually fix SCT if there are too many
 % get all SCT timestamps
 sound_index=0;
+
+cont_files=dir('*.continuous');
+[~, timestamps, ~] =load_open_ephys_data(cont_files(1).name); %grab any continuous file in the recording
+StartAcquisitionSamples=timestamps(1)*30e3;
+
 for i=1:length(messages)
     str=messages{i};
     str2=strsplit(str);
@@ -27,8 +32,8 @@ for i=1:length(messages)
     if strcmp(deblank(Events_type), 'StartAcquisition')
         %if present, a convenient way to find start acquisition time
         %for some reason not always present, though
-        StartAcquisitionSamples=timestamp;
-        StartAcquisitionSec=timestamp/sampleRate;
+%         StartAcquisitionSamples=timestamp;
+%         StartAcquisitionSec=timestamp/sampleRate;
         fprintf('\nStartAcquisitionSec=%g', StartAcquisitionSec)
         check1=StartAcquisitionSamples;
     elseif strcmp(deblank(Events_type), 'Software')
@@ -57,12 +62,19 @@ for i=1:length(messages)
                 all_SCTs=[all_SCTs corrected_SCT];
             end
         end
+%         figure; plot(diff(all_SCTs), 'ko')
+%         if er
+%             save('all_SCTs.mat','all_SCTs')
+%         end
         %get corresponding SCT TTL timestamp and assign to Event
         %old way (from TC) won't work, since the network events get ahead of the SCTs.
         %another way (dumb and brittle) is to just use the corresponding
         %index, assuming they occur in the proper order with no drops or
         %extras
         try
+            if er
+            load('all_SCTs.mat')
+            end
             SCTtime_sec=all_SCTs(sound_index);
             Events(sound_index).soundcard_trigger_timestamp_sec=SCTtime_sec;
         catch
@@ -75,7 +87,7 @@ for i=1:length(messages)
         end
     end
 end
-
+ figure; plot(diff(all_SCTs), 'ko')
 if length(Events) ~=  length(all_SCTs)
     warning('GetEventsAndSCT_Timestamps: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
     [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog);

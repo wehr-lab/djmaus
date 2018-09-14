@@ -9,3 +9,5 @@ windows/zeroMQwrapper.mexw64
 .DS_Store
 *.bak
 *.xml
+testing/seamless_starts.txt
+testing/seamless_restarts.txt

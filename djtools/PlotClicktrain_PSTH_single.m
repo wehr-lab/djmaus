@@ -41,26 +41,33 @@ catch
     show_plots = 1
 end
 
+%Nick addition 8/31/18 - accomodates kilosort input
+if ischar(t_filename)
+    [p,f,ext]=fileparts(t_filename);
+    split=strsplit(f, '_');
+    ch=strsplit(split{1}, 'ch');
+    channel=str2num(ch{2});
+    clust=str2num(split{end});
+else %reads kilosort input, which is [clust, channel, cellnum]
+    channel=t_filename(1,2);
+    clust=t_filename(1,1);
+end
+%end of Nick addition 8/31/18.
+
 if force_reprocess
     fprintf('\nForce re-process\n')
     ProcessClicktrain_PSTH_single(datadir,  t_filename, xlimits, ylimits, binwidth);
 end
 
-[p,f,ext]=fileparts(t_filename);
-split=strsplit(f, '_');
-ch=strsplit(split{1}, 'ch');
-channel=str2num(ch{2});
-clust=str2num(split{end});
-
 outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
 fprintf('\nchannel %d, cluster %d', channel, clust)
-fprintf('\n%s', t_filename)
+%fprintf('\n%s', t_filename)
 fprintf('\n%s', outfilename)
 
 cd(datadir)
 
 if exist(outfilename,'file')
-    load(outfilename)
+    load(outfilename);
     fprintf('\nloaded outfile')
 else
     fprintf('\ncould not find outfile, calling ProcessClicktrain_PSTH_single...')
@@ -240,7 +247,7 @@ if ~isempty(MtOFF)
     
     
     subplot1(1)
-    h=title(sprintf('%s: \ntetrode%d cell %d, nreps: %d-%d, OFF',datadir,channel,out.cluster,min(nrepsOFF(:)),max(nrepsOFF(:))));
+    h=title(sprintf('%s: \nchannel%d cell %d, nreps: %d-%d, OFF',datadir,channel,out.cluster,min(nrepsOFF(:)),max(nrepsOFF(:))));
     set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
     
     %label amps and freqs
@@ -256,6 +263,11 @@ if ~isempty(MtOFF)
     %turn on ytick for bottom-most plot
     set(gca, 'yticklabelmode', 'auto');
     
+    %lengthen figure
+    pos=get(gcf, 'pos');
+    pos(4)=900;
+    pos(2)=78;
+    set(gcf, 'pos',pos)   
 end           %plot the mean tuning curve OFF
 
 
@@ -334,7 +346,7 @@ if IL
     end
     
     subplot1(1)
-    h=title(sprintf('%s: \ntetrode%d cell%d, nreps: %d-%d, ON',datadir,channel,out.cluster,min(nrepsON(:)),max(nrepsON(:))));
+    h=title(sprintf('%s: \nchannel%d cell%d, nreps: %d-%d, ON',datadir,channel,out.cluster,min(nrepsON(:)),max(nrepsON(:))));
     set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
     
     %label amps and freqs
@@ -347,6 +359,12 @@ if IL
     end
     %turn on ytick for bottom-most plot
     set(gca, 'yticklabelmode', 'auto');
+    
+    %lengthen figure
+    pos=get(gcf, 'pos');
+    pos(4)=900;
+    pos(2)=78;
+    set(gcf, 'pos',pos)
     
 end %            %plot the mean tuning curve ON
 
@@ -386,11 +404,12 @@ end
 
 xlabel('phase')
 subplot1(1)
-h=title(sprintf('cycle spike histogram %s: \ntetrode%d cell%d, nreps: %d-%d',datadir,channel,out.cluster,min(nrepsON(:)),max(nrepsON(:))));
+h=title(sprintf('cycle spike histogram %s: \nchannel%d cell%d, nreps: %d-%d',datadir,channel,out.cluster,min(nrepsON(:)),max(nrepsON(:))));
 set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
 pos=get(gcf, 'pos');
 pos(4)=900;
-set(gcf, 'pos',pos)           
+pos(2)=78; %moved figure down
+set(gcf, 'pos',pos)         
             
 % plot vector strength, rayleigh statistic, etc
 
@@ -405,7 +424,7 @@ plot(1:numicis, out.VsOFF, 'k-o', 1:numicis, out.VsON, 'c-o')
 ylabel('vector strength')
 set(gca, 'xticklabel', icis)
 xlabel('ici, ms')
-h=title(sprintf('phase-locking statistics %s: \ntetrode%d cell%d, nreps: %d-%d',datadir,channel,out.cluster,min(nrepsON(:)),max(nrepsON(:))));
+h=title(sprintf('phase-locking statistics %s: \nchannel%d cell%d, nreps: %d-%d',datadir,channel,out.cluster,min(nrepsON(:)),max(nrepsON(:))));
 set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
 
 
@@ -425,9 +444,10 @@ xlabel('ici, ms')
 ylim([0 1])
 line(xlim, .001*[1 1], 'linestyle', '--')
 
-% pos=get(gcf, 'pos');
-% pos(4)=900;
-% set(gcf, 'pos',pos)           
+pos=get(gcf, 'pos');
+pos(2)=420;
+pos(4)=558;
+set(gcf, 'pos',pos)           
 
 if show_plots == 0
     figure('Visible','off')

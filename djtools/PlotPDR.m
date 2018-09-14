@@ -34,8 +34,10 @@ end
 if isempty(video_filename)
     [video_filename, pathname, ~] = uigetfile('*.mp4', 'Select video file');
 end
-prompt=('Would you like to process data with PDR (Y/N): ');
-answer=input(prompt,'s');
+% prompt=('Would you like to process data with PDR (Y/N): ');
+% answer=input(prompt,'s');
+
+answer='N';
 if strcmp(answer,'Y')
     try
         [outfilename, pathname, ~] = uigetfile('*.mat', 'please select the outfile');

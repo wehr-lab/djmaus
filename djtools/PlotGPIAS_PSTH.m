@@ -75,8 +75,10 @@ else %user specified a channel
             fn=sprintf('ch%d_simpleclust_0%d.t', channel, clust);
             PlotGPIAS_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
         else
-            fn=sprintf('ch%d_simpleclust_%d.t', channel, clust);
+            for j=1:length(clust)
+            fn=sprintf('ch%d_simpleclust_%d.t', channel, clust(j));
             PlotGPIAS_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
+            end
             
         end
     end

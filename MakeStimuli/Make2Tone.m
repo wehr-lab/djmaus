@@ -8,7 +8,7 @@ function tone=Make2Tone(varargin)
 
 global pref
 
-% Creates a two tone sequence consisting of two pure tones of a 
+% Creates a two tone sequence consisting of two pure tones of a
 % given frequency, attenuation, duration, at a
 % given sample rate, with an ascending/descending ramp of a given length,
 % at a given SOA (stimulus onset asynchrony)
@@ -16,21 +16,21 @@ global pref
 % frequency is in Hz, attenuation in dB
 % Input:
 %  frequency          -   frequency of the tone (Hz)
-% % % % % % % % % % % %  attenuation        -   attenuation of the tone (dB) 
-% % % % % % % % % % % %                         !!!!!attenuation is relative to the max. sound pressure level 
+% % % % % % % % % % % %  attenuation        -   attenuation of the tone (dB)
+% % % % % % % % % % % %                         !!!!!attenuation is relative to the max. sound pressure level
 % % % % % % % % % % % %                         as specified in Prefs.m (pref.maxSPL)
-%  amplitude          -   sound pressure level of the tone (dB)            
+%  amplitude          -   sound pressure level of the tone (dB)
 %  duration           -   duration of the tone (ms)
 %  samplerate         -   required sampling rate
 %  ramp               -   length of an rising/falling edge (ascending/descending ramp) (ms)
 %  probefreq          -   frequency of the probe tone (Hz)
-%  probeamp           -   sound pressure level of the probe tone (dB) 
+%  probeamp           -   sound pressure level of the probe tone (dB)
 %  SOA                -   stimulus onset asynchrony (time in ms between onset of tone and probe tone)
-%  
+%
 %  Output:
 %  tone               -   the specified tone (empty if unsuccessful)
-%  
- 
+%
+
 tone=[];
 
 if nargin<2
@@ -46,7 +46,13 @@ if isfield(params,'amplitude')
 else
     amplitude=params.attenuation;
 end
+
 duration=params.duration;
+try
+    probe_duration=params.probe_duration;
+catch
+    probe_duration=params.duration;
+end
 ramp=params.ramp;
 probefreq=params.probefreq;
 probeamp=params.probeamp;
@@ -57,9 +63,10 @@ SOA=params.SOA;
 %     amplitude=10*(10.^((-attenuation)/20));
 %    amplitude=10*(10.^((amplitude-pref.maxSPL)/20)); %in volts (-10<x<10), i.e. pref.maxSPL=+_10V
 
-%masker 
+%masker
 amplitude=1*(10.^((amplitude-pref.maxSPL)/20)); %in volts (-1<x<1), i.e. pref.maxSPL=+_1V
-duration_s=duration/1000;                     % adjust the duration to seconds
+duration_s=duration/1000;
+
 t=0:1/samplerate:duration_s;                  % length of the sampled trial
 if frequency==-1 %white noise
     noise=randn(1,round(duration_s*samplerate)+1);       % corresponds to t=0:1/samplerate:duration;
@@ -77,14 +84,15 @@ end
 %SOA interval
 SOA_silence=zeros(1, samplerate*(SOA-duration)/1000);
 
-%probe 
+%probe
+probe_duration_s=probe_duration/1000;% adjust the duration to seconds
 probeamp=1*(10.^((probeamp-pref.maxSPL)/20)); %in volts (-1<x<1), i.e. pref.maxSPL=+_1V
-t=0:1/samplerate:duration_s;                  % length of the sampled trial
+t=0:1/samplerate:probe_duration_s;                  % length of the sampled trial
 
-if frequency==-1 %white noise
-        noise=randn(1,round(duration_s*samplerate)+1);       % corresponds to t=0:1/samplerate:duration;
-        noise=noise./(max(abs(noise)));             % normalize, so we could fit to +/-10V
-        probe=probeamp.*noise;       % corresponds to t=0:1/samplerate:duration;
+if probefreq==-1 %white noise
+    noise=randn(1,round(probe_duration_s*samplerate)+1);       % corresponds to t=0:1/samplerate:duration;
+    noise=noise./(max(abs(noise)));             % normalize, so we could fit to +/-10V
+    probe=probeamp.*noise;       % corresponds to t=0:1/samplerate:duration;
 else %tone
     probe=probeamp*sin(probefreq*2*pi*t);       % the new tone itself
 end

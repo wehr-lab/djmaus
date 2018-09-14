@@ -76,16 +76,13 @@ scaledtrace=sqrt(scaledtrace1.^2);
 
 SCTfname=getSCTfile(datadir);
 stimfile=getStimfile(datadir); %mw 08.30.2107 old: sprintf('%s_ADC2.continuous', node);
-<<<<<<< HEAD
-=======
 laserfile=getLaserfile(datadir); %mw 08.30.2107 old: sprintf('%s_ADC2.continuous', node);
->>>>>>> bff732b348566cf73a2874b4259fd30f39e0bb5d
 [stim, stimtimestamps, stiminfo] =load_open_ephys_data(stimfile);
  [lasertrace, lasertimestamps, laserinfo] =load_open_ephys_data(laserfile);
 % [scttrace, scttimestamps, sctinfo] =load_open_ephys_data(SCTfname);
 
 %uncomment this to run some sanity checks
-SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
+% SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
 
 fprintf('\ncomputing tuning curve...');
 
@@ -94,7 +91,7 @@ samprate=sampleRate;
 %get freqs/amps
 j=0;
 for i=1:length(Events)
-    if strcmp(Events(i).type, 'GPIAS')
+    if strcmp(Events(i).type, 'GPIAS') | strcmp(Events(i).type, 'toneGPIAS')
         j=j+1;
         allsoas(j)=Events(i).soa;
         allsoaflags{j}=Events(i).soaflag;
@@ -204,7 +201,7 @@ fprintf('\nprocessing with startle integration window [%d - %d]', startle_window
 %extract the traces into a big matrix M
 j=0;
 for i=1:length(Events)
-    if strcmp(Events(i).type, 'GPIAS')
+    if strcmp(Events(i).type, 'GPIAS') |  strcmp(Events(i).type, 'toneGPIAS')
         %note: gapdelay is the time from the soundcardtrigger (pos) to the
         %gap termination. The time to startle onset should be
         %(gapdelay + soa) after pos, if soaflag=soa

@@ -137,9 +137,10 @@ end
 
 gpias_duration=gapdelay+max(rand_gapdurs)+soa+pulsedur+post_startle_duration; %actual duration
 
-%round gpias duration to nearest number of complete cyles of tone 
+%round gpias duration to nearest integer number of complete cyles of tone 
 %(so the phases line up)
 gpias_duration=round(gpias_duration/(1000/carrier_freq))*1000/carrier_freq;
+gpias_duration=gpias_duration-1/pref.SoundFs;
 
 %note: for seamless playing of sounds, all buffers must be identical in
 %length. So we are making short noise segments and using variable numbers

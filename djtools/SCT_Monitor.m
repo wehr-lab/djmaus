@@ -126,4 +126,5 @@ plot(SCTtimestamps, 'b')
 xlabel("Index")
 ylabel("SCT time stamp values")
 title("Time Stamps. -Look for deviations from straight line.")
+hold off
 

@@ -38,7 +38,7 @@ sampleRate=all_channels_info.header.sampleRate; %in Hz
 
 %check if this is an appropriate stimulus protocol
 if ~strcmp(GetPlottingFunction(datadir), 'PlotGPIAS_PSTH')
-pl    error('This does not appear to be a GPIAS stimulus protcol');
+    error('This does not appear to be a GPIAS stimulus protcol');
 end
 
 %accelerometer channels are 33, 34, 35 in OpenEphys, but are stored as 32,
@@ -82,7 +82,7 @@ laserfile=getLaserfile(datadir); %mw 08.30.2107 old: sprintf('%s_ADC2.continuous
 % [scttrace, scttimestamps, sctinfo] =load_open_ephys_data(SCTfname);
 
 %uncomment this to run some sanity checks
-%SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
+SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
 
 fprintf('\ncomputing tuning curve...');
 

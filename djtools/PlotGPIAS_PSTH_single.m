@@ -9,7 +9,7 @@ function PlotGPIAS_PSTH_single(varargin)
 
 
 rasters=0;
-force_reprocess=0;
+force_reprocess=1;
 
 if nargin==0
     fprintf('\nno input');

@@ -589,14 +589,14 @@ if isfield(param, 'Shock') %if there is a shock field
     end
 end
 
-t=1:length(samples(1,:));
-t=1000*t/SoundFs;
-figure(100)
-plot(t, samples(1,:), 'o-')
-xlim([-1 1])
-figure(101)
-plot(t, samples(1,:), 'o-')
-xlim([ t(end)-1  t(end)+1])
+% t=1:length(samples(1,:));
+% t=1000*t/SoundFs;
+% figure(100)
+% plot(t, samples(1,:), 'o-')
+% xlim([-1 1])
+% figure(101)
+% plot(t, samples(1,:), 'o-')
+% xlim([ t(end)-1  t(end)+1])
 
 
 SP.samples= samples; %store samples for re-buffering if we're looping (used only for looping)

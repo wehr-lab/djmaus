@@ -112,7 +112,4 @@ if pulsedur>0 %allow for no pulse if duration ==0
 end
 
 tone=continuous_tone;
- figure(2)
- plot(tone)
-xlabel('time')
 

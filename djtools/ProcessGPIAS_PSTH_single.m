@@ -99,11 +99,7 @@ totalnumspikes=length(spiketimes);
 Nclusters=1;
 
 %%%uncomment this to run some sanity checks
-<<<<<<< HEAD
-SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
-=======
 %SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
->>>>>>> 0a71571642ae052723918f383c1860865e5645e1
 
 fprintf('\ncomputing tuning curve...');
 samprate=sampleRate;

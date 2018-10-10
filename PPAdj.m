@@ -82,7 +82,7 @@ switch action
                 %                 end
             elseif status.Active==1; %device running
                 protocol=SP.ProtocolIndex;
-                current=SP.CurrentStimulus(protocol);
+                current=SP.CurrentStimulus(protocol) + SP.NStimuli(protocol)*SP.NRepeats;
                 inQueue=current-status.SchedulePosition-SP.CurrStimatPPAstart;
                 set(h, 'string', sprintf('PPA running, inQueue=%d, XRuns=%g, CPUload=%.3f', inQueue, status.XRuns, status.CPULoad), 'backgroundcolor', [1 .5 .5])
                 
@@ -91,6 +91,11 @@ switch action
                     set(h,'backgroundcolor', [1 0 0])
                 end
                 
+                %debug
+                fid=fopen('C:\lab\djmaus\ppalog.txt', 'a');
+                fprintf(fid, '\n%d', inQueue);
+                fclose(fid);
+
                 %                 if ~SP.Run
                 %                    set(SP.Runh, 'backgroundcolor', [1 .5 .5])
                 %                 end

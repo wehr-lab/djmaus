@@ -91,10 +91,6 @@ switch action
                     set(h,'backgroundcolor', [1 0 0])
                 end
                 
-                %debug
-                fid=fopen('C:\lab\djmaus\ppalog.txt', 'a');
-                fprintf(fid, '\n%d', inQueue);
-                fclose(fid);
 
                 %                 if ~SP.Run
                 %                    set(SP.Runh, 'backgroundcolor', [1 .5 .5])

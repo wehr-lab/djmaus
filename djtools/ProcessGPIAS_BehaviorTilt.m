@@ -71,7 +71,12 @@ if 0
         indNearest = nearest_index(SCTtimes,StimtimesCorr);
         indNearest = indNearest(indNearest>1);
         
+<<<<<<< HEAD
     end  
+=======
+    end
+    
+>>>>>>> 7ad86887fde321c2dd154b36b1fba868691da30c
 end
 %get Events and soundcard trigger timestamps
 [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
@@ -178,7 +183,11 @@ samprate=sampleRate;
 %get freqs/amps
 j=0;
 for i=1:length(Events)
+<<<<<<< HEAD
     if strcmp(Events(i).type, 'GPIAS')
+=======
+    if strcmp(Events(i).type, 'GPIAS') | strcmp(Events(i).type, 'toneGPIAS')
+>>>>>>> 7ad86887fde321c2dd154b36b1fba868691da30c
         j=j+1;
         allsoas(j)=Events(i).soa;
         allsoaflags{j}=Events(i).soaflag;
@@ -278,7 +287,11 @@ nrepsON=zeros(numgapdurs, numpulseamps);
 nrepsOFF=zeros(numgapdurs, numpulseamps);
 
 xlimits=[-350 350]; %xlimits for storing traces
+<<<<<<< HEAD
 startle_window=[0 100]; %hard coded integration region for startle response (ms)
+=======
+startle_window=[0 150]; %hard coded integration region for startle response
+>>>>>>> 7ad86887fde321c2dd154b36b1fba868691da30c
 
 fprintf('\nprocessing with xlimits [%d - %d]', xlimits(1), xlimits(2))
 fprintf('\nprocessing with startle integration window [%d - %d]', startle_window(1), startle_window(2))
@@ -294,7 +307,11 @@ if flag.plot
 end
 
 for i=1:length(Events)
+<<<<<<< HEAD
     if strcmp(Events(i).type, 'GPIAS')
+=======
+    if strcmp(Events(i).type, 'GPIAS') |  strcmp(Events(i).type, 'toneGPIAS')
+>>>>>>> 7ad86887fde321c2dd154b36b1fba868691da30c
         %note: gapdelay is the time from the soundcardtrigger (pos) to the
         %gap termination. The time to startle onset should be
         %(gapdelay + soa) after pos, if soaflag=soa
@@ -349,6 +366,10 @@ for i=1:length(Events)
                         figure(Hfig(gdindex))
                         t=region; t = t-t(1);t=t/samprate;
                         plot(t, scaledtrace(region), 'color',hsv2rgb([gdindex/length(gapdurs),1,1]))
+<<<<<<< HEAD
+=======
+                        
+>>>>>>> 7ad86887fde321c2dd154b36b1fba868691da30c
                     end
                     %                     figure(8),clf;hold on
                     %                     t=region;t=t/samprate;
@@ -384,15 +405,26 @@ end
 fprintf('\nmin num ON reps: %d\nmax num ON reps: %d', min(nrepsON(:)), max(nrepsON(:)))
 fprintf('\nmin num OFF reps: %d\nmax num OFF reps: %d',min(nrepsOFF(:)), max(nrepsOFF(:)))
 
+<<<<<<< HEAD
 mM1OFF=mean(M1OFF, 3);
 mM1ON=mean(M1ON, 3);
 % mM1OFFACC=mean(M1OFFACC, 3);
 % mM1ONACC=mean(M1ONACC, 3);
+=======
+PeakON=[];
+PeakOFF=[];
+
+mM1OFF=mean(M1OFF, 3);
+mM1ON=mean(M1ON, 3);
+mM1OFFACC=mean(M1OFFACC, 3);
+mM1ONACC=mean(M1ONACC, 3);
+>>>>>>> 7ad86887fde321c2dd154b36b1fba868691da30c
 
 mM1OFFstim=mean(M1OFFstim, 3);
 mM1ONstim=mean(M1ONstim, 3);
 
 
+<<<<<<< HEAD
 % Accumulate startle response across trials using peak (or summed) rectified signal in region
 %%%% Added throwing out oddballs 6/27/2018
 start=(startle_window(1)-xlimits(1))*samprate/1000;
@@ -402,6 +434,12 @@ SumOFF=nan(numgapdurs, numpulseamps, max(nrepsOFF(:)));
 SumONACC=nan(numgapdurs, numpulseamps, max(nrepsON(:)));
 SumOFFACC=nan(numgapdurs, numpulseamps, max(nrepsOFF(:)));
 
+=======
+% Accumulate startle response across trials using peak rectified signal in region
+%%%% Added throwing out oddballs 6/27/2018
+start=(startle_window(1)-xlimits(1))*samprate/1000;
+stop=start+diff(startle_window)*samprate/1000;
+>>>>>>> 7ad86887fde321c2dd154b36b1fba868691da30c
 PeakON=nan(numgapdurs, numpulseamps, max(nrepsON(:)));
 PeakOFF=nan(numgapdurs, numpulseamps, max(nrepsOFF(:)));
 PeakONACC=nan(numgapdurs, numpulseamps, max(nrepsON(:)));
@@ -417,6 +455,7 @@ for paindex=1:numpulseamps
             if abs(mean(temp)) <.01 & std(temp) < .1
                 traceON=squeeze(M1ON(gdindex,paindex, k, start:stop));
                 PeakON(gdindex, paindex, k) = max(abs(traceON));
+<<<<<<< HEAD
                 SumON(gdindex, paindex, k) = sum(abs(traceON));
             elseif flag.includeALL
                 traceON=squeeze(M1ON(gdindex,paindex, k, start:stop));
@@ -426,11 +465,20 @@ for paindex=1:numpulseamps
                 fprintf('Throwing out trial#%d of gapdur#%d\n',k,gdindex)
                 PeakON(gdindex, paindex, k) = nan;
                 SumON(gdindex, paindex, k) = nan;
+=======
+            elseif flag.includeALL
+                traceON=squeeze(M1ON(gdindex,paindex, k, start:stop));
+                PeakON(gdindex, paindex, k) = max(abs(traceON));
+            else
+                fprintf('Throwing out trial#%d of gapdur#%d\n',k,gdindex)
+                PeakON(gdindex, paindex, k) = nan;
+>>>>>>> 7ad86887fde321c2dd154b36b1fba868691da30c
             end
             temp = squeeze(M1ONACC(gdindex,paindex, k, 1:10000));
             if abs(mean(temp)) <.01 & std(temp) < .1
                 traceON=squeeze(M1ONACC(gdindex,paindex, k, start:stop));
                 PeakONACC(gdindex, paindex, k) = max(abs(traceON));
+<<<<<<< HEAD
                 SumONACC(gdindex, paindex, k) = sum(abs(traceON));
             elseif flag.includeALL
                 traceON=squeeze(M1ONACC(gdindex,paindex, k, start:stop));
@@ -440,6 +488,14 @@ for paindex=1:numpulseamps
                 fprintf('Throwing out ACC trial#%d of gapdur#%d\n',k,gdindex)
                 PeakONACC(gdindex, paindex, k) = nan;
                 SumONACC(gdindex, paindex, k) = nan;
+=======
+            elseif flag.includeALL
+                traceON=squeeze(M1ONACC(gdindex,paindex, k, start:stop));
+                PeakONACC(gdindex, paindex, k) = max(abs(traceON));
+            else
+                fprintf('Throwing out ACC trial#%d of gapdur#%d\n',k,gdindex)
+                PeakONACC(gdindex, paindex, k) = nan;
+>>>>>>> 7ad86887fde321c2dd154b36b1fba868691da30c
             end
         end
         for k=1:nrepsOFF(gdindex, paindex);
@@ -447,6 +503,7 @@ for paindex=1:numpulseamps
             if abs(mean(temp)) <.01 & std(temp) < .1
                 traceOFF=squeeze(M1OFF(gdindex,paindex, k, start:stop));
                 PeakOFF(gdindex, paindex, k) = max(abs(traceOFF));
+<<<<<<< HEAD
                 SumOFF(gdindex, paindex, k) = sum(abs(traceOFF));
             elseif flag.includeALL
                 traceOFF=squeeze(M1OFF(gdindex,paindex, k, start:stop));
@@ -456,11 +513,20 @@ for paindex=1:numpulseamps
                 fprintf('Throwing out trial#%d of gapdur#%d\n',k,gdindex)
                 PeakOFF(gdindex, paindex, k) = nan;
                 SumOFF(gdindex, paindex, k) = nan;
+=======
+            elseif flag.includeALL
+                traceOFF=squeeze(M1OFF(gdindex,paindex, k, start:stop));
+                PeakOFF(gdindex, paindex, k) = max(abs(traceOFF));
+            else
+                fprintf('Throwing out trial#%d of gapdur#%d\n',k,gdindex)
+                PeakOFF(gdindex, paindex, k) = nan;
+>>>>>>> 7ad86887fde321c2dd154b36b1fba868691da30c
             end
             temp = squeeze(M1OFFACC(gdindex,paindex, k, 1:10000));
             if abs(mean(temp)) <.01 & std(temp) < .1
                 traceOFF=squeeze(M1OFFACC(gdindex,paindex, k, start:stop));
                 PeakOFFACC(gdindex, paindex, k) = max(abs(traceOFF));
+<<<<<<< HEAD
                 SumOFFACC(gdindex, paindex, k) = sum(abs(traceOFF));
             elseif flag.includeALL
                 traceOFF=squeeze(M1OFFACC(gdindex,paindex, k, start:stop));
@@ -470,6 +536,14 @@ for paindex=1:numpulseamps
                 fprintf('Throwing out ACC trial#%d of gapdur#%d\n',k,gdindex)
                 PeakOFFACC (gdindex, paindex, k) = nan;
                 SumOFFACC (gdindex, paindex, k) = nan;
+=======
+            elseif flag.includeALL
+                traceOFF=squeeze(M1OFFACC(gdindex,paindex, k, start:stop));
+                PeakOFFACC(gdindex, paindex, k) = max(abs(traceOFF));
+            else
+                fprintf('Throwing out ACC trial#%d of gapdur#%d\n',k,gdindex)
+                PeakOFFACC (gdindex, paindex, k) = nan;
+>>>>>>> 7ad86887fde321c2dd154b36b1fba868691da30c
             end
         end
         if isempty(PeakON)
@@ -483,6 +557,7 @@ for paindex=1:numpulseamps
             mPeakONACC(gdindex, paindex)=median(PeakONACC(gdindex,paindex, 1:nrepsON(gdindex, paindex)),3,'omitnan');
             semPeakONACC(gdindex, paindex)=std(PeakONACC(gdindex,paindex, 1:nrepsON(gdindex, paindex)),0,3,'omitnan')/sqrt(nrepsON(gdindex, paindex));
         end
+<<<<<<< HEAD
         if isempty(SumON)
             mSumON=[];
             semSumON=[];
@@ -494,6 +569,8 @@ for paindex=1:numpulseamps
             mSumONACC(gdindex, paindex)=median(SumONACC(gdindex,paindex, 1:nrepsON(gdindex, paindex)),3,'omitnan');
             semSumONACC(gdindex, paindex)=std(SumONACC(gdindex,paindex, 1:nrepsON(gdindex, paindex)),0,3,'omitnan')/sqrt(nrepsON(gdindex, paindex));
         end
+=======
+>>>>>>> 7ad86887fde321c2dd154b36b1fba868691da30c
         if isempty(PeakOFF)
             mPeakOFF=[];
             semPeakOFF=[];
@@ -505,6 +582,7 @@ for paindex=1:numpulseamps
             mPeakOFFACC(gdindex, paindex)=median(PeakOFFACC(gdindex,paindex, 1:nrepsOFF(gdindex, paindex)),3,'omitnan');
             semPeakOFFACC(gdindex, paindex)=std(PeakOFFACC(gdindex,paindex, 1:nrepsOFF(gdindex, paindex)),0,3,'omitnan')/sqrt(nrepsOFF(gdindex, paindex));
         end
+<<<<<<< HEAD
         if isempty(SumOFF)
             mSumOFF=[];
             semSumOFF=[];
@@ -516,6 +594,8 @@ for paindex=1:numpulseamps
             mSumOFFACC(gdindex, paindex)=median(SumOFFACC(gdindex,paindex, 1:nrepsOFF(gdindex, paindex)),3,'omitnan');
             semSumOFFACC(gdindex, paindex)=std(SumOFFACC(gdindex,paindex, 1:nrepsOFF(gdindex, paindex)),0,3,'omitnan')/sqrt(nrepsOFF(gdindex, paindex));
         end
+=======
+>>>>>>> 7ad86887fde321c2dd154b36b1fba868691da30c
     end
     
     %sanity check that first gapdur is 0 (i.e. control condition)
@@ -523,19 +603,27 @@ for paindex=1:numpulseamps
         error('first gapdur is not 0, what is wrong?')
     end
     
+<<<<<<< HEAD
     fprintf('\nusing MEDIAN of peak(abs(trace)) or of sum(abs(trace))  responses\n')
+=======
+    fprintf('\nusing MEDIAN of peak(abs(trace)) responses\n')
+>>>>>>> 7ad86887fde321c2dd154b36b1fba868691da30c
     
     %only makes sense for numgapdurs >= 2
     if isempty(PeakON)
         percentGPIAS_ON=[];
         percentGPIAS_ONACC=[];
+<<<<<<< HEAD
         percentGPIAS_ONsum=[];
         percentGPIAS_ONACCsum=[];
+=======
+>>>>>>> 7ad86887fde321c2dd154b36b1fba868691da30c
         pON=[];
     else
         percentGPIAS_ON(1)=nan;
         pON(1)=nan;
         for p=2:numgapdurs;
+<<<<<<< HEAD
             fprintf('Laser ON  pa:%ddB, \n', pulseamps(paindex));
             if flag.accel ==4
                 m1=mPeakON(1, paindex);
@@ -555,12 +643,25 @@ for paindex=1:numpulseamps
                 fprintf('TILT(sum): gd: %dms  %%GPIAS = %.1f%%,  T-test:%d,  p-value:%.3f\n',gapdurs(p),percentGPIAS_ONsum(p),H,temp);
             end
             
+=======
+            m1=mPeakON(1, paindex);
+            m2=mPeakON(p, paindex);
+            percentGPIAS_ON(p)=((m1-m2)/m1)*100;
+            A=PeakON(1,paindex, 1:nrepsON(1, paindex));
+            B=PeakON(p,paindex, 1:nrepsON(p, paindex));
+            [H,pON(p)]=ttest2(A,B);
+            fprintf('Laser ON  pa:%ddB, \n', pulseamps(paindex));
+            if flag.accel ==4
+            fprintf('TILT: gd: %dms  %%GPIAS = %.1f%%,  T-test:%d,  p-value:%.3f\n',gapdurs(p),percentGPIAS_ON(p),H,pON(p));
+            end
+>>>>>>> 7ad86887fde321c2dd154b36b1fba868691da30c
             m1=mPeakONACC(1, paindex);
             m2=mPeakONACC(p, paindex);
             percentGPIAS_ONACC(p)=((m1-m2)/m1)*100;
             A=PeakONACC(1,paindex, 1:nrepsON(1, paindex));
             B=PeakONACC(p,paindex, 1:nrepsON(p, paindex));
             [H,temp]=ttest2(A,B);
+<<<<<<< HEAD
             fprintf('ACCEL(peak): gd: %dms  %%GPIAS = %.1f%%,  T-test:%d,  p-value:%.3f\n',gapdurs(p),percentGPIAS_ONACC(p),H,temp);
             
             m1=mSumONACC(1, paindex);
@@ -570,18 +671,25 @@ for paindex=1:numpulseamps
             B=SumONACC(p,paindex, 1:nrepsON(p, paindex));
             [H,temp]=ttest2(A,B);
             fprintf('ACCEL(sum): gd: %dms  %%GPIAS = %.1f%%,  T-test:%d,  p-value:%.3f\n',gapdurs(p),percentGPIAS_ONACCsum(p),H,temp);
+=======
+            fprintf('ACCEL: gd: %dms  %%GPIAS = %.1f%%,  T-test:%d,  p-value:%.3f\n',gapdurs(p),percentGPIAS_ONACC(p),H,temp);
+>>>>>>> 7ad86887fde321c2dd154b36b1fba868691da30c
         end
     end
     if isempty(PeakOFF)
         percentGPIAS_OFF=[];
         percentGPIAS_OFFACC=[];
+<<<<<<< HEAD
         percentGPIAS_OFFsum=[];
         percentGPIAS_OFFACCsum=[];
+=======
+>>>>>>> 7ad86887fde321c2dd154b36b1fba868691da30c
         pOFF=[];
     else
         percentGPIAS_OFF(1)=nan;
         pOFF(1)=nan;
         for p=2:numgapdurs;
+<<<<<<< HEAD
             fprintf('Laser OFF  pa:%ddB, \n', pulseamps(paindex));
             if flag.accel ==4
                 m1=mPeakOFF(1, paindex);
@@ -599,6 +707,17 @@ for paindex=1:numpulseamps
                 B=SumOFF(p,paindex, 1:nrepsOFF(p, paindex));
                 [H,temp]=ttest2(A,B);
                 fprintf('TILT(sum): gd: %dms  %%GPIAS = %.1f%%,  T-test:%d,  p-value:%.3f\n',gapdurs(p),percentGPIAS_OFFsum(p),H,temp);
+=======
+            m1=mPeakOFF(1, paindex);
+            m2=mPeakOFF(p, paindex);
+            percentGPIAS_OFF(p)=((m1-m2)/m1)*100;
+            A=PeakOFF(1,paindex, 1:nrepsOFF(1, paindex));
+            B=PeakOFF(p,paindex, 1:nrepsOFF(p, paindex));
+            [H,pOFF(p)]=ttest2(A,B);
+            fprintf('Laser OFF  pa:%ddB, \n', pulseamps(paindex));
+            if flag.accel ==4
+                fprintf('TILT: gd: %dms  %%GPIAS = %.1f%%,  T-test:%d,  p-value:%.3f\n',gapdurs(p),percentGPIAS_OFF(p),H,pOFF(p));
+>>>>>>> 7ad86887fde321c2dd154b36b1fba868691da30c
             end
             m1=mPeakOFFACC(1, paindex);
             m2=mPeakOFFACC(p, paindex);
@@ -606,6 +725,7 @@ for paindex=1:numpulseamps
             A=PeakOFFACC(1,paindex, 1:nrepsOFF(1, paindex));
             B=PeakOFFACC(p,paindex, 1:nrepsOFF(p, paindex));
             [H,temp]=ttest2(A,B);
+<<<<<<< HEAD
             fprintf('ACCEL(peak): gd: %dms  %%GPIAS = %.1f%%,  T-test:%d,  p-value:%.3f\n',gapdurs(p),percentGPIAS_OFFACC(p),H,temp);
             
             m1=mSumOFFACC(1, paindex);
@@ -615,6 +735,10 @@ for paindex=1:numpulseamps
             B=SumOFFACC(p,paindex, 1:nrepsOFF(p, paindex));
             [H,temp]=ttest2(A,B);
             fprintf('ACCEL(sum): gd: %dms  %%GPIAS = %.1f%%,  T-test:%d,  p-value:%.3f\n',gapdurs(p),percentGPIAS_OFFACCsum(p),H,temp);
+=======
+            fprintf('ACCEL: gd: %dms  %%GPIAS = %.1f%%,  T-test:%d,  p-value:%.3f\n',gapdurs(p),percentGPIAS_OFFACC(p),H,temp);
+            
+>>>>>>> 7ad86887fde321c2dd154b36b1fba868691da30c
         end
     end
     
@@ -625,6 +749,7 @@ end
 %save to outfiles
 out.IL=IL;
 
+<<<<<<< HEAD
 out.M1ON=M1ON;    % scaledtrace (depends on flag.accel)
 out.M1OFF=M1OFF;    % scaledtrace
 out.mM1ON=mM1ON;    % scaledtrace
@@ -633,6 +758,12 @@ out.mM1OFF=mM1OFF;    % scaledtrace
 % out.M1OFFACC=M1OFFACC;
 % out.mM1ONACC=mM1ONACC;
 % out.mM1OFFACC=mM1OFFACC;
+=======
+out.M1ON=M1ON;
+out.M1OFF=M1OFF;
+out.mM1ON=mM1ON;
+out.mM1OFF=mM1OFF;
+>>>>>>> 7ad86887fde321c2dd154b36b1fba868691da30c
 out.M1ONstim=M1ONstim;
 out.M1OFFstim=M1OFFstim;
 out.mM1ONstim=mM1ONstim;

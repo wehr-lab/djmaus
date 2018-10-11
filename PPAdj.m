@@ -82,7 +82,7 @@ switch action
                 %                 end
             elseif status.Active==1; %device running
                 protocol=SP.ProtocolIndex;
-                current=SP.CurrentStimulus(protocol);
+                current=SP.CurrentStimulus(protocol) + SP.NStimuli(protocol)*SP.NRepeats;
                 inQueue=current-status.SchedulePosition-SP.CurrStimatPPAstart;
                 set(h, 'string', sprintf('PPA running, inQueue=%d, XRuns=%g, CPUload=%.3f', inQueue, status.XRuns, status.CPULoad), 'backgroundcolor', [1 .5 .5])
                 
@@ -91,6 +91,7 @@ switch action
                     set(h,'backgroundcolor', [1 0 0])
                 end
                 
+
                 %                 if ~SP.Run
                 %                    set(SP.Runh, 'backgroundcolor', [1 .5 .5])
                 %                 end
@@ -500,7 +501,9 @@ if on
                         %pstartsamp=pstartsamp+(pulsewidth(n-1)+isi(n-1))*SoundFs/1000;
                         pstartsamp=pstartsamp+isi(n-1)*SoundFs/1000; %mw 1-28-2017
                     end
+                    pstartsamp=round(pstartsamp);
                     pstopsamp=pstartsamp+pulsewidth(n)*SoundFs/1000-1;
+                    pstopsamp=round(pstopsamp);
                     laserpulse(pstartsamp:pstopsamp)=1;
                 end
                 laserpulse(end)=0; %make sure to turn off pulse at end

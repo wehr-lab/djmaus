@@ -880,8 +880,11 @@ nb.notes=SP.Notes;
 nb.Drugs=SP.Drugs;
 nb.Reinforcement=SP.Reinforcement;
 
-stimlog=SP.stimlog;
-
+if ~isfield(SP, 'stimlog') %perhaps no stimuli were even delivered
+    stimlog=[];
+else
+    stimlog=SP.stimlog;
+end
 try
     cd(nb.activedir)
     
@@ -1371,6 +1374,13 @@ SP.mouseIDlabel=uicontrol(fig,'Parent',hp,'tag','mouseIDlabel','style','text','u
     'string', 'mouseID', 'fontsize', labelfs,...
     'enable','inact','horiz','left','pos', [e  H w h/2]);
 H=H+h;
+
+%check for mouseDB and initialize if not present
+cd(pref.root)
+if exist('mouseDB.mat')~=2
+    temp=[];
+    save mouseDB.mat temp
+end
 
 %%%%%%%%%%%%%%%%%%
 

@@ -5,7 +5,7 @@ windows/zeroMQwrapper.mexw64
 *.ps
 *.asv
 *.DS_Store
-
+mouseDB.mat
 .DS_Store
 *.bak
 *.xml

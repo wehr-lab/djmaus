@@ -501,7 +501,9 @@ if on
                         %pstartsamp=pstartsamp+(pulsewidth(n-1)+isi(n-1))*SoundFs/1000;
                         pstartsamp=pstartsamp+isi(n-1)*SoundFs/1000; %mw 1-28-2017
                     end
+                    pstartsamp=round(pstartsamp);
                     pstopsamp=pstartsamp+pulsewidth(n)*SoundFs/1000-1;
+                    pstopsamp=round(pstopsamp);
                     laserpulse(pstartsamp:pstopsamp)=1;
                 end
                 laserpulse(end)=0; %make sure to turn off pulse at end

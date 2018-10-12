@@ -32,7 +32,7 @@ function [filename,path]=MakeSoundfiledjProtocol(amplitude, dur, include_whiteno
 % ------------------------------------------------------------------------
 %
 % example call: 
-% amp= 80; dur=[]; include_whitenoise= 1; interleave_laser= 1; include_silent_sound= 1; isi= 800; nrepeats= 20;
+% amp= 80; dur=[]; include_whitenoise= 1; interleave_laser= 0; include_silent_sound= 1; isi= 800; nrepeats= 20;
 %MakeSoundfiledjProtocol(amp, dur, include_whitenoise, interleave_laser, include_silent_sound, isi, nrepeats)
 
 
@@ -70,6 +70,7 @@ if ischar(filename_ext) %only one filename
     StimPerRepeat=1;
     fprintf('\n%d sound', StimPerRepeat)
     numsoundfiles=1;
+    filename_ext={filename_ext};
 elseif iscell(filename_ext)
     StimPerRepeat=length(filename_ext);
     fprintf('\n%d sounds', StimPerRepeat)
@@ -116,8 +117,8 @@ filename=sprintf('soundfile-%s%s%ddB-%s-%s-%s-isi%dms-%dreps',...
     descriptname, include_whitenoisestr, amplitude, durstring,...
     interleave_laserstr,include_silent_soundstr, isi, nrepeats);
 
+djPrefs
 global pref
-if isempty(pref) djPrefs;end
 cd(pref.stimuli)
 warning off MATLAB:MKDIR:DirectoryExists
 mkdir('Soundfile Protocols')

@@ -15,7 +15,8 @@ function deviceID=GetXonarDevice
 devs = PsychPortAudio('GetDevices');
 deviceID=[];
 for n = 1:length(devs) 
-    if strncmp(devs(n).DeviceName, 'Xonar STX II+H6: Multichannel', 29)
+   % if strncmp(devs(n).DeviceName, 'Xonar STX II+H6: Multichannel',29) %for linux
+    if strcmp(devs(n).DeviceName, 'Essence STX II ASIO(64)')
         deviceID=devs(n).DeviceIndex;
     end
 end

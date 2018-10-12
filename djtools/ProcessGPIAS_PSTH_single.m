@@ -71,7 +71,7 @@ Eventsfilename='all_channels.events';
 [all_channels_data, all_channels_timestamps, all_channels_info] = load_open_ephys_data(Eventsfilename);
 sampleRate=all_channels_info.header.sampleRate; %in Hz
 
-%get Events and soundcard trigger timestamps 
+%get Events and soundcard trigger timestamps
 [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
 %there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
 
@@ -81,17 +81,25 @@ catch
     fprintf('\nCould not find stimlog, no logged stimuli in notebook!!');
 end
 
-%read MClust .t file
-fprintf('\nreading MClust output file %s', filename)
-spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
-%correct for OE start time, so that time starts at 0
-spiketimes=spiketimes-StartAcquisitionSec;
+
+%read MClust .t file or Kilosort
+
+if exist('params.py','file') || exist('dirs.mat','file') 
+    fprintf('\nreading KiloSort output cell %d', clust)
+    spiketimes=readKiloSortOutput(clust, sampleRate);
+else
+    fprintf('\nreading MClust output file %s', filename)
+    spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
+    %correct for OE start time, so that time starts at 0
+    spiketimes=spiketimes-StartAcquisitionSec;
+    fprintf('\nsuccessfully loaded MClust spike data')
+end
 totalnumspikes=length(spiketimes);
-fprintf('\nsuccessfully loaded MClust spike data')
+
 Nclusters=1;
 
-%uncomment this to run some sanity checks
-% SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
+%%%uncomment this to run some sanity checks
+%SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
 
 fprintf('\ncomputing tuning curve...');
 samprate=sampleRate;
@@ -288,19 +296,19 @@ for i=1:length(Events)
                 M1OFF(gdindex,paindex, nrepsOFF(gdindex,paindex)).spiketimes=spiketimes1;
                 M1OFFspikecounts(gdindex,paindex,nrepsOFF(gdindex,paindex))=spikecount;
                 M1spontOFF(gdindex,paindex, nrepsOFF(gdindex,paindex))=spont_spikecount;
-%                 try  % The "try catch warning end" steps can be activated
-%                 if there are missing hardware triggers at eof. confirm
-%                 first that "stimlog(trialnum).param" fields matche
-%                 "Events(trialnum)" fields (ie trials are in sync).
-                    if LaserRecorded
+                %                 try  % The "try catch warning end" steps can be activated
+                %                 if there are missing hardware triggers at eof. confirm
+                %                 first that "stimlog(trialnum).param" fields matche
+                %                 "Events(trialnum)" fields (ie trials are in sync).
+                if LaserRecorded
                     M1OFFLaser(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=Lasertrace(region);
                 end
                 if StimRecorded
                     M1OFFStim(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=Stimtrace(region);
                 end
-%                 catch
-%                 warning('ignoring missing data')    
-%                 end
+                %                 catch
+                %                 warning('ignoring missing data')
+                %                 end
             end
         end
     end
@@ -399,28 +407,37 @@ end
 
 %sanity check - are the stimuli where we think they are?
 if StimRecorded
-    figure %ON
-    hold on
-    offset=range(M1ONStim(:));
-    for gdindex=1:numgapdurs
-        for paindex =1:numpulseamps
-            for r=1:nrepsON(gdindex,paindex)
-                stim=M1ONStim(gdindex,paindex,r,:);
-                t=1:length(stim);t=1000*t/samprate; %in ms
-                plot(t, stim+r*offset, 'm')
+    if IL
+        figure %ON
+        hold on
+        offset2=0;
+        offset=1.5*range(M1ONStim(:));
+        for gdindex=1:numgapdurs
+            for paindex =1:numpulseamps
+                for r=1:nrepsON(gdindex,paindex)
+                    stim=squeeze(M1ONStim(gdindex,paindex,r,:));
+                    t=1:length(stim);t=1000*t/samprate; %in ms
+                    t=t+xlimits(1); %correct for xlim
+                    offset2=offset2+offset;
+                    plot(t, stim+offset2, 'm')
+                end
             end
         end
+        title(' stimulus monitor, Laser ON')
     end
-    title(' stimulus monitor, Laser ON')
-      figure %OFF
+    figure %OFF
     hold on
-    offset=range(M1OFFStim(:));
+    offset=1.5*range(M1OFFStim(:));
+    offset2=0;
     for gdindex=1:numgapdurs
         for paindex =1:numpulseamps
             for r=1:nrepsOFF(gdindex,paindex)
-                stim=M1OFFStim(gdindex,paindex,r,:);
+                stim=squeeze(M1OFFStim(gdindex,paindex,r,:));
                 t=1:length(stim);t=1000*t/samprate; %in ms
-                plot(t, stim+r*offset, 'm')
+                t=t+xlimits(1); %correct for xlim
+                offset2=offset2+offset;
+                plot(t, stim+offset2, 'm')
+                %                 pause(1)
             end
         end
     end
@@ -430,7 +447,7 @@ end
 %save to outfiles
 %one outfile for each cell
 
-%after squeezing cluster, saves with the following dimensions:
+%saves with the following dimensions:
 % M1ON(numgapdurs, numpulseamps, nrepsON).spiketimes
 % mM1ON(numgapdurs, numpulseamps).spiketimes
 % mM1ONspikecount(numgapdurs, numpulseamps)

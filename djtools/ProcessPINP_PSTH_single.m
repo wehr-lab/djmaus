@@ -37,7 +37,7 @@ split=strsplit(f, '_');
 ch=strsplit(split{1}, 'ch');
 channel=str2num(ch{2});
 clust=str2num(split{end});
-
+cell=clust;
 fprintf('\n%s', mfilename)
 fprintf('\nchannel %d, cluster %d', channel, clust)
 fprintf('\nprocessing with xlimits [%d-%d]', xlimits(1), xlimits(2))
@@ -90,24 +90,30 @@ sampleRate=all_channels_info.header.sampleRate; %in Hz
 %get Events and soundcard trigger timestamps
 [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
 %there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
-
+save('StartAcquisitionSec.mat','StartAcquisitionSec')
 try
     fprintf('\nNumber of logged stimuli in notebook: %d', length(stimlog));
 catch
     fprintf('\nCould not find stimlog, no logged stimuli in notebook!!');
 end
 
-%read MClust .t file
-fprintf('\nreading MClust output file %s', filename)
-spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
-%correct for OE start time, so that time starts at 0
-spiketimes=spiketimes-StartAcquisitionSec;
+if exist('params.py','file') || channel==-1 
+    fprintf('\nreading KiloSort output cell %d', clust)
+    [spiketimes, KS_ID]=readKiloSortOutput(clust, sampleRate);
+else
+    fprintf('\nreading MClust output file %s', filename)
+    spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
+    %correct for OE start time, so that time starts at 0
+    spiketimes=spiketimes-StartAcquisitionSec;
+    fprintf('\nsuccessfully loaded MClust spike data')
+    KS_ID=-1;
+end
 totalnumspikes=length(spiketimes);
-fprintf('\nsuccessfully loaded MClust spike data')
+
 Nclusters=1;
 
 %uncomment this to run some sanity checks
-%SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
+SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
 
 
 fprintf('\ncomputing tuning curve...');
@@ -121,6 +127,11 @@ alltrainisis=[];
 alltrainpulsewidths=[];
 allpulsewidths=[];
 allsilentsounddurs=[];
+if exist('Events.mat')
+    load('Events.mat')
+else
+save('Events.mat','Events')
+end
 for i=1:length(Events)
     if  strcmp(Events(i).type, 'silentsound')
         j=j+1;
@@ -372,8 +383,8 @@ end
 
 out.tetrode=channel;
 out.channel=channel;
-out.cluster=clust; %there are some redundant names here
-out.cell=clust;
+out.cluster=cell; %there are some redundant names here
+out.cell=cell;
 
 out.MPulse=MPulse;
 out.MSilentSoundOFF=MSilentSoundOFF;
@@ -423,6 +434,8 @@ out.StimRecorded=StimRecorded; %%whether the sound stimulus signal was hooked up
 out.laserstarts=laserstarts;
 out.numlaserstarts=numlaserstarts;
 
+out. KiloSort_ID=KS_ID;
+
 try
     out.nb=nb;
     out.stimlog=stimlog;
@@ -433,6 +446,6 @@ catch
     out.user='unknown';
 end
 out.t_filename=filename;
-outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
+outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, cell);
 save (outfilename, 'out')
 

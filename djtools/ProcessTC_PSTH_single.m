@@ -29,11 +29,11 @@ try
     xlimits=varargin{3};
 end
 if isempty(xlimits)
-    %     xlimits=[-100 200];
+         xlimits=[-100 200];
     s=GetStimParams(datadir);
     durs=s.durs;
     dur=max(durs);
-    xlimits=[-.5*dur 1.5*dur]; %default x limits for axis
+   % xlimits=[-.5*dur 1.5*dur]; %default x limits for axis
 end
 try
     ylimits=varargin{4};
@@ -41,12 +41,20 @@ catch
     ylimits=[];
 end
 
-filename=varargin{2};
-[p,f,ext]=fileparts(filename);
-split=strsplit(f, '_');
-ch=strsplit(split{1}, 'ch');
-channel=str2num(ch{2});
-clust=str2num(split{end});
+%Nick addition 8/31/18 - accomodates kilosort input
+t_filename = varargin{2};
+if ischar(t_filename)
+    [p,f,ext]=fileparts(t_filename);
+    split=strsplit(f, '_');
+    ch=strsplit(split{1}, 'ch');
+    channel=str2num(ch{2});
+    clust=str2num(split{end});
+else %reads kilosort input, which is [clust, channel, cellnum]
+    channel=t_filename(1,2);
+    clust=t_filename(1,1);
+    cellnum=t_filename(1,3); %This number is necessary for 
+end
+%end of Nick addition 8/31/18.
 
 fprintf('\nchannel %d, cluster %d', channel, clust)
 fprintf('\nprocessing with xlimits [%d-%d]', xlimits(1), xlimits(2))
@@ -88,8 +96,23 @@ Eventsfilename='all_channels.events';
 sampleRate=all_channels_info.header.sampleRate; %in Hz
 
 %get Events and soundcard trigger timestamps
-[Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
 %there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
+[Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
+
+if exist('Events.mat')
+    load('Events.mat')
+    sprintf('loaded Events file \n')
+else
+    [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
+    save('Events.mat','Events')
+    save('StartAcquisitionSec.mat','StartAcquisitionSec')
+end
+if exist('StartAcquisitionSec.mat')
+    load('StartAcquisitionSec.mat')
+else
+    [~, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
+    save('StartAcquisitionSec.mat','StartAcquisitionSec')
+end
 
 try
     fprintf('\nNumber of logged stimuli in notebook: %d', length(stimlog));
@@ -109,17 +132,24 @@ switch (GetPlottingFunction(datadir))
         error('This stimulus protcol does not appear to have any tones or whitenoise.')
 end
 
-%read MClust .t file
+%read MClust .t file or Kilosort
+
+if exist('params.py','file') || exist('dirs.mat','file') 
+    fprintf('\nreading KiloSort output cell %d', clust)
+    spiketimes=readKiloSortOutput(clust, sampleRate);
+else
 fprintf('\nreading MClust output file %s', filename)
 spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
 %correct for OE start time, so that time starts at 0
 spiketimes=spiketimes-StartAcquisitionSec;
+end
+
 totalnumspikes=length(spiketimes);
 fprintf('\nsuccessfully loaded MClust spike data')
 Nclusters=1;
 
 %uncomment this to run some sanity checks
-%SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
+SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
 
 
 fprintf('\ncomputing tuning curve...');
@@ -224,7 +254,8 @@ end
 if LaserRecorded
     try
         [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data(getLaserfile('.'));
-        Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+        %Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+        Lasertimestamps=Lasertimestamps-Lasertimestamps(1);
         Lasertrace=Lasertrace./max(abs(Lasertrace));
         fprintf('\nsuccessfully loaded laser trace')
     catch
@@ -236,7 +267,8 @@ end
 if StimRecorded
     try
         [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(getStimfile('.'));
-        Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+        %Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+        Stimtimestamps=Stimtimestamps-Stimtimestamps(1);
         Stimtrace=Stimtrace./max(abs(Stimtrace));
         fprintf('\nsuccessfully loaded stim trace')
     catch
@@ -663,7 +695,7 @@ catch
     out.stimlog='notebook file missing';
     out.user='unknown';
 end
-out.t_filename=filename;
+out.t_filename=t_filename;
 outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
 save (outfilename, 'out')
 

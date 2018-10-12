@@ -1,4 +1,4 @@
- function djmaus(varargin)
+function djmaus(varargin)
 
 % Plays a bunch of different stimuli stored in a .mat file ('protocol')
 % Uses PPA sound which requires PsychToolbox. Download from psychtoolbox.org.
@@ -27,19 +27,20 @@ if isempty(action)
 end
 
 % %fprintf('\naction: %s', action)
-% [uv, sv]=memory;
-% jhm = java.lang.Runtime.getRuntime.freeMemory;
-% fid=fopen('D:\lab\djmaus\memlog.txt', 'a');
-% fprintf(fid, '\n%.8f %d %d %d %d %d %d %d', ...
-%     datenum(now), ...
-%     uv.MaxPossibleArrayBytes, uv.MemAvailableAllArrays, uv.MemUsedMATLAB, ...
-%     sv.VirtualAddressSpace.Available, sv.SystemMemory.Available, sv.PhysicalMemory.Available, ...
-%     jhm);
-% fclose(fid);
+%  [uv, sv]=memory;
+%  jhm = java.lang.Runtime.getRuntime.freeMemory;
+%  fid=fopen('C:\lab\djmaus\memlog.txt', 'a');
+%  fprintf(fid, '\n%.8f %d %d %d %d %d %d %d', ...
+%      datenum(now), ...
+%      uv.MaxPossibleArrayBytes, uv.MemAvailableAllArrays, uv.MemUsedMATLAB, ...
+%      sv.VirtualAddressSpace.Available, sv.SystemMemory.Available, sv.PhysicalMemory.Available, ...
+%      jhm);
+%  fclose(fid);
 
 switch action
     case 'Init'
         SP.user='lab';
+        SP.Campulse=0;
         djPrefs;
         InitializeGUI;
         InitZMQ %initialize zeroMQ connection to open-ephys
@@ -76,8 +77,8 @@ switch action
         %stop acquisition, i.e. like clicking the > button on the
         %open-ephys GUI
         % This button is currently disabled
-                
-        zeroMQwrapper('Send',SP.zhandle ,'StopAcquisition'); 
+        
+        zeroMQwrapper('Send',SP.zhandle ,'StopAcquisition');
         
     case 'launchOE'
         djMessage('launching OE', 'append')
@@ -145,7 +146,7 @@ switch action
         outstring=textwrap(pnh(1),{name{protocol_choice}});
         set(pnh,'String',outstring);
         SP.NRepeats=0;
-        djMessage(['0/' num2str(SP.NStimuli(protocol_choice)) ' stimuli, ' num2str(SP.NRepeats), ' repeats' ]);
+        djMessage([int2str(current(protocol_choice)), '/' num2str(SP.NStimuli(protocol_choice)) ' stimuli, ' num2str(SP.NRepeats), ' repeats' ]);
         %this is a hack to solve the problem where after running a seamless
         %protocol, then regular protocols don't play any sound
         PPAdj('init');
@@ -181,7 +182,7 @@ switch action
         SP.mouseID=get(SP.mouseIDh, 'string');
         mouseIDs=get(SP.mouseIDMenuh, 'string');
         if ~iscell(mouseIDs) mouseIDs={mouseIDs};end
-
+        
         if isempty(mouseIDs)
             mouseIDs=SP.mouseID;
         elseif iscell(mouseIDs) & length(mouseIDs)>1 %more than one menu item
@@ -231,15 +232,15 @@ switch action
         eval(str)
         save('mouseDB.mat', SP.mouseID, '-append')
         SP.Age=(datenum(date)-datenum(SP.mouseDOB))/30; %in months
-        pos1=get(SP.mouseSexh, 'pos'); 
-        pos=get(SP.mouseDOBh, 'pos'); 
+        pos1=get(SP.mouseSexh, 'pos');
+        pos=get(SP.mouseDOBh, 'pos');
         pos(3)=.6*pos1(3);
         set(SP.mouseDOBh, 'pos',pos);
         pos(1)=pos(1)+pos(3);
         SP.Ageh=uicontrol(gcf,'tag','mouseAgelabel','style','text','units','pixels',...
             'string', sprintf('age\n%.1f mo', SP.Age), 'fontsize', 10,...
             'enable','inact','horiz','left','pos', pos);
-
+        
         
     case 'Reinforcement'
         SP.Reinforcement=get(SP.Reinforcementh, 'string');
@@ -255,14 +256,14 @@ switch action
         
     case 'Notes'
         SP.Notes=get(SP.Notesh, 'string');
-
+        
     case 'ResetZMQ'
         InitZMQ;
         
     case 'TestZMQ'
-            zeroMQwrapper('Send',SP.zhandle ,'Test');
-            djMessage(sprintf('sent "Test" message to %s', pref.zmqurl))
-
+        zeroMQwrapper('Send',SP.zhandle ,'Test');
+        djMessage(sprintf('sent "Test" message to %s', pref.zmqurl))
+        
     case 'LaserOnOff'
         SP.LaserOnOff=get(SP.LaserOnOffh, 'value');
         if SP.LaserOnOff
@@ -272,7 +273,7 @@ switch action
             set(SP.LaserOnOffh, 'backgroundcolor',[1 0 0],'foregroundcolor',[0 0 0]);
             set(SP.LaserOnOffh, 'string','Laser is ON');
             djmaus('LaserNumPulses')
-        
+            
         else
             set(SP.LaserStarth, 'enable', 'off')
             set(SP.LaserNumPulsesh, 'enable', 'off')
@@ -281,13 +282,13 @@ switch action
             set(SP.LaserOnOffh, 'backgroundcolor',[.5 .5 .5],'foregroundcolor',[0 0 1]);
             set(SP.LaserOnOffh, 'string','Laser is OFF');
         end
-    
+        
     case 'LaserStart'
         SP.LaserStart=str2num(get(SP.LaserStarth, 'string'));
-
+        
     case 'LaserWidth'
         SP.LaserWidth=str2num(get(SP.LaserWidthh, 'string'));
-    
+        
     case 'LaserNumPulses'
         SP.LaserNumPulses=str2num(get(SP.LaserNumPulsesh, 'string'));
         if SP.LaserNumPulses<1
@@ -305,9 +306,18 @@ switch action
         
     case 'LaserISI'
         SP.LaserISI=str2num(get(SP.LaserISIh, 'string'));
-
+        
     case 'camerapulse'
-        PPAdj('camerapulse')
+        if SP.Campulse
+            %we want to stop
+            set(SP.camerapulse,'backgroundcolor',[0 0.9 0],'String','Camera Stopped');
+            SP.Campulse=0;
+            PPAdj('camerapulse_off')
+        else
+            set(SP.camerapulse, 'backgroundcolor',[0.9 0 0],'String','Camera Recording');
+            SP.Campulse=1;
+            PPAdj('camerapulse_on')
+        end
 end
 
 function AddUser
@@ -319,66 +329,66 @@ if any(strcmp(username, pref.users))
     set(SP.userh, 'value', 1)
 else
     SP.user=username;
-   cd(pref.datapath)
-   cd ..
-   mkdir(username)
-   cd(username)
-   pref.datapath=pwd;
-   pref.users{end+1}=username;
-   
-   [pathstr,name,~] =fileparts(pref.remotedatapath);
-   pref.remotedatapath=fullfile(pathstr, username);
-   
-   %write new pref.users
-   cd(pref.root)
-   fid=fopen('djPrefs.m', 'a+');
-   key=sprintf('pref.users={');
-   Preftext = regexp( fileread('djPrefs.m'), '\n', 'split');
-   fclose(fid)
-
-   I=strmatch(key, Preftext);
-   if ~isempty(I) %found key, overwrite with revised entry
-       I=I(1);
-       newstr=sprintf('''%s'',', pref.users{:});
-       newstr=newstr(1:end-1);
-       newstr2=sprintf('pref.users={%s};', newstr);
-       Preftext{I}=newstr2; %change entry;
-       fid = fopen('djPrefs.m', 'w');
-       fprintf(fid, '%s\n', Preftext{:});
-       fclose(fid);
-   else
-   end
-   
-   
-   %write new individual user prefs
-   fid=fopen('djPrefs.m', 'a+');
-   key=sprintf('switch SP.user');
-   Preftext = regexp( fileread('djPrefs.m'), '\n', 'split');
-   fclose(fid);
-      I=strmatch(key, strtrim(Preftext));
-   if ~isempty(I) %found key, overwrite with revised entry
-       I=I(1);
-       str1=sprintf('case ''%s''', username);
-       str2=sprintf('pref.datapath=''%s'';', pref.datapath);
-       str3=sprintf('pref.remotedatapath=''%s'';', pref.remotedatapath);
-       Preftext_copy=Preftext;
-       Preftext{I+1}=str1;
-       Preftext{I+2}=str2;
-       Preftext{I+3}=str3;
-       for i=I+4:length(Preftext_copy)+2
-           Preftext{i}=Preftext_copy{i-3};
-       end
-       fid = fopen('djPrefs.m', 'w');
-       fprintf(fid, '%s\n', Preftext{:});
-       fclose(fid);
-
-       
-   end
-   userstr=pref.users;
-userstr{end+1}='add new user';
-set(SP.userh,'string', userstr);
-
-
+    cd(pref.datapath)
+    cd ..
+    mkdir(username)
+    cd(username)
+    pref.datapath=pwd;
+    pref.users{end+1}=username;
+    
+    [pathstr,name,~] =fileparts(pref.remotedatapath);
+    pref.remotedatapath=fullfile(pathstr, username);
+    
+    %write new pref.users
+    cd(pref.root)
+    fid=fopen('djPrefs.m', 'a+');
+    key=sprintf('pref.users={');
+    Preftext = regexp( fileread('djPrefs.m'), '\n', 'split');
+    fclose(fid)
+    
+    I=strmatch(key, Preftext);
+    if ~isempty(I) %found key, overwrite with revised entry
+        I=I(1);
+        newstr=sprintf('''%s'',', pref.users{:});
+        newstr=newstr(1:end-1);
+        newstr2=sprintf('pref.users={%s};', newstr);
+        Preftext{I}=newstr2; %change entry;
+        fid = fopen('djPrefs.m', 'w');
+        fprintf(fid, '%s\n', Preftext{:});
+        fclose(fid);
+    else
+    end
+    
+    
+    %write new individual user prefs
+    fid=fopen('djPrefs.m', 'a+');
+    key=sprintf('switch SP.user');
+    Preftext = regexp( fileread('djPrefs.m'), '\n', 'split');
+    fclose(fid);
+    I=strmatch(key, strtrim(Preftext));
+    if ~isempty(I) %found key, overwrite with revised entry
+        I=I(1);
+        str1=sprintf('case ''%s''', username);
+        str2=sprintf('pref.datapath=''%s'';', pref.datapath);
+        str3=sprintf('pref.remotedatapath=''%s'';', pref.remotedatapath);
+        Preftext_copy=Preftext;
+        Preftext{I+1}=str1;
+        Preftext{I+2}=str2;
+        Preftext{I+3}=str3;
+        for i=I+4:length(Preftext_copy)+2
+            Preftext{i}=Preftext_copy{i-3};
+        end
+        fid = fopen('djPrefs.m', 'w');
+        fprintf(fid, '%s\n', Preftext{:});
+        fclose(fid);
+        
+        
+    end
+    userstr=pref.users;
+    userstr{end+1}='add new user';
+    set(SP.userh,'string', userstr);
+    
+    
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -386,31 +396,31 @@ function LoadMouse
 global SP
 cd (SP.datapath)
 try
-mouseDB=load('mouseDB.mat');
-if isfield(mouseDB, SP.mouseID)
-    try
-        str=sprintf('SP.mouseGenotype=mouseDB.%s.mouseGenotype;', SP.mouseID);
-        eval(str);
+    mouseDB=load('mouseDB.mat');
+    if isfield(mouseDB, SP.mouseID)
+        try
+            str=sprintf('SP.mouseGenotype=mouseDB.%s.mouseGenotype;', SP.mouseID);
+            eval(str);
+            set(SP.mouseGenotypeh, 'string', SP.mouseGenotype);
+        end
+        try
+            str=sprintf('SP.mouseDOB=mouseDB.%s.mouseDOB;', SP.mouseID);
+            eval(str);
+            set(SP.mouseDOBh, 'string', SP.mouseDOB);
+        end
+        try
+            str=sprintf('SP.mouseSex=mouseDB.%s.mouseSex;', SP.mouseID);
+            eval(str);
+            set(SP.mouseSexh, 'string', SP.mouseSex);
+        end
+    else
+        SP.mouseGenotype='genotype unknown';
         set(SP.mouseGenotypeh, 'string', SP.mouseGenotype);
-    end
-    try
-        str=sprintf('SP.mouseDOB=mouseDB.%s.mouseDOB;', SP.mouseID);
-        eval(str);
+        SP.mouseSex='sex unknown';
+        set(SP.mouseSexh, 'string', SP.mouseSex);
+        SP.mouseDOB='age unknown';
         set(SP.mouseDOBh, 'string', SP.mouseDOB);
     end
-    try
-        str=sprintf('SP.mouseSex=mouseDB.%s.mouseSex;', SP.mouseID);
-        eval(str);
-        set(SP.mouseSexh, 'string', SP.mouseSex);
-    end
-else
-    SP.mouseGenotype='genotype unknown';
-    set(SP.mouseGenotypeh, 'string', SP.mouseGenotype);
-    SP.mouseSex='sex unknown';
-    set(SP.mouseSexh, 'string', SP.mouseSex);
-    SP.mouseDOB='age unknown';
-    set(SP.mouseDOBh, 'string', SP.mouseDOB);
-end
 catch
     djMessage('could not load mouse database')
 end
@@ -620,8 +630,10 @@ switch type
         fcn='MakeAsymGPIAS';
     case 'GPIAS'
         fcn='MakeGPIAS';
+    case 'toneGPIAS'
+        fcn='MakeToneGPIAS';
     case 'noise'
-        fcn='MakeNoise';   
+        fcn='MakeNoise';
     case 'clicktrain'
         fcn='MakeClickTrain';
     case 'silentsound'
@@ -652,8 +664,7 @@ if SP.Record
             protocol=SP.ProtocolIndex;
             current=SP.CurrentStimulus(protocol);
             inQueue=current-status.SchedulePosition-SP.CurrStimatPPAstart;
-            Question=sprintf('stimuli have not finished playing yet (%d remaining).\nDo you really want to stop acquisition?', inQueue)
-            
+            Question=sprintf('stimuli have not finished playing yet (%d remaining).\nDo you really want to stop acquisition?', inQueue);            
             ButtonName = questdlg(Question, 'Are you sure?', 'Cancel', 'Really Stop', 'Cancel');
             if strcmp(ButtonName, 'Cancel')
                 %unclick the record button
@@ -669,7 +680,14 @@ if SP.Record
     SP.Record=0;
     set(SP.mouseIDh, 'enable', 'on');
     set(SP.mouseIDMenuh, 'enable', 'on');
-
+    if pref.camera_rec==1 %set the camera to be turned off when stopped recording
+        SP.Campulse=0;
+        set(SP.camerapulse, 'backgroundcolor',[0 0.9 0],'String','Camera Stopped');
+        PPAdj('camerapulse_off')
+    else
+        fprintf('\n camera not recording\n')
+    end
+    
     UpdateNotebookFile
     try
         set(SP.pathh, 'string', {SP.datapath, [SP.activedir, ' finished']})
@@ -678,9 +696,9 @@ else
     %we want to start recording;
     %try stopping
     %zeroMQwrapper('Send',SP.zhandle ,'StopRecord');
-
+    
     %disable play button here, to avoid delivering stimuli before notebook
-    %is initialized (which could result in a skipped stimlog entry) 
+    %is initialized (which could result in a skipped stimlog entry)
     set(SP.Runh, 'enable', 'off')
     
     startstr=sprintf('StartRecord');
@@ -688,8 +706,10 @@ else
         SP.mouseID='none';
     end
     zeroMQwrapper('Send',SP.zhandle ,'StartAcquisition'); %shouldn't need to do this unless user stopped acquisition, doesn't hurt anyway
-   % startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', pref.remotedatapath, SP.mouseID);
-    startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', [pref.remotedatapath,SP.user], SP.mouseID);
+    % startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', pref.remotedatapath, SP.mouseID);
+    %startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', [pref.remotedatapath,SP.user], SP.mouseID);
+    %trying to fix double user name bug mw 05032018
+    startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', [pref.remotedatapath], SP.mouseID);
     zeroMQwrapper('Send',SP.zhandle ,startstr);
     set(SP.Recordh, 'backgroundcolor',[0.9 0 0],'String','Recording...');
     set(SP.mouseIDh, 'enable', 'off');
@@ -698,6 +718,13 @@ else
     SP.stimcounter=0;
     if isfield(SP, 'stimlog')
         SP=rmfield( SP, 'stimlog');
+    end
+    if pref.camera_rec==1 %set the camera to be triggered when you start recording
+        SP.Campulse=1;
+        set(SP.camerapulse, 'backgroundcolor',[0.9 0 0],'String','Camera Recording');
+        PPAdj('camerapulse_on')
+    else
+        fprintf('\n camera not recording\n')
     end
     InitNotebookFile
     
@@ -714,20 +741,20 @@ global SP nb pref
 % find active OE data directory and cd into it
 SP.activedir='unknown';
 try
-%    zeroMQwrapper('Send',SP.zhandle ,sprintf('ChangeDirectory %s', pref.root))
-%    pause(.2)
+    %    zeroMQwrapper('Send',SP.zhandle ,sprintf('ChangeDirectory %s', pref.root))
+    %    pause(.2)
     zeroMQwrapper('Send',SP.zhandle ,'GetRecordingPath');
     pause(1)
     RecordingPath = zeroMQwrapper('GetReply',SP.zhandle )
     
-%     cd(pref.root)
-%     fid=fopen('RecordingPath.txt', 'r');
-%     RecordingPath=fgetl(fid);
-%     RecordingPathSize=str2num(fgetl(fid));
-%     fclose(fid);
-%     %hack: on windows I am still getting extra characters -> trim to size
-%     RecordingPath=RecordingPath(1:RecordingPathSize);
-%     fprintf('\ndjmaus: read this Recording Path from file:%s', RecordingPath)
+    %     cd(pref.root)
+    %     fid=fopen('RecordingPath.txt', 'r');
+    %     RecordingPath=fgetl(fid);
+    %     RecordingPathSize=str2num(fgetl(fid));
+    %     fclose(fid);
+    %     %hack: on windows I am still getting extra characters -> trim to size
+    %     RecordingPath=RecordingPath(1:RecordingPathSize);
+    %     fprintf('\ndjmaus: read this Recording Path from file:%s', RecordingPath)
     
     %     SP.activedir=RecordingPath;
     SP.activedir=fullfile(pref.datahost, RecordingPath);
@@ -740,6 +767,10 @@ try
     end
      if strcmp(SP.activedir(1:6), 'n:\e:\') %hack mw 081518
         SP.activedir=SP.activedir([1:3 7:end]);
+    end
+    
+    if ~pref.local
+        SP.activedir=strrep(SP.activedir, ':', '');
     end
     
     d=dir(SP.activedir);
@@ -780,21 +811,21 @@ try
     
     save('notebook.mat', 'nb')
     fprintf('\ncreated notebook file in %s', nb.activedir)
-    catch
+catch
     fprintf('\nCould not create notebook file in active data directory')
     %ask user if they want to manually save notebook file
     ButtonName = questdlg('Could not create notebook file in active data directory. Do you want to manually save the notebook file?');
-   switch ButtonName,
-     case 'Yes'
-         targetdir = uigetdir(SP.datapath, 'Select directory in which to save notebook file.')
-         cd(targetdir)
-         SP.activedir=pwd;
-         nb.activedir=pwd;
-         save('notebook.mat', 'nb')
-         set(SP.pathh, 'string', {SP.datapath, [SP.activedir, ' recording...']})
-     case 'No'
-     case 'Cancel'         
-   end
+    switch ButtonName,
+        case 'Yes'
+            targetdir = uigetdir(SP.datapath, 'Select directory in which to save notebook file.')
+            cd(targetdir)
+            SP.activedir=pwd;
+            nb.activedir=pwd;
+            save('notebook.mat', 'nb')
+            set(SP.pathh, 'string', {SP.datapath, [SP.activedir, ' recording...']})
+        case 'No'
+        case 'Cancel'
+    end
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function UpdateStimlog(stimulus)
@@ -820,8 +851,17 @@ if SP.Record
         cd(SP.datapath)
         cd(SP.activedir)
         SP.stimlog(SP.stimcounter)=stimulus;
-        stimlog=SP.stimlog;
-        save('notebook.mat', '-append', 'stimlog');
+        
+        %write json encoded stimulus to stimlog txt file
+        fid=fopen('stimlog.txt', 'a');
+        str=jsonencode(stimulus);
+        fprintf(fid, '\n%s', str);
+        fclose(fid);
+        
+        %old way: save stimlog to notebook.mat (takes progressively longer over session)
+        %stimlog=SP.stimlog;
+        %save('notebook.mat', '-append', 'stimlog');
+        
     catch
         fprintf('\nCould not update stimlog in notebook file in active data directory');
     end
@@ -842,13 +882,35 @@ nb.mouseGenotype=SP.mouseGenotype;
 nb.notes=SP.Notes;
 nb.Drugs=SP.Drugs;
 nb.Reinforcement=SP.Reinforcement;
+
+if ~isfield(SP, 'stimlog') %perhaps no stimuli were even delivered
+    stimlog=[];
+else
+    stimlog=SP.stimlog;
+end
 try
     cd(nb.activedir)
-save('notebook.mat', '-append', 'nb')
-fprintf('\nupdated notebook file in %s', nb.activedir)
+    
+    %read stim log from json file and convert to stim structure
+    %not necessary since we can just use SP.stimlog
+    %     fid=fopen('stimlog.txt', 'r');
+    %     stimidx=0;
+    %     while 1
+    %         str=fgetl(fid);
+    %         if ~ischar(str), break,
+    %         else
+    %             stimulus=jsondecode(str);
+    %             stimidx=stimidx+1;
+    %             stimlog(stimidx)=stimulus;
+    %         end
+    %         fclose(fid)
+    %     end
+    
+    save('notebook.mat', '-append', 'nb', 'stimlog')
+    fprintf('\nupdated notebook file in %s', nb.activedir)
 catch
     fprintf('\nCould not update notebook file.')
-
+    
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function InitZMQ
@@ -856,7 +918,7 @@ global SP pref
 
 %open tcp/ip connection using zeroMQ  to communicate with openephys
 cd (pref.root)
-cd(pref.mexpath)
+%cd(pref.mexpath)
 try
     %zeroMQwrapper('CloseThread', url); %crashes matlab
     SP.zhandle=zeroMQwrapper('StartConnectThread', pref.zmqurl);
@@ -883,15 +945,15 @@ if ~isempty(cal) %it will be empty if Init failed to load calibration
             findex=find(cal.logspacedfreqs<=stimparam.frequency, 1, 'last');
             atten=cal.atten(findex);
             stimparam.amplitude=stimparam.amplitude-atten;
-           
+            
             findex=find(cal.logspacedfreqs<=stimparam.probefreq, 1, 'last');
             atten=cal.atten(findex);
             stimparam.probeamp=stimparam.probeamp-atten;
-           
+            
             djMessage( 'calibrated', 'append')
         catch
             djMessage( 'NOT calibrated', 'append')
-                                pause(.1)
+            pause(.1)
         end
         
         
@@ -911,13 +973,13 @@ if ~isempty(cal) %it will be empty if Init failed to load calibration
             djMessage( 'calibrated', 'append')
         catch
             djMessage( 'NOT calibrated', 'append')
-                                pause(.1)
+            pause(.1)
         end
         
     else
         switch stimtype
             case {'clicktrain', 'whitenoise', 'AMNoise'} %stimuli that consist of white noise
-               try
+                try
                     findex=find(cal.logspacedfreqs==-1); %freq of -1 indicates white noise
                     atten=cal.atten(findex);
                     switch stimtype
@@ -952,7 +1014,7 @@ if ~isempty(cal) %it will be empty if Init failed to load calibration
                     djMessage( 'NOT calibrated', 'append')
                 end
             case {'GPIAS', 'AsymGPIAS'} %startle pulse (use whitenoise calibration)
-               %note: GPIAS is now whitenoise-based (not band-limited noise)
+                %note: GPIAS is now whitenoise-based (not band-limited noise)
                 try
                     findex=find(cal.logspacedfreqs==-1); %freq of -1 indicates white noise
                     atten=cal.atten(findex);
@@ -994,7 +1056,7 @@ if ~isempty(cal) %it will be empty if Init failed to load calibration
                 djMessage( 'calibrated', 'append')
             otherwise
                 djMessage( 'NOT calibrated', 'append')
-
+                
         end
     end
 else
@@ -1017,15 +1079,15 @@ SP.NProtocols=0;
 SP.NRepeats=0;
 SP.PPALaseron=0;
 SP.cal=[];
-try 
+try
     cd(pref.root)
     cal=load('calibration.mat');
     SP.cal=cal;
     str=sprintf('successfully loaded calibration: %.0f - %.0f Hz, with %d freqs per octave', cal.minfreq, cal.maxfreq, cal.freqsperoctave);
     djMessage( str, 'append');
-catch        
+catch
     djMessage('failed to load calibration', 'append')
-end    
+end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1038,6 +1100,7 @@ if isfield(SP, 'fig')
     end
 end
 fig = figure;
+
 SP.fig=fig;
 set(fig,'visible','off');
 set(fig,'visible','off','numbertitle','off','name','djmaus',...
@@ -1141,7 +1204,7 @@ SP.ResetZMQh=uicontrol(fig,'tag','ResetZMQ','style','pushbutton','units','pixels
 SP.ResetZMQh=uicontrol(fig,'tag','ResetZMQ','style','pushbutton','units','pixels',...
     'fontname','Arial', ...
     'string', 'ResetZMQ','callback', [me ';'],'enable','on','horiz','left','pos',[3*e+2*w H w h ]);
- H=H+h+e;
+H=H+h+e;
 
 %test zeroMQ button
 SP.TestZMQh=uicontrol(fig,'tag','TestZMQ','style','pushbutton','units','pixels',...
@@ -1315,15 +1378,27 @@ SP.mouseIDlabel=uicontrol(fig,'Parent',hp,'tag','mouseIDlabel','style','text','u
     'enable','inact','horiz','left','pos', [e  H w h/2]);
 H=H+h;
 
+%check for mouseDB and initialize if not present
+cd(pref.root)
+if exist('mouseDB.mat')~=2
+    temp=[];
+    save mouseDB.mat temp
+end
+
 %%%%%%%%%%%%%%%%%%
 
 %send pi camera pulse button
- H=H+5*h+e;
+H=H+5*h+e;
 SP.camerapulse=uicontrol(fig,'tag','camerapulse','style','pushbutton','units','pixels',...
     'fontname','Arial', ...
     'string', 'camera','callback', [me ';'],'enable','on','horiz','left','pos',[4*e+3*w H w h ]);
- H=H+h+e;
+H=H+h+e;
 
+%  %Run button
+% SP.Run=0;
+% SP.Runh=uicontrol(fig,'tag','Run','style','togglebutton','units','pixels','fontweight','bold',...
+%     'fontsize',12,'fontname','Arial','backgroundcolor',[0.75 0.75 0.75], ...
+%     'string', 'Play','callback', [me ';'],'enable','off','horiz','left','pos',[e H w 2*h ]);
 
 set(fig,'visible','on');
 

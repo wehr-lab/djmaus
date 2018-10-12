@@ -44,8 +44,8 @@ end
 NodeId=[];
 
 %this searches all the nodes to see which has "record" turned on
-%we are looking for the node that has ch35 turned on, which is ADC1 which
-%should be recording the soundcardtriggers
+%we are looking for the node that has ch37 turned on, which is ADC1 which
+%should be recording the laser
 
 signalchain=settings.SETTINGS.SIGNALCHAIN;
 for i=1:length(signalchain)

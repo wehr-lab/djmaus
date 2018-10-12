@@ -66,8 +66,8 @@ function [filename,path]=MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_s
 %
 %MakeGPIASdjProtocol(80, [0 1 2 4 8 16 32 64 128 256], 1000, 1000, 0, 100, 50, 'isi', 0, 2e3, 0, 1, 15)
 %
-%noiseamp=80; gapdurs=[0 1 2 4 8 16 32 64 128 256]; gapdelay=1000; poststartle=1000;
-%pulsedur=25; pulseamps=110; soa=50; soaflag='isi'; ramp=0; isi=15000; isi_var=.33; IL=1; nreps=10;
+%noiseamp=80; gapdurs=[0 2 8 32 256]; gapdelay=1000; poststartle=1000;
+%pulsedur=25; pulseamps=100; soa=50; soaflag='isi'; ramp=0; isi=15000; isi_var=.33; IL=1; nreps=10;
 %MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, poststartle, pulsedur, pulseamps, soa, soaflag, ramp, isi, isi_var, IL, nreps)
 
 if ~strcmp(soaflag, 'isi')
@@ -223,8 +223,8 @@ end
 
 TotalNumStim=length(stimuli);
 TotalDurationSecs=TotalNumStim*gpias_duration/1000;
-description=sprintf('GPIAS protocol: noise amp:%ddB, gapdur: %sms, gapdelay: %dms, pulsedur%dms pulse amplitude:%sdb SOA:%dms (%s) ramp:%dms iti:%dms iti-var: %.1f %s %drepeats, %d stim per rep (avg), %d total stimuli, %ds per rep (avg), %d s total dur',...
-    noiseamp, gapdursstring, gapdelay, pulsedur, pulseampsstring, soa, soaflag, ramp, isi,round(100*isi_var),interleave_laserstr, nrepeats, StimPerRepeat, TotalNumStim, round(DurationPerRepeatSecs), round(TotalDurationSecs));
+description=sprintf('GPIAS protocol: noise amp:%ddB, gapdur: %sms, gapdelay: %dms, pulsedur%dms pulse amplitude:%sdb SOA:%dms (%s) ramp:%dms iti:%dms iti-var: %.1f %s %drepeats, %d stim per rep (avg), %d total stimuli, %ds per rep (avg), %d s (%.1f min) total dur',...
+    noiseamp, gapdursstring, gapdelay, pulsedur, pulseampsstring, soa, soaflag, ramp, isi,round(100*isi_var),interleave_laserstr, nrepeats, StimPerRepeat, TotalNumStim, round(DurationPerRepeatSecs), round(TotalDurationSecs), TotalDurationSecs/60);
 for n=1:TotalNumStim
     stimuli(n).protocol_description=description;
 end

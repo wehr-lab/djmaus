@@ -204,7 +204,13 @@ for lp = 1:num_loops
         Message(sprintf('playing tone %d/%d (%.1f Hz)',i, numfreqs+1, logspacedfreqs(i)), handles)
         tonefreq=logspacedfreqs(i);
         %start playing tone
+        fprintf('\npausing... ')
+        pause(5)
+        fprintf('done ')
         audiodata=PlayCalibrationTone(tonefreq, tonedur, handles);
+        if isempty(audiodata)
+            error('audiodata is empty')
+        end
         BKsensitivity=str2num(get(handles.BKsensitivity, 'string'));
         ScaledData=detrend(audiodata(1,:), 'constant'); %in volts
         %high pass filter a little bit to remove rumble
@@ -626,12 +632,28 @@ numChan=2;
 buffSize=[]; %use default
 
 %find built-in soundcard input channel
+
+% 'HDA Intel PCH: ALC887-VD Analog (hw:1,0)' Rig 3
+% 'Line In (ASUS Essence STX II Audio Device)' Rig 2
+
 devs = PsychPortAudio('GetDevices');
 InputDeviceID=[];
 for n = 1:length(devs) 
     if strncmp(devs(n).DeviceName, 'HDA Intel PCH: ALC887-VD Analog (hw:1,0)', 40)
         InputDeviceID=devs(n).DeviceIndex;
     end
+end
+
+if isempty(InputDeviceID)
+    for n = 1:length(devs)
+        if strncmp(devs(n).DeviceName, 'Line In (ASUS Essence STX II Audio Device)', 40)
+            InputDeviceID=devs(n).DeviceIndex;
+        end
+    end
+end
+
+if isempty(InputDeviceID)
+    error('input device not found')
 end
 
 %Mode=3; %full duplex: simultaneous capture and playback

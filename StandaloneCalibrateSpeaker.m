@@ -230,9 +230,13 @@ for lp = 1:num_loops
         set(ax2, 'xticklabel', round(10*xt/1000)/10)
         
         %set Analog In1 and Analog Out1 to -10dBV in the lynx mixer
-        if GetXonarDevice & isempty(GetAsioLynxDevice)
+        [~,hostname]=system('hostname');
+        if GetXonarDevice & isempty(GetAsioLynxDevice) & strncmp(hostname, 'WehrRig2a', 9)
+            fudgefactorTone=+6.12;
+            fudgefactorWN=+8.35;
+        elseif GetXonarDevice & isempty(GetAsioLynxDevice) & strncmp(hostname, 'WehrRig11', 9)
             fudgefactorTone=-1.07;
-            fudgefactorWN=0.79;
+            fudgefactorWN=+0.79;
         elseif GetAsioLynxDevice  & isempty(GetXonarDevice)
             fudgefactorTone=7.5;
             fudgefactorWN=9.3;

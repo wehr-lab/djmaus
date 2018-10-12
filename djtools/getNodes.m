@@ -1,7 +1,7 @@
 function NodeIds = getNodes( datadir )
 %reads settings.xml in datadir to figure out which nodes are being used
 cd(datadir)
-settings=xml2struct('settings.xml');
+settings=djxml2struct('settings.xml');
 
 k=0;
 NodeIds={};

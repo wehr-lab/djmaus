@@ -4,7 +4,7 @@ function [ fname ] = getSCTfile( datadir )
 %usage [ fname ] = getSCTfile( datadir )
 
 cd(datadir)
-settings=xml2struct('settings.xml');
+settings=djxml2struct('settings.xml');
 SCTchannel=2; %filenames and ADClines are both 1-indexed
 
 % ADC1: sound monitor

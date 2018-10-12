@@ -85,7 +85,7 @@ samprate=sampleRate;
 %get freqs/amps
 j=0;
 for i=1:length(Events)
-    if strcmp(Events(i).type, 'GPIAS')
+    if strcmp(Events(i).type, 'GPIAS') |  strcmp(Events(i).type, 'toneGPIAS')
         j=j+1;
         allsoas(j)=Events(i).soa;
         allsoaflags{j}=Events(i).soaflag;
@@ -194,7 +194,7 @@ fprintf('\nprocessing with startle integration window [%d - %d]', startle_window
 %extract the traces into a big matrix M
 j=0;
 for i=1:length(Events)
-    if strcmp(Events(i).type, 'GPIAS')
+    if strcmp(Events(i).type, 'GPIAS') |  strcmp(Events(i).type, 'toneGPIAS')
         %note: gapdelay is the time from the soundcardtrigger (pos) to the
         %gap termination. The time to startle onset should be
         %(gapdelay + soa) after pos, if soaflag=soa

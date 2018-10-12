@@ -82,7 +82,7 @@ switch action
                 %                 end
             elseif status.Active==1; %device running
                 protocol=SP.ProtocolIndex;
-                current=SP.CurrentStimulus(protocol);
+                current=SP.CurrentStimulus(protocol) + SP.NStimuli(protocol)*SP.NRepeats;
                 inQueue=current-status.SchedulePosition-SP.CurrStimatPPAstart;
                 set(h, 'string', sprintf('PPA running, inQueue=%d, XRuns=%g, CPUload=%.3f', inQueue, status.XRuns, status.CPULoad), 'backgroundcolor', [1 .5 .5])
                 
@@ -91,6 +91,7 @@ switch action
                     set(h,'backgroundcolor', [1 0 0])
                 end
                 
+
                 %                 if ~SP.Run
                 %                    set(SP.Runh, 'backgroundcolor', [1 .5 .5])
                 %                 end
@@ -500,7 +501,9 @@ if on
                         %pstartsamp=pstartsamp+(pulsewidth(n-1)+isi(n-1))*SoundFs/1000;
                         pstartsamp=pstartsamp+isi(n-1)*SoundFs/1000; %mw 1-28-2017
                     end
+                    pstartsamp=round(pstartsamp);
                     pstopsamp=pstartsamp+pulsewidth(n)*SoundFs/1000-1;
+                    pstopsamp=round(pstopsamp);
                     laserpulse(pstartsamp:pstopsamp)=1;
                 end
                 laserpulse(end)=0; %make sure to turn off pulse at end
@@ -589,13 +592,15 @@ if isfield(param, 'Shock') %if there is a shock field
     end
 end
 
-% figure(100)
-% t=1:length(samples);
+% t=1:length(samples(1,:));
 % t=1000*t/SoundFs;
-% plot(t, samples')
-% xlim([-100 2600])
-% xlim([-100 t(end)+100])
-% legend('1', '2', '3', '4')
+% figure(100)
+% plot(t, samples(1,:), 'o-')
+% xlim([-1 1])
+% figure(101)
+% plot(t, samples(1,:), 'o-')
+% xlim([ t(end)-1  t(end)+1])
+
 
 SP.samples= samples; %store samples for re-buffering if we're looping (used only for looping)
 
@@ -634,7 +639,7 @@ if isfield(param, 'seamless')
             when=GetSecs+.1;
             %when=GetSecs+2;
             PsychPortAudio('Start', PPAhandle,nreps,when,0);
-            
+                       
         else %already started, just add to schedule
             %mw 07.03.2014 trying new strategy to try to solve "screwups"
             %instead of gotime/pause, I will check for free slots at

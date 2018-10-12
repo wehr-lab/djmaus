@@ -1,31 +1,33 @@
-function [filename,path]=MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_startle_duration, pulsedur, pulseamps, soa, soaflag, ...
+function [filename,path]=MakeToneGPIASdjProtocol(carrier_freq, carrier_amp, gapdurs, gapdelay, post_startle_duration, pulsedur, pulseamps, soa, soaflag, ...
     ramp, isi, isi_var, interleave_laser, nrepeats)
-% usage MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_startle_duration, 
+% usage MakeToneGPIASdjProtocol(carrier_freq, carrier_amp, gapdurs, gapdelay, post_startle_duration, 
 %       pulsedur, pulseamps, soa, soaflag, ramp, iti, iti_var, interleave_laser, nrepeats)
 %
 %
 %
-% creates a djmaus stimulus protocol file for GPIAS (gap-induced pre-pulse inhibition of acoustic startle
+% creates a djmaus stimulus protocol file for pure-tone carrier GPIAS 
+% (gap-induced pre-pulse inhibition of acoustic startle
 % response). can use multiple gap durations, gap is silent
 % using variable ITI.
 %recent edits: 
+% modifed from MakeGPIASdjProtocol to use tone carrier and include ramps
+%   mw 9.13.2018
+%
 %  -updated to djmaus version 9-2016
 %  -added interleave_laser flag (0 or 1), so output can be already
 %       laser-interleaved (no need for an extra ppalaser step) 9-2016
-%  -changed to use whitenoise instead of band-passed noise. 9-2016
 %  -added soaflag to specify whether soa is 'soa' or 'isi'
 %  -changed gapdelay to specify time to gap offset instead of gap onset (so
 %   that ppalaser comes on relative to gap offset in the 'isi' case) (note:
 %   this is actually implemented in MakeGPIAS)
-% Note that GPIAS stimuli always have gap ramp of zero.
 % Note that the continuous background noise now has ramps fixed at zero
 % (which is required if they are to be continuous). 
 %
 %   mw 10.11.2016
 %
-%NOTE: 
 % inputs:
-% noiseamp: amplitude of the continuous white noise, in dB SPL
+% carrier_freq: frequency of the tone carrier, in Hz
+% carrier_amp: amplitude of the tone carrier, in dB SPL
 % gapdurs: durations of the pre-pulse gap, in ms, in a vector, e.g. 50, or [0 50]
 % gapdelay: delay from start of continuous noise to gap OFFSET, in ms
 % post_startle_duration: duration of noise to play after the startle
@@ -52,23 +54,23 @@ function [filename,path]=MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_s
 %
 %example calls:
 % fixed iti of 15 seconds with interleaved laser:
-%MakeGPIASdjProtocol(80, [0 16], 1000, 1000, 25, 100, 50, 'isi', 0, 15e3, 0.33, 1, 5)
+%MaketoneGPIASdjProtocol(8000, 80, [0 16], 1000, 1000, 25, 100, 50, 'isi', 0, 15e3, 0.33, 1, 5)
 %
 %
 % iti ranging from 10s to 20s (15 s on average)
 %
 %brief variable duration gaps, 60ms SOA
-%MakeGPIASdjProtocol(80, [0 2 4 6], 1000, 1000, 25, 100, 60, 'soa', 0, 15e3, .33, 1, 15)
+%MaketoneGPIASdjProtocol(8000, 80, [0 2 4 6], 1000, 1000, 25, 100, 60, 'soa', 0, 15e3, .33, 1, 15)
 %
 %brief gap, no startle, ability to deliver a long (1sec) laser pulse beyond
 %startle offset time
-%MakeGPIASdjProtocol(80, [10], 1000, 1000, 0, 100, 60, 'soa', 0, 15e3, .33, 1, 20)
+%MaketoneGPIASdjProtocol(8000, 80, [10], 1000, 1000, 0, 100, 60, 'soa', 0, 15e3, .33, 1, 20)
 %
-%MakeGPIASdjProtocol(80, [0 1 2 4 8 16 32 64 128 256], 1000, 1000, 0, 100, 50, 'isi', 0, 2e3, 0, 1, 15)
+%MaketoneGPIASdjProtocol(8000, 80, [0 1 2 4 8 16 32 64 128 256], 1000, 1000, 0, 100, 50, 'isi', 0, 2e3, 0, 1, 15)
 %
-%noiseamp=80; gapdurs=[0 2 8 32 256]; gapdelay=1000; poststartle=1000;
-%pulsedur=25; pulseamps=100; soa=50; soaflag='isi'; ramp=0; isi=15000; isi_var=.33; IL=1; nreps=10;
-%MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, poststartle, pulsedur, pulseamps, soa, soaflag, ramp, isi, isi_var, IL, nreps)
+%carrier_freq=8000; carrier_amp=80; gapdurs=[0 32 256 ]; gapdelay=1000; poststartle=1000;
+%pulsedur=25; pulseamps=110; soa=50; soaflag='isi'; ramp=3; isi=5000; isi_var=0; IL=0; nreps=20;
+%MakeToneGPIASdjProtocol(carrier_freq, carrier_amp, gapdurs, gapdelay, poststartle, pulsedur, pulseamps, soa, soaflag, ramp, isi, isi_var, IL, nreps)
 
 if ~strcmp(soaflag, 'isi')
     soaflag='soa';
@@ -88,7 +90,7 @@ end
 
 global pref
 if isempty(pref) djPrefs;end
-if nargin~=13 error('\MakeGPIASdjProtocol: wrong number of arguments.'); end
+if nargin~=14 error('\MakeToneGPIASdjProtocol: wrong number of arguments.'); end
 
 numgapdurs=length(gapdurs);
 numpulseamps=length(pulseamps);
@@ -135,6 +137,11 @@ end
 
 gpias_duration=gapdelay+max(rand_gapdurs)+soa+pulsedur+post_startle_duration; %actual duration
 
+%round gpias duration to nearest integer number of complete cyles of tone 
+%(so the phases line up)
+gpias_duration=round(gpias_duration/(1000/carrier_freq))*1000/carrier_freq;
+gpias_duration=gpias_duration-1/pref.SoundFs;
+
 %note: for seamless playing of sounds, all buffers must be identical in
 %length. So we are making short noise segments and using variable numbers
 %of them
@@ -151,8 +158,8 @@ GPIASPerRepeat=length(neworder);
 StimPerRepeat=round(GPIASPerRepeat*isi/gpias_duration); %on average
 DurationPerRepeatSecs=StimPerRepeat*(gpias_duration)/1000;%approx. duration per repeat
 
-name= sprintf('GPIAS-na%ddB-gd%sms-pd%dms-pa%sdb-soa%dms(%s)-r%d-iti%d-itivar%d-%s-%dreps.mat',...
-    noiseamp, gapdursstring, round(pulsedur), pulseampsstring, soa,soaflag, round(ramp), isi,round(100*isi_var),interleave_laserstr, nrepeats);
+name= sprintf('toneGPIAS-f%dkHz-a%ddB-gd%sms-pd%dms-pa%sdb-soa%dms(%s)-r%d-iti%d-itivar%d-%s-%dreps.mat',...
+    round(carrier_freq/1000), carrier_amp, gapdursstring, round(pulsedur), pulseampsstring, soa,soaflag, round(ramp), isi,round(100*isi_var),interleave_laserstr, nrepeats);
 
 description=''; %temp
 filename=name;
@@ -163,8 +170,9 @@ for noisenum=1:num_noises
 
     n=n+1;
 
-    stimuli(n).type='whitenoise';
-    stimuli(n).param.amplitude=noiseamp;
+    stimuli(n).type='tone';
+    stimuli(n).param.amplitude=carrier_amp;
+    stimuli(n).param.frequency=carrier_freq;
     stimuli(n).param.ramp=0;
     stimuli(n).param.loop_flg=0;
     stimuli(n).param.seamless=1;
@@ -180,8 +188,9 @@ end
 for kk=1:length(rand_gapdurs)
 
     n=n+1;
-    stimuli(n).type='GPIAS';
-    stimuli(n).param.amplitude=noiseamp;
+    stimuli(n).type='toneGPIAS';
+    stimuli(n).param.amplitude=carrier_amp;
+    stimuli(n).param.frequency=carrier_freq;
     stimuli(n).param.ramp=ramp;
     stimuli(n).param.soa=soa;
     stimuli(n).param.soaflag=soaflag;
@@ -205,8 +214,9 @@ for kk=1:length(rand_gapdurs)
     num_noises=round(this_isi_ms/gpias_duration);
     for noisenum=1:num_noises
         n=n+1;
-        stimuli(n).type='whitenoise';
-        stimuli(n).param.amplitude=noiseamp;
+    stimuli(n).type='tone';
+    stimuli(n).param.amplitude=carrier_amp;
+    stimuli(n).param.frequency=carrier_freq;
         stimuli(n).param.ramp=0;
         stimuli(n).param.loop_flg=0;
         stimuli(n).param.seamless=1;
@@ -223,8 +233,8 @@ end
 
 TotalNumStim=length(stimuli);
 TotalDurationSecs=TotalNumStim*gpias_duration/1000;
-description=sprintf('GPIAS protocol: noise amp:%ddB, gapdur: %sms, gapdelay: %dms, pulsedur%dms pulse amplitude:%sdb SOA:%dms (%s) ramp:%dms iti:%dms iti-var: %.1f %s %drepeats, %d stim per rep (avg), %d total stimuli, %ds per rep (avg), %d s (%.1f min) total dur',...
-    noiseamp, gapdursstring, gapdelay, pulsedur, pulseampsstring, soa, soaflag, ramp, isi,round(100*isi_var),interleave_laserstr, nrepeats, StimPerRepeat, TotalNumStim, round(DurationPerRepeatSecs), round(TotalDurationSecs), TotalDurationSecs/60);
+description=sprintf('tone GPIAS protocol: carrier freq:%dkHz, carrier amp:%ddB, gapdur: %sms, gapdelay: %dms, pulsedur%dms pulse amplitude:%sdb SOA:%dms (%s) ramp:%dms iti:%dms iti-var: %.1f %s %drepeats, %d stim per rep (avg), %d total stimuli, %ds per rep (avg), %d s total dur',...
+    round(carrier_freq/1000), carrier_amp, gapdursstring, gapdelay, pulsedur, pulseampsstring, soa, soaflag, ramp, isi,round(100*isi_var),interleave_laserstr, nrepeats, StimPerRepeat, TotalNumStim, round(DurationPerRepeatSecs), round(TotalDurationSecs));
 for n=1:TotalNumStim
     stimuli(n).protocol_description=description;
 end

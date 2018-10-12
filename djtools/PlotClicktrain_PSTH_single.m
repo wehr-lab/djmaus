@@ -446,7 +446,7 @@ line(xlim, .001*[1 1], 'linestyle', '--')
 
 pos=get(gcf, 'pos');
 pos(2)=420;
-pos(4)=558;
+pos(4)=595;
 set(gcf, 'pos',pos)           
 
 if show_plots == 0

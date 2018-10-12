@@ -90,11 +90,23 @@ if nstimlog==nEvents & nSCTs==1+ nEvents
             Events(i).soundcard_trigger_timestamp_sec=all_SCTs(i);
         end
         fprintf('\nMismatched resolved. Extra (initial) soundcard trigger discarded')
-    elseif  all_SCTs(end) > Events(end).message_timestamp_sec
+    elseif  all_SCTs(end) - Events(end).message_timestamp_sec > 0.1
         warning(sprintf('\nMismatch possibly resolved by discarding extra (last) soundcard trigger. \nFurther investigation is highly recommended!!!!!!!'))
     else
         check_for_timestamp_discontinuities
         error('ResolveEventMismatch: this case is not handled yet')
+%%%%%%%%%Special exception added by nick
+%         for i=1:nEvents
+%         temp(i) = Events(i).soundcard_trigger_timestamp_sec;
+%         end
+% 
+%         temp = temp(1,1:167);
+%         temp(1,168:180) = all_SCTs(1,169:181);
+% 
+%         for i = 1:length(Events)
+%         Events(i).soundcard_trigger_timestamp_sec = temp(1,i);
+%         end
+%         all_SCTs = temp;
     end
 elseif strcmp(stimlog(1).protocol_name(1:5), 'GPIAS')
     %     one problem with GPIAS stimuli is if you stop recording during the

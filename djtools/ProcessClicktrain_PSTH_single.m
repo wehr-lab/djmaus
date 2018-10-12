@@ -28,17 +28,17 @@ catch
 end
 
 %Nick addition 8/31/18 - accomodates kilosort input
-t_filename = varargin{2};
-if ischar(t_filename)
-    [p,f,ext]=fileparts(t_filename);
+filename = varargin{2};
+if ischar(filename)
+    [p,f,ext]=fileparts(filename);
     split=strsplit(f, '_');
     ch=strsplit(split{1}, 'ch');
     channel=str2num(ch{2});
     clust=str2num(split{end});
 else %reads kilosort input, which is [clust, channel, cellnum]
-    channel=t_filename(1,2);
-    clust=t_filename(1,1);
-    cellnum=t_filename(1,3); %This number is necessary for 
+    channel=filename(1,2);
+    clust=filename(1,1);
+    cellnum=filename(1,3); %This number is necessary for 
 end
 %end of Nick addition 8/31/18.
 

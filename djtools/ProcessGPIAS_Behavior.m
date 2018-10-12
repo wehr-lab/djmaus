@@ -76,12 +76,11 @@ scaledtrace=sqrt(scaledtrace1.^2);
 
 SCTfname=getSCTfile(datadir);
 stimfile=getStimfile(datadir); %mw 08.30.2107 old: sprintf('%s_ADC2.continuous', node);
-<<<<<<< HEAD
-=======
+
 laserfile=getLaserfile(datadir); %mw 08.30.2107 old: sprintf('%s_ADC2.continuous', node);
->>>>>>> bff732b348566cf73a2874b4259fd30f39e0bb5d
+
 [stim, stimtimestamps, stiminfo] =load_open_ephys_data(stimfile);
- [lasertrace, lasertimestamps, laserinfo] =load_open_ephys_data(laserfile);
+[lasertrace, lasertimestamps, laserinfo] =load_open_ephys_data(laserfile);
 % [scttrace, scttimestamps, sctinfo] =load_open_ephys_data(SCTfname);
 
 %uncomment this to run some sanity checks

@@ -1,9 +1,7 @@
 calibration.mat
 djPrefs.m
 djPrefs.m
-windows/zeroMQwrapper.mexw64
-windows/zeroMQwrapper.mexw64
-windows/zeroMQwrapper.mexw64
+zeroMQwrapper.mexw64
 windows/zeroMQwrapper.mexw64
 *.ps
 *.DS_Store

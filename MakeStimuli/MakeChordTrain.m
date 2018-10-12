@@ -63,12 +63,8 @@ tones=zeros(nfreqs,sampledtoneduration);
 tones(1,:)=tone;
 for k=2:nfreqs
     toneparam.frequency=freqs(k);
-<<<<<<< .mine
-    %toneparam=CalibrateTone(toneparam, cal);
-=======
     toneparam.amplitude=amplitude;
     toneparam=CalibrateTone(toneparam, cal);
->>>>>>> .r955
     tones(k,:)=MakeTone(toneparam,samplerate);
 end
 

@@ -57,28 +57,8 @@ else
     soaflag='soa';
 end
 prepulsedur=params.prepulsedur;
-<<<<<<< .mine
-
-% narrowband noise prepulse
-if prepulsedur>0 %you can use 0 ms dur to indivate no prepulse - mw 09.24.15
-    noiseparam.amplitude=params.prepulseamp;
-    noiseparam.filter_operation='bandpass';
-    noiseparam.center_frequency=params.prepulsefreq;
-    noiseparam.lower_frequency=params.prepulsefreq/2^(params.prepulsebandwidth/2);
-    noiseparam.upper_frequency=params.prepulsefreq*2^(params.prepulsebandwidth/2);
-    noiseparam.ramp=ramp;
-    noiseparam.duration=prepulsedur;
-    prepulse=MakeNoise(noiseparam, samplerate);
-    %amplitude=1*(10.^((prepulseamp-pref.maxSPL)/20)); %in volts (-1<x<1), i.e. pref.maxSPL=+_1V
-    %noise=noise./(max(abs(noise)));             % normalize, so we could fit to +/-10V
-    %prepulse=amplitude.*noise;
-else
-    prepulse=[];
-end
-=======
 prepulseamp=params.prepulseamp;
 
->>>>>>> .r1035
 if prepulsedur>0 %you can use 0 ms dur to indivate no prepulse - mw 09.24.15
     
     %narrowband noise prepulse now handled by MakeNBASR

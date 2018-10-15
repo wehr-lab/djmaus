@@ -6,8 +6,9 @@ zeroMQwrapper.mexw64
 windows/zeroMQwrapper.mexw64
 *.ps
 *.DS_Store
-Data/Emily/2017-07-19_09-43-22_mouse-7748/09-34-22
-Data/Emily/2017-07-19_09-27-08_mouse-7748/09-27-08
+Data
+Datalab
+*.asv
 .DS_Store
 zeroMQwrapper.mexw64
 mouseDB.mat

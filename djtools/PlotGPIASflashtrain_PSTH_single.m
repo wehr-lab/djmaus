@@ -9,7 +9,7 @@ function PlotGPIASflashtrain_PSTH_single(varargin)
 %Processes data if outfile is not found;
 
 rasters=1;
-force_reprocess=0;
+force_reprocess=1;
 
 if nargin==0
     fprintf('\nno input');
@@ -155,7 +155,7 @@ nM1Laser=nM1Laser./abs(maxlaser);
 % end
     
 %plot the tuning curve
-figure('position',[300 900 600 750])
+figure('position',[257   144 600 750])
 
 p=0;
 subplot1(numpulsewidths, numgapdurs, 'Max', [.95 .96], 'Gap', [.05 .01 ])

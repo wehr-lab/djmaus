@@ -89,8 +89,9 @@ for i=1:length(messages)
 end
  figure; plot(diff(all_SCTs), 'ko')
 if length(Events) ~=  length(all_SCTs)
-    warning('GetEventsAndSCT_Timestamps: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
-    [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog);
+%     warning('GetEventsAndSCT_Timestamps: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
+    THERE_IS_A_PROBLEM
+%     [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog);
 end
 
 if exist('check1', 'var') & exist('check2', 'var')

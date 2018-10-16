@@ -20,8 +20,9 @@ function MakeGapShockdjProtocol
 %
 %example:
 % noiseamp=80; gapdurs=16; gapdelay=1000; poststartle=1000;
-% pulsedur=0;pulseamps=0;soa=50; soaflag='isi'; ramp=0; isi=28000; isi_var=.33; IL=0; nreps=20;
+% pulsedur=0;pulseamps=0;soa=50; soaflag='isi'; ramp=0; isi=30000; isi_var=.33; IL=0; nreps=30;
 % MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, poststartle, pulsedur, pulseamps, soa, soaflag, ramp, isi, isi_var, IL, nreps)
+% MakeGPIASdjProtocol(80, 16, 1000, 1000, 0, 100, 50, iti, 0, 30000, .33, 0, 30)
 % MakeGapShockdjProtocol
 
 

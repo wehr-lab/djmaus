@@ -45,19 +45,18 @@ end
 node='';
 NodeIds=getNodes(pwd);
 for i=1:length(NodeIds)
-    filename=sprintf('%s_AUX2.continuous', NodeIds{i});
+    filename=sprintf('%s_AUX1.continuous', NodeIds{i});
     if exist(filename,'file')
         node=NodeIds{i};
     end
 end
-
 filename1=sprintf('%s_AUX1.continuous', node);
 filename2=sprintf('%s_AUX2.continuous', node);
 filename3=sprintf('%s_AUX3.continuous', node);
 
-% if exist(filename1, 'file')~=2 %couldn't find it
-%     error(sprintf('could not find AUX file %s in datadir %s', filename1, datadir))
-% end
+if exist(filename1, 'file')~=2 %couldn't find it
+    error(sprintf('could not find AUX file %s in datadir %s', filename1, datadir))
+end
 if exist(filename2, 'file')~=2 %couldn't find it
     error(sprintf('could not find AUX file %s in datadir %s', filename2, datadir))
 end
@@ -65,25 +64,19 @@ if exist(filename3, 'file')~=2 %couldn't find it
     error(sprintf('could not find AUX file %s in datadir %s', filename3, datadir))
 end
 fprintf('\n')
-% [scaledtrace1, datatimestamps, datainfo] =load_open_ephys_data(filename1);
-% [scaledtrace2, datatimestamps, datainfo] =load_open_ephys_data(filename2);
-% [scaledtrace3, datatimestamps, datainfo] =load_open_ephys_data(filename3);
-filename4=sprintf('%s_ADC4.continuous', node);
-
-[scaledtrace2, datatimestamps, datainfo] =load_open_ephys_data(filename4);
+[scaledtrace1, datatimestamps, datainfo] =load_open_ephys_data(filename1);
+[scaledtrace2, datatimestamps, datainfo] =load_open_ephys_data(filename2);
+[scaledtrace3, datatimestamps, datainfo] =load_open_ephys_data(filename3);
 
 %combine X,Y,Z accelerometer channels by RMS
-%scaledtrace=sqrt(scaledtrace1.^2 + scaledtrace2.^2 + scaledtrace3.^2 );
-% replaced with below 1/17/18 (Kip)
-scaledtrace2=scaledtrace2-mean(scaledtrace2);
-scaledtrace=sqrt(scaledtrace2.^2 );
+scaledtrace=sqrt(scaledtrace1.^2 + scaledtrace2.^2 + scaledtrace3.^2 );
 
 SCTfname=getSCTfile(datadir);
 stimfile=getStimfile(datadir); %mw 08.30.2107 old: sprintf('%s_ADC2.continuous', node);
 [stim, stimtimestamps, stiminfo] =load_open_ephys_data(stimfile);
 
 %uncomment this to run some sanity checks
-%SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
+SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
 
 fprintf('\ncomputing tuning curve...');
 

@@ -45,6 +45,11 @@ if any(strcmp(stimparams.stimtypes, 'GPIAS'))
     match=match+1;
 end
 
+if strfind(stimparams(1).protocol_description, 'GPIAS protocol with flashtrain')
+    PlottingFunction='PlotGPIASflashtrain_PSTH';
+    match=match+1;
+end
+
 %tuning curve (tones/WN) by process of elimination
 if ~match
     switch length(stimparams.stimtypes)

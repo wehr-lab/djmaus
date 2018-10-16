@@ -28,8 +28,6 @@ rpt = Report('example', 'pdf');
 % Add a title page
 % To customize additional title page properties, see mlreportgen.report.TitlePage.
 tp = TitlePage;
-tp.Title = 'MouseID_Experimentat';
-
 tp.Title = 'some plots';
 tp.Subtitle = 'various stuff';
 tp.Author = 'Mike';

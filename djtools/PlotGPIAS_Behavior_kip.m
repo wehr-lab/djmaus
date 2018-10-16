@@ -10,6 +10,8 @@ function PlotGPIAS_Behavior_kip(datadir)
 
 if nargin==0 datadir=pwd;end
 
+flag.plot = 0;  % plot all startles for each gapdur?
+
 PreStartleWindowms=[-100 0]; % in ms relative to onset of startle pulse
 PostStartleWindowms=[0 100]; % in ms relative to onset of startle-pulse
 ISIWindowms=[0 60]; % in ms relative to onset of pre-pulse    %added by APW 3_31_14
@@ -231,6 +233,7 @@ for paindex=1:numpulseamps
 end
 
 %plot all trials peak rectified startle
+if flag.plot
 for paindex=1:numpulseamps
     Hfig_allStartle(paindex) = figure;
     hold on
@@ -255,6 +258,7 @@ for paindex=1:numpulseamps
     set(h,'interpreter','none')
     xlabel('gap duration')
     ylabel('startle responses all trials')
+end
 end
 
 % now process GTR and burst responses for all cells in pwd

@@ -41,12 +41,20 @@ catch
     ylimits=[];
 end
 
-filename=varargin{2};
-[p,f,ext]=fileparts(filename);
-split=strsplit(f, '_');
-ch=strsplit(split{1}, 'ch');
-channel=str2num(ch{2});
-clust=str2num(split{end});
+%Nick addition 8/31/18 - accomodates kilosort input
+t_filename = varargin{2};
+if ischar(t_filename)
+    [p,f,ext]=fileparts(t_filename);
+    split=strsplit(f, '_');
+    ch=strsplit(split{1}, 'ch');
+    channel=str2num(ch{2});
+    clust=str2num(split{end});
+else %reads kilosort input, which is [clust, channel, cellnum]
+    channel=t_filename(1,2);
+    clust=t_filename(1,1);
+    cellnum=t_filename(1,3); %This number is necessary for 
+end
+%end of Nick addition 8/31/18.
 
 fprintf('\nchannel %d, cluster %d', channel, clust)
 fprintf('\nprocessing with xlimits [%d-%d]', xlimits(1), xlimits(2))
@@ -105,13 +113,20 @@ switch (GetPlottingFunction(datadir))
         error('This does not appear to be a soundfile stimulus protcol ')
 end
 
-%read MClust .t file
-fprintf('\nreading MClust output file %s', filename)
-spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
-%correct for OE start time, so that time starts at 0
-spiketimes=spiketimes-StartAcquisitionSec;
+%you can add djmaus user to check who is using and
+%which clustering method is prefered
+if (exist('params.py','file')==1) || exist('dirs.mat','file')
+    fprintf('\nreading KiloSort output cell %d', clust)
+    spiketimes=readKiloSortOutput(cellnum, sampleRate);
+else
+    fprintf('\nreading MClust output file %s', filename)
+    spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
+    %correct for OE start time, so that time starts at 0
+    spiketimes=spiketimes-StartAcquisitionSec;
+    fprintf('\nsuccessfully loaded MClust spike data')
+end
 totalnumspikes=length(spiketimes);
-fprintf('\nsuccessfully loaded MClust spike data')
+
 Nclusters=1;
 
 %uncomment this to run some sanity checks
@@ -643,7 +658,7 @@ catch
     out.stimlog='notebook file missing';
     out.user='unknown';
 end
-out.t_filename=filename;
+%out.t_filename=filename;
 outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
 save (outfilename, 'out')
 

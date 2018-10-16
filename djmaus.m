@@ -765,6 +765,9 @@ try
     if strcmp(SP.activedir(1:6), 'o:\d:\') %hack mw 080217
         SP.activedir=SP.activedir([1:3 7:end]);
     end
+     if strcmp(SP.activedir(1:6), 'n:\e:\') %hack mw 081518
+        SP.activedir=SP.activedir([1:3 7:end]);
+    end
     
     if ~pref.local
         SP.activedir=strrep(SP.activedir, ':', '');

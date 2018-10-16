@@ -66,7 +66,7 @@ function [filename,path]=MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, post_s
 %
 %MakeGPIASdjProtocol(80, [0 1 2 4 8 16 32 64 128 256], 1000, 1000, 0, 100, 50, 'isi', 0, 2e3, 0, 1, 15)
 %
-%noiseamp=80; gapdurs=[0 2 8 32 256]; gapdelay=1000; poststartle=1000;
+%noiseamp=80; gapdurs=[0 32]; gapdelay=1000; poststartle=1000;
 %pulsedur=25; pulseamps=100; soa=50; soaflag='isi'; ramp=0; isi=15000; isi_var=.33; IL=1; nreps=10;
 %MakeGPIASdjProtocol(noiseamp, gapdurs, gapdelay, poststartle, pulsedur, pulseamps, soa, soaflag, ramp, isi, isi_var, IL, nreps)
 

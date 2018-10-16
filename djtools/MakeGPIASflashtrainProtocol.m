@@ -15,8 +15,8 @@ function MakeGPIASflashtrainProtocol(VarLaserpulsewidths, noiseamp, gapdurs, gap
 %laser "power"
 %
 % example call
-%  VarLaserpulsewidths=[.1 .5 1 2 3 4 5 ]; noiseamp=80; gapdurs=[0 32]; gapdelay=1000; poststartle=1000;
-%  pulsedur=25; pulseamp=100; soa=50; soaflag='isi'; ramp=0; isi=1000; isi_var=0; nrepeats=10;
+%  VarLaserpulsewidths=[.1 .5 1 2 3 4 5 ]; noiseamp=80; gapdurs=[0 32]; gapdelay=500; poststartle=500;
+%  pulsedur=0; pulseamp=100; soa=50; soaflag='isi'; ramp=0; isi=500; isi_var=0; nrepeats=40;
 %  MakeGPIASflashtrainProtocol(VarLaserpulsewidths, noiseamp, gapdurs, gapdelay, poststartle, pulsedur, pulseamp, soa, soaflag, ramp, isi, isi_var, nrepeats)
 
 %for now, hard-coding laser params

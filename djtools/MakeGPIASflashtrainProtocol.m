@@ -190,6 +190,7 @@ for noisenum=1:num_noises
     stimuli(n).protocol_name=name;
     stimuli(n).stimulus_description=GetParamStr(stimuli(n));
     stimuli(n).protocol_description=description;
+    stimuli(n).PlottingFunction='PlotGPIASflashtrain_PSTH';
     stimuli(n).version='djmaus';
     stimuli(n).param.VarLaser=0;
 end
@@ -224,6 +225,7 @@ for kk=1:length(rand_gapdurs)
     stimuli(n).stimulus_description=GetParamStr(stimuli(n));
     stimuli(n).protocol_name=name;
     stimuli(n).protocol_description=description;
+    stimuli(n).PlottingFunction='PlotGPIASflashtrain_PSTH';
     stimuli(n).version='djmaus';
 
     %
@@ -242,6 +244,7 @@ for kk=1:length(rand_gapdurs)
         stimuli(n).protocol_name=name;
         stimuli(n).protocol_description=description;
         stimuli(n).version='djmaus';
+        stimuli(n).PlottingFunction='PlotGPIASflashtrain_PSTH';
         stimuli(n).param.VarLaser=0;
     end
     

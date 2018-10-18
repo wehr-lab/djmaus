@@ -685,7 +685,7 @@ if SP.Record
         set(SP.camerapulse, 'backgroundcolor',[0 0.9 0],'String','Camera Stopped');
         PPAdj('camerapulse_off')
     else
-        fprintf('\n camera not recording\n')
+       fprintf('\n camera not recording\n')
     end
     
     UpdateNotebookFile

@@ -23,7 +23,7 @@ delete(psfilename)
 % cd('/Volumes/D/lab/djmaus/Data/lab') %this is mac format
 % cd('\\WEHRRIG3\djmaus-data\ira') %this is windows format
 
-    cell_list='behavior_list.m';
+    cell_list='behavior_list.txt';
 
 
 xlimits=[-100 150];
@@ -89,7 +89,7 @@ while 1 %processes until end of file is reached, then breaks
 
 
 
-GPIAS_Behavior_kip(datadir)
+PlotGPIAS_Behavior_kip(datadir)
 
 
 
@@ -102,21 +102,29 @@ cd '\\WEHRRIG2b\c\lab\djmaus\Data\Kat'
 
 
 
+figure(9);
+print(psfilename,'-dpsc2', '-append');
 figure(10);
 print(psfilename,'-dpsc2', '-append');
 figure(11);
 print(psfilename,'-dpsc2', '-append');
+figure(12);
+print(psfilename,'-dpsc2', '-append');
+figure(13);
+print(psfilename,'-dpsc2', '-append');
 
 
-cd(datadir)
-outfilename=sprintf('outGPIAS_Behavior.mat');
-d=dir(outfilename);
-if ~isempty(d)
-    load(outfilename)
-else
-    ProcessGPIAS_Behavior(datadir)
-    load(outfilename);
-end
+
+
+% cd(datadir)
+% outfilename=sprintf('outGPIAS_Behavior.mat');
+% d=dir(outfilename);
+% if ~isempty(d)
+%     load(outfilename)
+% else
+%     ProcessGPIAS_Behavior(datadir)
+%     load(outfilename);
+% end
 
 
 
@@ -139,11 +147,11 @@ end
 % PeakON=out.PeakON;
 % PeakOFF=out.PeakOFF;
 % mPeakON=out.mPeakON;
-mPeakOFF=out.mPeakOFF;
+% mPeakOFF=out.mPeakOFF;
 % semPeakON=out.semPeakON;
 % semPeakOFF=out.semPeakOFF;
 % percentGPIAS_ON=out.percentGPIAS_ON;
-percentGPIAS_OFF=out.percentGPIAS_OFF;
+% percentGPIAS_OFF=out.percentGPIAS_OFF;
 % pON = out.pON;
 % pOFF = out.pOFF;
 % samprate=out.samprate;
@@ -176,18 +184,18 @@ percentGPIAS_OFF=out.percentGPIAS_OFF;
 %         type=type{2};
 
 
-x=length(percentGPIAS_OFF)
-B=reshape(percentGPIAS_OFF, [x,1])
-
-
-        cd(    '\\Wehrrig2b\c\lab\djmaus\Data\Kat\')
-
- 
-        
-fid3=fopen('Alzheimers_Behavior_Data.mat', 'a');
-fprintf(fid3, '\n%s %s\t %s\t %s\t %s\t', datadir, filename, group, age, type);
-fprintf(fid3, '%.2f\t', percentGPIAS_OFF);
-fprintf(fid3, '%.2f\t', mPeakOFF);
+% x=length(percentGPIAS_OFF)
+% B=reshape(percentGPIAS_OFF, [x,1])
+% 
+% 
+%         cd(    '\\Wehrrig2b\c\lab\djmaus\Data\Kat\')
+% 
+%  
+%         
+% fid3=fopen('Alzheimers_Behavior_Data.mat', 'a');
+% fprintf(fid3, '\n%s %s\t %s\t %s\t %s\t', datadir, filename, group, age, type);
+% fprintf(fid3, '%.2f\t', percentGPIAS_OFF);
+% fprintf(fid3, '%.2f\t', mPeakOFF);
 
 
 
@@ -205,5 +213,5 @@ fprintf(fid3, '%.2f\t', mPeakOFF);
     
 end
 fclose(fid); %close the output file
-fclose(fid3);
+% fclose(fid3);
 close(wb); %close the waitbar window

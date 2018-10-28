@@ -30,6 +30,10 @@ VarLaserstart=0; %flashtrain start at gap termination
 VarLasernumpulses=10;
 VarLaserisi=5; % 200 Hz
 
+if any(VarLaserpulsewidths==0)
+    fprintf('\nremoving requested laserpulsewidth of 0 because this doesn''t make sense and is reserved for the laser-off condition');
+    VarLaserpulsewidths=VarLaserpulsewidths(find(VarLaserpulsewidths));
+end
 
 %recent edits:
 %  -updated to djmaus version 9-2016
@@ -122,26 +126,33 @@ for i=1:numVarLaserpulsewidths
 end
 Laserpulsewidthstring=Laserpulsewidthstring(1:end-1); %remove trailing -
 
+%original version did a straight interleave, i.e. half of trials had no
+%laser, but instead we want only as many laser-off trials as one of the
+%laserpulsewidths
+%so I'm removing the interleave and just adding in laser-off as a fake
+%laserpulsewidth of 0
+
 if interleave_laser==1
-    [GapdurGrid,VarLaserpulsewidthGrid, Lasers]=meshgrid( gapdurs , VarLaserpulsewidths, [0 1]);
-    numlasers=2;
+%     [GapdurGrid,VarLaserpulsewidthGrid, Lasers]=meshgrid( gapdurs , VarLaserpulsewidths, [0 1]);
+    [GapdurGrid,VarLaserpulsewidthGrid]=meshgrid( gapdurs , [0 VarLaserpulsewidths]);
+    numlasers=1;
 else %cannot happen
-    [GapdurGrid,PulseampGrid, Lasers]=meshgrid( gapdurs , pulseamps, 0);
+%     [GapdurGrid,PulseampGrid, Lasers]=meshgrid( gapdurs , pulseamps, 0);
     numlasers=1;
 end
 
 
-neworder=randperm( numVarLaserpulsewidths * numgapdurs * numlasers);
+neworder=randperm( (1+numVarLaserpulsewidths) * numgapdurs * numlasers);
 rand_gapdurs=zeros(1, size(neworder, 2)*nrepeats);
 rand_Laserpulsewidths=zeros(1, size(neworder, 2)*nrepeats);
 lasers=zeros(1, size(neworder, 2)*nrepeats);
 
 
 for n=1:nrepeats
-    neworder=randperm( numVarLaserpulsewidths * numgapdurs * numlasers);
+    neworder=randperm( (1+numVarLaserpulsewidths) * numgapdurs * numlasers);
     rand_gapdurs( prod(size(GapdurGrid))*(n-1) + (1:prod(size(GapdurGrid))) ) = GapdurGrid( neworder );
     rand_Laserpulsewidths( prod(size(VarLaserpulsewidthGrid))*(n-1) + (1:prod(size(VarLaserpulsewidthGrid))) ) = VarLaserpulsewidthGrid( neworder );
-    lasers( prod(size(Lasers))*(n-1) + (1:prod(size(Lasers))) ) = Lasers( neworder );
+   % lasers( prod(size(Lasers))*(n-1) + (1:prod(size(Lasers))) ) = Lasers( neworder );
 end
 
 if interleave_laser
@@ -210,9 +221,13 @@ for kk=1:length(rand_gapdurs)
     stimuli(n).param.gapdur=rand_gapdurs(kk);
     stimuli(n).param.pulsedur=pulsedur;
     stimuli(n).param.pulseamp=pulseamp;
-    stimuli(n).param.laser=lasers(kk);
-    if lasers(kk) laserstr='Var laser ON'; else laserstr='laser OFF';end
-    if lasers(kk)
+    if rand_Laserpulsewidths(kk)==0 %using laserpulsewidth of 0 as the laser-off flag
+        stimuli(n).param.laser=0;
+    else
+        stimuli(n).param.laser=1;
+    end
+    if stimuli(n).param.laser laserstr='Var laser ON'; else laserstr='laser OFF';end
+    if stimuli(n).param.laser
         stimuli(n).param.VarLaser=1;
         %from hard-coded values at top
         stimuli(n).param.VarLaserstart=gapdelay+VarLaserstart; %for example.  laser onset coincides w/ gap onset

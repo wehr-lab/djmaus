@@ -34,8 +34,10 @@ cd(datadir)
 outfilename=sprintf('outGPIAS_Behavior.mat');
 d=dir(outfilename);
 if ~isempty(d)
-    load(outfilename)
+ fprintf('\nloading outfile...')
+ load(outfilename)
 else
+    fprintf('\noutfile not found, calling ProcessGPIAS_BehaviorTiltvarlaser\n')
     ProcessGPIAS_BehaviorTiltvarlaser(datadir)
     load(outfilename);
 end

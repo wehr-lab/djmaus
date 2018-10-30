@@ -1,8 +1,8 @@
-function ProcessGPIAS_BehaviorTilt(datadir,flag_accel)
+function ProcessGPIAS_BehaviorTiltvarlaser(datadir,flag_accel)
 
-%processes accelerometer behavioral data from djmaus
+%processes piezo (tilt platform) and accelerometer behavioral data from djmaus
 %
-% usage: ProcessGPIAS_Behavior(datadir,flag_accel))
+% usage: ProcessGPIAS_BehaviorTiltvarlaser(datadir,flag_accel))
 % saves to outfile
 
 if nargin < 2 || isempty(flag_accel)

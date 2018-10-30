@@ -27,16 +27,18 @@ ISIWindowms=[0 60]; % in ms relative to onset of pre-pulse    %added by APW 3_31
 force_reprocess=1;
 if force_reprocess
     fprintf('\nForce re-process\n')
-    ProcessGPIAS_BehaviorTilt(datadir,4);
+    ProcessGPIAS_BehaviorTiltvarlaser(datadir,4);
 end
 
 cd(datadir)
 outfilename=sprintf('outGPIAS_Behavior.mat');
 d=dir(outfilename);
 if ~isempty(d)
-    load(outfilename)
+ fprintf('\nloading outfile...')
+ load(outfilename)
 else
-    ProcessGPIAS_Behavior(datadir)
+    fprintf('\noutfile not found, calling ProcessGPIAS_BehaviorTiltvarlaser\n')
+    ProcessGPIAS_BehaviorTiltvarlaser(datadir)
     load(outfilename);
 end
 

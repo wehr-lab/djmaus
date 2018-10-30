@@ -78,7 +78,9 @@ end
 %there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
 
 %check if this is an appropriate stimulus protocol
-if ~strcmp(GetPlottingFunction(datadir), 'PlotGPIAS_PSTH')
+if ~(strcmp(GetPlottingFunction(datadir), 'PlotGPIASflashtrain_PSTH') | ...
+     strcmp(GetPlottingFunction(datadir), 'PlotGPIASflashtrain_PST)
+        
     error('This does not appear to be a GPIAS stimulus protcol');
 end
 

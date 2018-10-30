@@ -78,7 +78,8 @@ end
 %there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
 
 %check if this is an appropriate stimulus protocol
-if ~strcmp(GetPlottingFunction(datadir), 'PlotGPIAS_PSTH')
+if ~(strcmp(GetPlottingFunction(datadir), 'PlotGPIASflashtrain_PSTH') ...
+        strcmp(GetPlottingFunction(datadir), 'PlotGPIASLaserPulse_PSTH') )
     error('This does not appear to be a GPIAS stimulus protcol');
 end
 
@@ -174,41 +175,42 @@ stimfile=sprintf('%s_ADC2.continuous', node);
 fprintf('\ncomputing tuning curve...');
 
 %check for laser in Events
-LaserScheduled = zeros(1,length(Events));
-LaserOnOffButton = zeros(1,length(Events));
-LaserTrials = zeros(1,length(Events));
+% LaserScheduled = zeros(1,length(Events));
+% LaserOnOffButton = zeros(1,length(Events));
+% LaserTrials = zeros(1,length(Events));
+% 
+% allVarLaserstarts=[];
+% alltrainnumpulses=[];
+% alltrainisis=[];
+% alltrainpulsewidths=[];
+% allpulsewidths=[];
+% for i=1:length(Events)
+%     VarLaser(i)=Events(i).VarLaser;
+%     if Events(i).VarLaser
+%         %        Events(i).VarLaserstart
+%         %        Events(i).VarLaserpulsewidth
+%         %        Events(i).VarLaserisi
+%         %        Events(i).VarLasernumpulses
+%         allVarLaserstarts=[allVarLaserstarts Events(i).VarLaserstart];
+%         allpulsewidths=[ allpulsewidths Events(i).VarLaserpulsewidth];
+%         alltrainisis=[alltrainisis Events(i).VarLaserisi]; %isi in train
+%         alltrainnumpulses=[alltrainnumpulses Events(i).VarLasernumpulses]; %isi in train
+%         LaserPulsewidth(i)=Events(i).VarLaserpulsewidth;
+%     else
+%         LaserPulsewidth(i)=0;
+%         allpulsewidths=[ allpulsewidths 0];
+%         
+%     end
+% end
+% laserstarts=unique(allVarLaserstarts);
+% trainnumpulses=unique(alltrainnumpulses);
+% trainisis=unique(alltrainisis);
+% pulsewidths=unique(allpulsewidths);
+% numpulsewidths=length(pulsewidths);
 
-allVarLaserstarts=[];
-alltrainnumpulses=[];
-alltrainisis=[];
-alltrainpulsewidths=[];
-allpulsewidths=[];
-for i=1:length(Events)
-    VarLaser(i)=Events(i).VarLaser;
-    if Events(i).VarLaser
-        %        Events(i).VarLaserstart
-        %        Events(i).VarLaserpulsewidth
-        %        Events(i).VarLaserisi
-        %        Events(i).VarLasernumpulses
-        allVarLaserstarts=[allVarLaserstarts Events(i).VarLaserstart];
-        allpulsewidths=[ allpulsewidths Events(i).VarLaserpulsewidth];
-        alltrainisis=[alltrainisis Events(i).VarLaserisi]; %isi in train
-        alltrainnumpulses=[alltrainnumpulses Events(i).VarLasernumpulses]; %isi in train
-        LaserPulsewidth(i)=Events(i).VarLaserpulsewidth;
-    else
-        LaserPulsewidth(i)=0;
-        allpulsewidths=[ allpulsewidths 0];
-        
-    end
-end
-laserstarts=unique(allVarLaserstarts);
-trainnumpulses=unique(alltrainnumpulses);
-trainisis=unique(alltrainisis);
-pulsewidths=unique(allpulsewidths);
-numpulsewidths=length(pulsewidths);
 samprate=sampleRate;
 
-%get freqs/amps
+%get gpias params used
 j=0;
 for i=1:length(Events)
     if strcmp(Events(i).type, 'GPIAS') | strcmp(Events(i).type, 'toneGPIAS')
@@ -232,8 +234,7 @@ pulseamps=unique(allpulseamps);
 noiseamps=unique(allnoiseamps);
 numgapdurs=length(gapdurs);
 numpulseamps=length(pulseamps);
-nrepsON=zeros( numgapdurs, numpulseamps);
-nrepsOFF=zeros( numgapdurs, numpulseamps);
+nreps=zeros( numgapdurs, numpulseamps);
 
 if length(noiseamps)~=1
     error('not able to handle multiple noiseamps')
@@ -276,30 +277,31 @@ for i=1:length(Events)
         alltrainisis=[alltrainisis Events(i).VarLaserisi]; %isi in train
         alltrainnumpulses=[alltrainnumpulses Events(i).VarLasernumpulses]; %isi in train
         LaserPulsewidth(i)=Events(i).VarLaserpulsewidth;
+        LaserStart(i)=Events(i).VarLaserstart;
     else
         LaserPulsewidth(i)=0;
         allpulsewidths=[ allpulsewidths 0];
-        
+        LaserStart(i)=-666;        
     end
 end
 laserstarts=unique(allVarLaserstarts);
+numlaserstarts=length(laserstarts);
 trainnumpulses=unique(alltrainnumpulses);
 trainisis=unique(alltrainisis);
 pulsewidths=unique(allpulsewidths);
 numpulsewidths=length(pulsewidths);
 fprintf('\n%d laser trials in this Events file', sum(VarLaser))
+fprintf('\n%d laser pulsewidths:', numpulsewidths)
+fprintf('%g ', pulsewidths)
+fprintf('\n%d laser starts:', numlaserstarts)
+fprintf('%g ', laserstarts)
 
 %there is only 1 matrix, containing both laser on and off
 %pulsewidth 0 is where we put the laser-off trials
 M1=[];
-nreps=zeros(numgapdurs, numpulsewidths); %we don't need to add 1 because pw 0 was inlcuded above for laser-off
-%M1ON=[];M1OFF=[];
+nreps=zeros(numgapdurs, numpulsewidths, numlaserstarts); %we don't need to add 1 because pw 0 was inlcuded above for laser-off
 M1ACC=[];
-%M1ONACC=[];M1OFFACC=[];
 M1stim=[];
-%M1ONstim=[];M1OFFstim=[];
-% nrepsON=zeros(numgapdurs, numpulseamps);
-% nrepsOFF=zeros(numgapdurs, numpulseamps);
 
 xlimits=[-350 350]; %xlimits for storing traces
 startle_window=[0 100]; %hard coded integration region for startle response (ms)
@@ -341,7 +343,9 @@ for i=1:length(Events)
             gdindex= find(gapdur==gapdurs);
             pulsewidth=LaserPulsewidth(i);
             pwindex= find(pulsewidth==pulsewidths);
-            nreps(gdindex,pwindex)=nreps(gdindex,pwindex)+1;
+            laserstart=LaserStart(i);
+            lsindex= find(laserstart==laserstarts);
+            nreps(gdindex,pwindex,lsindex)=nreps(gdindex,pwindex,lsindex)+1;
             %start=round(pos+xlimits(1)*1e-3*samprate);
             %stop=round(pos+xlimits(2)*1e-3*samprate)-1;
             region=round(start*samprate)+1:round(stop*samprate);
@@ -360,9 +364,9 @@ for i=1:length(Events)
                         scaledtrace(region) = temp;
                     end
                     
-                    M1(gdindex,pwindex, nreps(gdindex,pwindex),:)=scaledtrace(region);
-                    M1ACC(gdindex,pwindex, nreps(gdindex,pwindex),:)=scaledtraceACC(region);
-                    M1stim(gdindex, pwindex, nreps(gdindex,pwindex),:)=stim(region);
+                    M1(gdindex,pwindex,lsindex, nreps(gdindex,pwindex),:)=scaledtrace(region);
+                    M1ACC(gdindex,pwindex,lsindex, nreps(gdindex,pwindex),:)=scaledtraceACC(region);
+                    M1stim(gdindex, pwindex,lsindex, nreps(gdindex,pwindex),:)=stim(region);
                     
                     if flag.plot
                         figure(Hfig(gdindex))
@@ -396,66 +400,67 @@ fprintf('\nmin num reps: %d\nmax num reps: %d', min(nreps(:)), max(nreps(:)))
 PeakON=[];
 PeakOFF=[];
 
-mM1=mean(M1, 3); %average across reps
-mM1ACC=mean(M1ACC, 3);
-mM1stim=mean(M1stim, 3);
+mM1=mean(M1, 4); %average across reps
+mM1ACC=mean(M1ACC, 4);
+mM1stim=mean(M1stim, 4);
 
 
 % Accumulate startle response across trials using peak (or summed) rectified signal in region
 %%%% Added throwing out oddballs 6/27/2018
 start=(startle_window(1)-xlimits(1))*samprate/1000;
 stop=start+diff(startle_window)*samprate/1000;
-SumTilt=nan(numgapdurs, numpulsewidths, max(nreps(:)));
+SumTilt=nan(numgapdurs, numpulsewidths, numlaserstarts,max(nreps(:)));
 SumACC=SumTilt;
 PeakTilt=SumTilt;
 PeakACC=SumTilt;
 
 fprintf('\n')
+for lsindex=1:numlaserstarts
 for pwindex=1:numpulsewidths
     for gdindex=1:numgapdurs; % Hardcoded.
         for k=1:nreps(gdindex, pwindex);
             %traceON=squeeze(M1ON(gdindex,paindex, k, start:stop));
             %PeakON(gdindex, paindex, k) = max(abs(traceON));
-            temp = squeeze(M1(gdindex,pwindex, k, 1:10000));
+            temp = squeeze(M1(gdindex,pwindex, lsindex, k, 1:10000));
             if abs(mean(temp)) <.01 & std(temp) < .1
-                traceTilt=squeeze(M1(gdindex,pwindex, k, start:stop));
-                PeakTilt(gdindex, pwindex, k) = max(abs(traceTilt));
-                SumTilt(gdindex, pwindex, k) = sum(abs(traceTilt));
+                traceTilt=squeeze(M1(gdindex,pwindex, lsindex, k, start:stop));
+                PeakTilt(gdindex, pwindex, lsindex, k) = max(abs(traceTilt));
+                SumTilt(gdindex, pwindex, lsindex, k) = sum(abs(traceTilt));
             elseif flag.includeALL
-                traceTilt=squeeze(M1(gdindex,pwindex, k, start:stop));
-                PeakTilt(gdindex, pwindex, k) = max(abs(traceTilt));
-                SumTilt(gdindex, pwindex, k) = sum(abs(traceTilt));
+                traceTilt=squeeze(M1(gdindex,pwindex, lsindex, k, start:stop));
+                PeakTilt(gdindex, pwindex, lsindex, k) = max(abs(traceTilt));
+                SumTilt(gdindex, pwindex, lsindex, k) = sum(abs(traceTilt));
             else
                 fprintf('Throwing out trial#%d of gapdur#%d\n',k,gdindex)
-                PeakTilt(gdindex, pwindex, k) = nan;
-                SumTilt(gdindex, pwindex, k) = nan;
+                PeakTilt(gdindex, pwindex, lsindex, k) = nan;
+                SumTilt(gdindex, pwindex, lsindex, k) = nan;
             end
-            temp = squeeze(M1ACC(gdindex,pwindex, k, 1:10000));
+            temp = squeeze(M1ACC(gdindex,pwindex, lsindex, k, 1:10000));
             if abs(mean(temp)) <.01 & std(temp) < .1
-                traceACC=squeeze(M1ONACC(gdindex,pwindex, k, start:stop));
-                PeakACC(gdindex, pwindex, k) = max(abs(traceON));
-                SumACC(gdindex, pwindex, k) = sum(abs(traceON));
+                traceACC=squeeze(M1ONACC(gdindex,pwindex, lsindex, k, start:stop));
+                PeakACC(gdindex, pwindex, lsindex, k) = max(abs(traceON));
+                SumACC(gdindex, pwindex, lsindex, k) = sum(abs(traceON));
             elseif flag.includeALL
-                traceACC=squeeze(M1ONACC(gdindex,pwindex, k, start:stop));
-                PeakACC(gdindex, pwindex, k) = max(abs(traceON));
-                SumACC(gdindex, pwindex, k) = sum(abs(traceON));
+                traceACC=squeeze(M1ONACC(gdindex,pwindex, lsindex, k, start:stop));
+                PeakACC(gdindex, pwindex, lsindex, k) = max(abs(traceON));
+                SumACC(gdindex, pwindex, lsindex, k) = sum(abs(traceON));
             else
                 fprintf('Throwing out ACC trial#%d of gapdur#%d\n',k,gdindex)
-                PeakACC(gdindex, pwindex, k) = nan;
-                SumACC(gdindex, pwindex, k) = nan;
+                PeakACC(gdindex, pwindex, lsindex, k) = nan;
+                SumACC(gdindex, pwindex, lsindex, k) = nan;
             end
         end
     end
 end
-mPeak(gdindex, pwindex)=median(Peak(gdindex,pwindex, 1:nreps(gdindex, pwindex)),3,'omitnan');
-semPeak(gdindex, pwindex)=std(Peak(gdindex,pwindex, 1:nreps(gdindex, pwindex)),0,3,'omitnan')/sqrt(nreps(gdindex, pwindex));
-mPeakACC(gdindex, pwindex)=median(PeakACC(gdindex,pwindex, 1:nreps(gdindex, pwindex)),3,'omitnan');
-semPeakACC(gdindex, pwindex)=std(PeakACC(gdindex,pwindex, 1:nreps(gdindex, pwindex)),0,3,'omitnan')/sqrt(nreps(gdindex, pwindex));
+mPeak(gdindex, pwindex, lsindex)=median(Peak(gdindex,pwindex, lsindex, 1:nreps(gdindex, pwindex, lsindex)),3,'omitnan');
+semPeak(gdindex, pwindex, lsindex)=std(Peak(gdindex,pwindex, lsindex, 1:nreps(gdindex, pwindex, lsindex)),0,3,'omitnan')/sqrt(nreps(gdindex, pwindex, lsindex));
+mPeakACC(gdindex, pwindex, lsindex)=median(PeakACC(gdindex,pwindex, lsindex, 1:nreps(gdindex, pwindex, lsindex)),3,'omitnan');
+semPeakACC(gdindex, pwindex, lsindex)=std(PeakACC(gdindex,pwindex, lsindex, 1:nreps(gdindex, pwindex, lsindex)),0,3,'omitnan')/sqrt(nreps(gdindex, pwindex, lsindex));
 
-mSum(gdindex, pwindex)=median(Sum(gdindex,pwindex, 1:nreps(gdindex, pwindex)),3,'omitnan');
-semSum(gdindex, pwindex)=std(Sum(gdindex,pwindex, 1:nreps(gdindex, pwindex)),0,3,'omitnan')/sqrt(nreps(gdindex, pwindex));
-mSumACC(gdindex, pwindex)=median(SumACC(gdindex,pwindex, 1:nreps(gdindex, pwindex)),3,'omitnan');
-semSumACC(gdindex, pwindex)=std(SumACC(gdindex,pwindex, 1:nreps(gdindex, pwindex)),0,3,'omitnan')/sqrt(nreps(gdindex, pwindex));
+mSum(gdindex, pwindex, lsindex)=median(Sum(gdindex,pwindex, lsindex, 1:nreps(gdindex, pwindex, lsindex)),3,'omitnan');
+semSum(gdindex, pwindex, lsindex)=std(Sum(gdindex,pwindex, lsindex, 1:nreps(gdindex, pwindex, lsindex)),0,3,'omitnan')/sqrt(nreps(gdindex, pwindex, lsindex));
+mSumACC(gdindex, pwindex, lsindex)=median(SumACC(gdindex,pwindex, lsindex, 1:nreps(gdindex, pwindex, lsindex)),3,'omitnan');
+semSumACC(gdindex, pwindex, lsindex)=std(SumACC(gdindex,pwindex, lsindex, 1:nreps(gdindex, pwindex, lsindex)),0,3,'omitnan')/sqrt(nreps(gdindex, pwindex, lsindex));
 
 
 
@@ -467,44 +472,45 @@ end
 
 fprintf('\nusing MEDIAN of peak(abs(trace)) or of sum(abs(trace))  responses\n')
 
+for lsindex=1:numlaserstarts
 for pwindex=1:numpulsewidths
-        fprintf('\nLaser pw:%d ms, \n', pulsewidths(pwindex));
+        fprintf('\nLaser pw:%d ms, laserstart:%d ms\n', pulsewidths(pwindex), laserstarts(lsindex));
     
     %only makes sense for numgapdurs >= 2
-    percentGPIAS(1, pwindex)=nan;
-    pTilt(1, pwindex)=nan;
+    percentGPIAS(1, pwindex, lsindex)=nan;
+    pTilt(1, pwindex, lsindex)=nan;
     for p=2:numgapdurs;
         if flag.accel ==4
-            m1=mPeak(1, pwindex);
-            m2=mPeak(p, pwindex);
-            percentGPIAS(p, pwindex)=((m1-m2)/m1)*100;
-            A=PeakTilt(1,pwindex, 1:nreps(1, pwindex));
-            B=PeakTilt(p,pwindex, 1:nreps(p, pwindex));
-            [H,pTilt(p, pwindex)]=ttest2(A,B);
+            m1=mPeak(1, pwindex, lsindex);
+            m2=mPeak(p, pwindex, lsindex);
+            percentGPIAS(p, pwindex, lsindex)=((m1-m2)/m1)*100;
+            A=PeakTilt(1,pwindex, lsindex, 1:nreps(1, pwindex, lsindex));
+            B=PeakTilt(p,pwindex, lsindex, 1:nreps(p, pwindex, lsindex));
+            [H,pTilt(p, pwindex, lsindex)]=ttest2(A,B);
             fprintf('TILT(peak): gd: %dms  %%GPIAS = %.1f%%,  T-test:%d,  p-value:%.3f\n',gapdurs(p),percentGPIAS(p),H,pTilt(p));
             
-            m1=mSum(1, pwindex);
-            m2=mSum(p, pwindex);
-            percentGPIAS_sum(p, pwindex)=((m1-m2)/m1)*100;
-            A=SumTilt(1,pwindex, 1:nreps(1, pwindex));
-            B=SumTilt(p,pwindex, 1:nreps(p, pwindex));
+            m1=mSum(1, pwindex, lsindex);
+            m2=mSum(p, pwindex, lsindex);
+            percentGPIAS_sum(p, pwindex, lsindex)=((m1-m2)/m1)*100;
+            A=SumTilt(1,pwindex, lsindex, 1:nreps(1, pwindex, lsindex));
+            B=SumTilt(p,pwindex, lsindex, 1:nreps(p, pwindex, lsindex));
             [H,temp]=ttest2(A,B);
             fprintf('TILT(sum): gd: %dms  %%GPIAS = %.1f%%,  T-test:%d,  p-value:%.3f\n',gapdurs(p),percentGPIAS_sum(p),H,temp);
         end
         
-        m1=mPeakACC(1, pwindex);
-        m2=mPeakACC(p, pwindex);
-        percentGPIAS_ACC(p, pwindex)=((m1-m2)/m1)*100;
-        A=PeakACC(1,pwindex, 1:nreps(1, pwindex));
-        B=PeakACC(p,pwindex, 1:nreps(p, pwindex));
+        m1=mPeakACC(1, pwindex, lsindex);
+        m2=mPeakACC(p, pwindex, lsindex);
+        percentGPIAS_ACC(p, pwindex, lsindex)=((m1-m2)/m1)*100;
+        A=PeakACC(1,pwindex, lsindex, 1:nreps(1, pwindex, lsindex));
+        B=PeakACC(p,pwindex, lsindex, 1:nreps(p, pwindex, lsindex));
         [H,temp]=ttest2(A,B);
         fprintf('ACCEL(peak): gd: %dms  %%GPIAS = %.1f%%,  T-test:%d,  p-value:%.3f\n',gapdurs(p),percentGPIAS_ACC(p),H,temp);
         
-        m1=mSumACC(1, pwindex);
-        m2=mSumACC(p, pwindex);
-        percentGPIAS_ACCsum(p, pwindex)=((m1-m2)/m1)*100;
-        A=SumACC(1,pwindex, 1:nreps(1, pwindex));
-        B=SumACC(p,pwindex, 1:nreps(p, pwindex));
+        m1=mSumACC(1, pwindex, lsindex);
+        m2=mSumACC(p, pwindex, lsindex);
+        percentGPIAS_ACCsum(p, pwindex, lsindex)=((m1-m2)/m1)*100;
+        A=SumACC(1,pwindex, lsindex, 1:nreps(1, pwindex, lsindex));
+        B=SumACC(p,pwindex, lsindex, 1:nreps(p, pwindex, lsindex));
         [H,temp]=ttest2(A,B);
         fprintf('ACCEL(sum): gd: %dms  %%GPIAS = %.1f%%,  T-test:%d,  p-value:%.3f\n',gapdurs(p),percentGPIAS_ACCsum(p),H,temp);
     end

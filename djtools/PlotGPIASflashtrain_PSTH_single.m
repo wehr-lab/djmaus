@@ -142,7 +142,7 @@ nM1Laser=nM1Laser./abs(maxlaser);
 %         p=p+1;
 %         subplot1(p)
 %         hold on
-%         
+%
 %         for rep=1:nreps(gdindex,pwindex)
 %             Lasertrace=squeeze(nM1Laser(gdindex,pwindex,rep, :));
 %             %Lasertrace=Lasertrace -mean(Lasertrace(1:100));
@@ -153,14 +153,14 @@ nM1Laser=nM1Laser./abs(maxlaser);
 %         end
 %     end
 % end
-    
+
 %plot the tuning curve
 figure('position',[257   144 600 750])
 
 p=0;
 subplot1(numpulsewidths, numgapdurs, 'Max', [.95 .96], 'Gap', [.05 .01 ])
-    for pwindex=1:numpulsewidths
-for gdindex=1:numgapdurs
+for pwindex=1:numpulsewidths
+    for gdindex=1:numgapdurs
         
         p=p+1;
         subplot1(p)
@@ -215,8 +215,8 @@ for gdindex=1:numgapdurs
             for rep=1:nreps(gdindex,pwindex)
                 Lasertrace=squeeze(nM1Laser(gdindex,pwindex,rep, :));
                 % Lasertrace=Lasertrace -mean(Lasertrace(1:100));
-               % Lasertrace=Lasertrace-min(M1Laser(:));
-               % Lasertrace=Lasertrace./max(M1Laser(:));
+                % Lasertrace=Lasertrace-min(M1Laser(:));
+                % Lasertrace=Lasertrace./max(M1Laser(:));
                 Lasertrace=height*Lasertrace;
                 plot( t, Lasertrace, 'c')
             end

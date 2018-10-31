@@ -393,8 +393,8 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function LoadMouse
-global SP
-cd (SP.datapath)
+global SP pref
+cd (pref.datapath)
 try
     mouseDB=load('mouseDB.mat');
     if isfield(mouseDB, SP.mouseID)
@@ -1379,7 +1379,8 @@ SP.mouseIDlabel=uicontrol(fig,'Parent',hp,'tag','mouseIDlabel','style','text','u
 H=H+h;
 
 %check for mouseDB and initialize if not present
-cd(pref.root)
+%cd(pref.root)
+cd(pref.datapath) %mw 10.31.2018
 if exist('mouseDB.mat')~=2
     temp=[];
     save mouseDB.mat temp

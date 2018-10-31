@@ -1,38 +1,28 @@
-function MakeGPIASflashtrainProtocol(VarLaserpulsewidths, noiseamp, gapdurs, gapdelay, post_startle_duration, pulsedur, pulseamp, soa, soaflag, ...
+function MakeGPIASLaserPulseProtocol(Laserstarts, Laserpulsewidth, Lasernumpulses, Laserisi, noiseamp, gapdurs, gapdelay, post_startle_duration, pulsedur, pulseamp, soa, soaflag, ...
     ramp, isi, isi_var, nrepeats)
 
 
-% usage  MakeGPIASflashtrainProtocol(VarLaserpulsewidths, noiseamp, gapdurs, gapdelay, post_startle_duration, pulsedur, pulseamp, soa, soaflag, ...
-%    ramp, isi, isi_var, nrepeats)
+% usage  MakeGPIASLaserPulseProtocol(Laserstart, Laserpulsewidth, Lasernumpulses, Laserisi, noiseamp, gapdurs, gapdelay, post_startle_duration, pulsedur, pulseamp, soa, soaflag, ...
+%     ramp, isi, isi_var, nrepeats)
+%
 %
 % creates a djmaus stimulus protocol file for GPIAS (gap-induced pre-pulse inhibition of acoustic startle
-% response). can use multiple gap durations, gap is silent
-% using variable ITI.
+% response). can use multiple gap durations, gap is silent, can use variable ITI.
 %
 %this version randomly interleaves trials with a laser pulse for each GPIAS trial,
-% the laser is on for 50 ms post-gap interval
-%VarLaserpulsewidths is an array of laser pulsewidths used to control
-%laser "power"
+% the parameters are set by the first arguments (Laserstarts, Laserpulsewidth, Lasernumpulses, Laserisi)
+%Laserstarts can be an array, the other laser params should be single values
+%
 %
 % example call
-%  VarLaserpulsewidths=[.1 .5 1 2 3 4 5 ]; noiseamp=80; gapdurs=[0 32]; gapdelay=500; poststartle=500;
+%  Laserstarts=[0 25]; Laserpulsewidth=5; Lasernumpulses=1; Laserisi=0; 
+%  noiseamp=80; gapdurs=[0 32]; gapdelay=500; poststartle=500;
 %  pulsedur=0; pulseamp=100; soa=50; soaflag='isi'; ramp=0; isi=500; isi_var=0; nrepeats=40;
-%  MakeGPIASflashtrainProtocol(VarLaserpulsewidths, noiseamp, gapdurs, gapdelay, poststartle, pulsedur, pulseamp, soa, soaflag, ramp, isi, isi_var, nrepeats)
+% MakeGPIASLaserPulseProtocol(Laserstarts, Laserpulsewidth, Lasernumpulses, Laserisi, noiseamp, gapdurs, gapdelay, poststartle, pulsedur, pulseamp, soa, soaflag, ramp, isi, isi_var, nrepeats)
 
-%for now, hard-coding laser params
-% minimum laser pulse duration is one sample at 192 kHz = 5 us = .005 ms, which
-% approaches laser diode response time
-%laser pulse isi means onset-to-onset
-% 50 ms at 100 hz = 5 pulses with 10 ms isi
-% 50 ms at 200 hz = 10 pulses with 5 ms isi
-VarLaserstart=0; %flashtrain start at gap termination
-%VarLaserpulsewidths=[.01 .05 .1 .5 1 5];
-VarLasernumpulses=10;
-VarLaserisi=5; % 200 Hz
-
-if any(VarLaserpulsewidths==0)
+if any(Laserpulsewidth==0)
     fprintf('\nremoving requested laserpulsewidth of 0 because this doesn''t make sense and is reserved for the laser-off condition');
-    VarLaserpulsewidths=VarLaserpulsewidths(find(VarLaserpulsewidths));
+    Laserpulsewidth=Laserpulsewidth(find(Laserpulsewidth));
 end
 
 %recent edits:
@@ -108,11 +98,11 @@ end
 
 global pref
 if isempty(pref) djPrefs;end
-if nargin~=13 error('MakeGPIASflashtrainProtocol: wrong number of arguments.'); end
+if nargin~=16 error('MakeGPIASLaserPulseProtocol: wrong number of arguments.'); end
 
 numgapdurs=length(gapdurs);
 numpulseamps=1;
-numVarLaserpulsewidths=length(VarLaserpulsewidths);
+numLaserstarts=length(Laserstarts);
 
 gapdursstring='';
 for i=1:numgapdurs
@@ -120,21 +110,21 @@ for i=1:numgapdurs
 end
 gapdursstring=gapdursstring(1:end-1); %remove trailing -
 
-Laserpulsewidthstring='';
-for i=1:numVarLaserpulsewidths
-    Laserpulsewidthstring=[Laserpulsewidthstring, sprintf('%g-', VarLaserpulsewidths(i))];
+Laserstartstring='';
+for i=1:numLaserstarts
+    Laserstartstring=[Laserstartstring, sprintf('%g-', Laserstarts(i))];
 end
-Laserpulsewidthstring=Laserpulsewidthstring(1:end-1); %remove trailing -
+Laserstartstring=Laserstartstring(1:end-1); %remove trailing -
 
 %original version did a straight interleave, i.e. half of trials had no
 %laser, but instead we want only as many laser-off trials as one of the
-%laserpulsewidths
+%laserstarts
 %so I'm removing the interleave and just adding in laser-off as a fake
-%laserpulsewidth of 0
+%laserstart of -666
 
 if interleave_laser==1
 %     [GapdurGrid,VarLaserpulsewidthGrid, Lasers]=meshgrid( gapdurs , VarLaserpulsewidths, [0 1]);
-    [GapdurGrid,VarLaserpulsewidthGrid]=meshgrid( gapdurs , [0 VarLaserpulsewidths]);
+    [GapdurGrid,LaserstartGrid]=meshgrid( gapdurs , [-666 Laserstarts]);
     numlasers=1;
 else %cannot happen
 %     [GapdurGrid,PulseampGrid, Lasers]=meshgrid( gapdurs , pulseamps, 0);
@@ -142,16 +132,16 @@ else %cannot happen
 end
 
 
-neworder=randperm( (1+numVarLaserpulsewidths) * numgapdurs * numlasers);
+neworder=randperm( (1+numLaserstarts) * numgapdurs * numlasers);
 rand_gapdurs=zeros(1, size(neworder, 2)*nrepeats);
-rand_Laserpulsewidths=zeros(1, size(neworder, 2)*nrepeats);
+rand_Laserstarts=zeros(1, size(neworder, 2)*nrepeats);
 lasers=zeros(1, size(neworder, 2)*nrepeats);
 
 
 for n=1:nrepeats
-    neworder=randperm( (1+numVarLaserpulsewidths) * numgapdurs * numlasers);
+    neworder=randperm( (1+numLaserstarts) * numgapdurs * numlasers);
     rand_gapdurs( prod(size(GapdurGrid))*(n-1) + (1:prod(size(GapdurGrid))) ) = GapdurGrid( neworder );
-    rand_Laserpulsewidths( prod(size(VarLaserpulsewidthGrid))*(n-1) + (1:prod(size(VarLaserpulsewidthGrid))) ) = VarLaserpulsewidthGrid( neworder );
+    rand_Laserstarts( prod(size(LaserstartGrid))*(n-1) + (1:prod(size(LaserstartGrid))) ) = LaserstartGrid( neworder );
    % lasers( prod(size(Lasers))*(n-1) + (1:prod(size(Lasers))) ) = Lasers( neworder );
 end
 
@@ -161,11 +151,14 @@ else
     interleave_laserstr='';
 end
 
-name= sprintf('GPIAS-flashtrain-Lpw%sms-na%ddB-gd%sms-pd%dms-pa%ddb-soa%dms(%s)-r%d-iti%d-itivar%d-%s%dreps.mat',...
-    Laserpulsewidthstring, noiseamp, gapdursstring, round(pulsedur), pulseamp, soa,soaflag, round(ramp), isi,round(100*isi_var),interleave_laserstr, nrepeats);
+name= sprintf(['GPIAS-varlaserpulse-Lstarts%sms-Lpw%.1fms-%dp-isi%d-na%ddB', ...
+    '-gd%sms-pd%dms-pa%ddb-soa%dms(%s)-r%d-iti%d-itivar%d-%s%dreps.mat'], ...
+    Laserstartstring,Laserpulsewidth, Lasernumpulses, Laserisi, noiseamp, gapdursstring, round(pulsedur), pulseamp, soa,soaflag, round(ramp), isi,round(100*isi_var),interleave_laserstr, nrepeats);
 
-description=sprintf('GPIAS protocol with flashtrain, laserPulseWidths: %s ms, noise amp:%ddB, gap duration: %sms, gapdelay: %dms, pulse duration: %dms pulse amplitude: %ddb SOA:%dms (%s) ramp: %dms iti: %dms iti-var: %.1f %s %drepeats',...
-    Laserpulsewidthstring, noiseamp, gapdursstring, gapdelay, pulsedur, pulseamp, soa, soaflag, ramp, isi,round(100*isi_var),interleave_laserstr, nrepeats);
+description=sprintf(['GPIAS protocol with varlaserpulse, laserstarts: %s ms, ', ...
+    'laserpulsewidth: %.1f ms, %d laser pulses, %.1f laser isi, noise amp:%ddB, gap duration: %sms, gapdelay: %dms, ',...
+    'pulse duration: %dms pulse amplitude: %ddb SOA:%dms (%s) ramp: %dms iti: %dms iti-var: %.1f %s %drepeats'],...
+    Laserstartstring,Laserpulsewidth, Lasernumpulses, Laserisi, noiseamp, gapdursstring, gapdelay, pulsedur, pulseamp, soa, soaflag, ramp, isi,round(100*isi_var),interleave_laserstr, nrepeats);
 filename=name;
 
 
@@ -221,7 +214,7 @@ for kk=1:length(rand_gapdurs)
     stimuli(n).param.gapdur=rand_gapdurs(kk);
     stimuli(n).param.pulsedur=pulsedur;
     stimuli(n).param.pulseamp=pulseamp;
-    if rand_Laserpulsewidths(kk)==0 %using laserpulsewidth of 0 as the laser-off flag
+    if rand_Laserstarts(kk)==-666 %using laserstart of -666 as the laser-off flag
         stimuli(n).param.laser=0;
     else
         stimuli(n).param.laser=1;
@@ -230,17 +223,17 @@ for kk=1:length(rand_gapdurs)
     if stimuli(n).param.laser
         stimuli(n).param.VarLaser=1;
         %from hard-coded values at top
-        stimuli(n).param.VarLaserstart=gapdelay+VarLaserstart; %for example.  laser onset coincides w/ gap onset
-        stimuli(n).param.VarLaserpulsewidth=rand_Laserpulsewidths(kk); 
-        stimuli(n).param.VarLasernumpulses=VarLasernumpulses;
-        stimuli(n).param.VarLaserisi=VarLaserisi; %
+        stimuli(n).param.VarLaserstart=gapdelay+rand_Laserstarts(kk); %for example.  laser onset coincides w/ gap onset
+        stimuli(n).param.VarLaserpulsewidth=Laserpulsewidth; 
+        stimuli(n).param.VarLasernumpulses=Lasernumpulses;
+        stimuli(n).param.VarLaserisi=Laserisi; %
     else
         stimuli(n).param.VarLaser=0;
     end
     stimuli(n).stimulus_description=GetParamStr(stimuli(n));
     stimuli(n).protocol_name=name;
     stimuli(n).protocol_description=description;
-    stimuli(n).PlottingFunction='PlotGPIASflashtrain_PSTH';
+    stimuli(n).PlottingFunction='PlotGPIASLaserPulse_PSTH';
     stimuli(n).version='djmaus';
 
     %

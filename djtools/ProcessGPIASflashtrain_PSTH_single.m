@@ -165,10 +165,6 @@ allpulsewidths=[];
 for i=1:length(Events)
     VarLaser(i)=Events(i).VarLaser;
     if Events(i).VarLaser
-        %        Events(i).VarLaserstart
-        %        Events(i).VarLaserpulsewidth
-        %        Events(i).VarLaserisi
-        %        Events(i).VarLasernumpulses
         allVarLaserstarts=[allVarLaserstarts Events(i).VarLaserstart];
         allpulsewidths=[ allpulsewidths Events(i).VarLaserpulsewidth];
         alltrainisis=[alltrainisis Events(i).VarLaserisi]; %isi in train
@@ -177,7 +173,7 @@ for i=1:length(Events)
     else
         LaserPulsewidth(i)=0;
         allpulsewidths=[ allpulsewidths 0];
-
+        
     end
 end
 laserstarts=unique(allVarLaserstarts);
@@ -186,53 +182,9 @@ trainisis=unique(alltrainisis);
 pulsewidths=unique(allpulsewidths);
 numpulsewidths=length(pulsewidths);
 
-% for i=1:length(Events)
-%     if isfield(Events(i), 'laser') & isfield(Events(i), 'LaserOnOff')
-%         if ~isempty(Events(i).laser)
-%             LaserScheduled(i)=Events(i).laser; %whether the stim protocol scheduled a laser for this stim
-%         end
-%         if ~isempty(Events(i).LaserOnOff)
-%             LaserOnOffButton(i)=Events(i).LaserOnOff; %whether the laser button was turned on
-%         end
-%         LaserTrials(i)=LaserScheduled(i) & LaserOnOffButton(i);
-%         if isempty(stimlog(i).LaserStart)
-%             LaserStart(i)=nan;
-%             LaserWidth(i)=nan;
-%             LaserNumPulses(i)=nan;
-%             LaserISI(i)=nan;
-%         else
-%             LaserStart(i)=stimlog(i).LaserStart;
-%             LaserWidth(i)=stimlog(i).LaserWidth;
-%             LaserNumPulses(i)=stimlog(i).LaserNumPulses;
-%             LaserISI(i)=stimlog(i).LaserISI;
-%         end
-%         
-%     elseif isfield(Events(i), 'laser') & ~isfield(Events(i), 'LaserOnOff')
-%         %Not sure about this one. Assume no laser for now, but investigate.
-%         warning('ProcessGPIAS_PSTH_single: Cannot tell if laser button was turned on in djmaus GUI');
-%         LaserTrials(i)=0;
-%         Events(i).laser=0;
-%     elseif ~isfield(Events(i), 'laser') & ~isfield(Events(i), 'LaserOnOff')
-%         %if neither of the right fields are there, assume no laser
-%         LaserTrials(i)=0;
-%         Events(i).laser=0;
-%     else
-%         error('wtf?')
-%     end
-% end
 fprintf('\n%d laser trials in this Events file', sum(VarLaser))
-% try
-%     if sum(LaserOnOffButton)==0
-%         fprintf('\nLaser On/Off button remained off for entire file.')
-%     end
-% end
-% if sum(LaserTrials)>0
-     IL=1;
-% else
-%     IL=0;
-% end
-%if lasers were used, we'll un-interleave them and save ON and OFF data
-%try to load laser and stimulus monitor files
+IL=1;
+
 if isempty(getLaserfile('.'))
     LaserRecorded=0;
 else
@@ -307,10 +259,6 @@ for i=1:length(Events)
             M1(gdindex,pwindex, nreps(gdindex,pwindex)).spiketimes=spiketimes1; % Spike times
             M1spikecounts(gdindex,pwindex,nreps(gdindex,pwindex))=spikecount; % No. of spikes
             M1spont(gdindex,pwindex, nreps(gdindex,pwindex))=spont_spikecount; % No. of spikes in spont window, for each presentation.
-           % M_LaserStart(gdindex,pwindex, nreps(gdindex,pwindex))=Events(i).VarLaserstart;
-           % M_LaserPulsewidth(gdindex,pwindex, nreps(gdindex,pwindex))= Events(i).VarLaserpulsewidth;
-           % M_LaserNumPulses(gdindex,pwindex, nreps(gdindex,pwindex))= Events(i).VarLasernumpulses;
-           % M_LaserISI(gdindex,pwindex, nreps(gdindex,pwindex))= Events(i).VarLaserisi;
             if LaserRecorded
                 M1Laser(gdindex, pwindex, nreps(gdindex,pwindex),:)=Lasertrace(region);
             end
@@ -395,7 +343,7 @@ if StimRecorded
         end
     end
     title(' stimulus monitor')
-
+    
 end
 
 %save to outfiles

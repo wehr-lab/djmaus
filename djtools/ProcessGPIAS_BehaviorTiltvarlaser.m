@@ -21,7 +21,9 @@ end
 
 djPrefs;
 global pref
-cd (pref.datapath);
+try
+    cd (pref.datapath);
+end
 cd(datadir)
 
 try
@@ -97,24 +99,24 @@ filename2=sprintf('%s_AUX2.continuous', node);
 filename3=sprintf('%s_AUX3.continuous', node);
 
 fprintf('\n')
-    if exist(filename1, 'file')~=2 %couldn't find it
-        fprintf('could not find AUX1 file %s in datadir %s', filename1, datadir)
-    else
-        [scaledtrace1, datatimestamps, datainfo] =load_open_ephys_data(filename1);
-        scaledtrace1 = scaledtrace1 - mean(scaledtrace1);
-    end
-    if exist(filename2, 'file')~=2 %couldn't find it
-        fprintf('could not find AUX2 file %s in datadir %s', filename2, datadir)
-    else
-        [scaledtrace2, datatimestamps, datainfo] =load_open_ephys_data(filename2);
-        scaledtrace2 = scaledtrace2 - mean(scaledtrace2);
-    end
-    if exist(filename3, 'file')~=2 %couldn't find it
-        fprintf('could not find AUX3 file %s in datadir %s', filename3, datadir)
-    else
-        [scaledtrace3, datatimestamps, datainfo] =load_open_ephys_data(filename3);
-        scaledtrace3 = scaledtrace3 - mean(scaledtrace3);
-    end
+if exist(filename1, 'file')~=2 %couldn't find it
+    fprintf('could not find AUX1 file %s in datadir %s', filename1, datadir)
+else
+    [scaledtrace1, datatimestamps, datainfo] =load_open_ephys_data(filename1);
+    scaledtrace1 = scaledtrace1 - mean(scaledtrace1);
+end
+if exist(filename2, 'file')~=2 %couldn't find it
+    fprintf('could not find AUX2 file %s in datadir %s', filename2, datadir)
+else
+    [scaledtrace2, datatimestamps, datainfo] =load_open_ephys_data(filename2);
+    scaledtrace2 = scaledtrace2 - mean(scaledtrace2);
+end
+if exist(filename3, 'file')~=2 %couldn't find it
+    fprintf('could not find AUX3 file %s in datadir %s', filename3, datadir)
+else
+    [scaledtrace3, datatimestamps, datainfo] =load_open_ephys_data(filename3);
+    scaledtrace3 = scaledtrace3 - mean(scaledtrace3);
+end
 
 % get tilt-table recording from ADC4
 filename4=sprintf('%s_ADC4.continuous', node);
@@ -269,24 +271,48 @@ alltrainnumpulses=[];
 alltrainisis=[];
 alltrainpulsewidths=[];
 allpulsewidths=[];
-for i=1:length(Events)
-    if isempty(Events(i).VarLaser)
-        VarLaser(i)=0;
-    else
-        VarLaser(i)=Events(i).VarLaser;
+if isfield(Events, 'VL') %we're using the new, truncated messages where VarLaser is replaced by VL
+    for i=1:length(Events)
+        if isempty(Events(i).VL)
+            VarLaser(i)=0;
+        else
+            VarLaser(i)=Events(i).VL;
+        end
+        if VarLaser(i)
+            allVarLaserstarts=[allVarLaserstarts Events(i).VLstart];
+            allpulsewidths=[ allpulsewidths Events(i).VLpulsewidth];
+            alltrainisis=[alltrainisis Events(i).VLisi]; %isi in train
+            alltrainnumpulses=[alltrainnumpulses Events(i).VLnumpulses]; %isi in train
+            LaserPulsewidth(i)=Events(i).VLpulsewidth;
+            LaserStart(i)=Events(i).VLstart;
+        else
+            LaserPulsewidth(i)=0;
+            allpulsewidths=[ allpulsewidths 0];
+            LaserStart(i)=-666;
+        end
     end
-    if VarLaser(i)
-        allVarLaserstarts=[allVarLaserstarts Events(i).VarLaserstart];
-        allpulsewidths=[ allpulsewidths Events(i).VarLaserpulsewidth];
-        alltrainisis=[alltrainisis Events(i).VarLaserisi]; %isi in train
-        alltrainnumpulses=[alltrainnumpulses Events(i).VarLasernumpulses]; %isi in train
-        LaserPulsewidth(i)=Events(i).VarLaserpulsewidth;
-        LaserStart(i)=Events(i).VarLaserstart;
-    else
-        LaserPulsewidth(i)=0;
-        allpulsewidths=[ allpulsewidths 0];
-        LaserStart(i)=-666;
+elseif isfield(Events, 'VarLaser') %we're using the old messages that use 'VarLaser'
+    for i=1:length(Events)
+        if isempty(Events(i).VarLaser)
+            VarLaser(i)=0;
+        else
+            VarLaser(i)=Events(i).VarLaser;
+        end
+        if VarLaser(i)
+            allVarLaserstarts=[allVarLaserstarts Events(i).VarLaserstart];
+            allpulsewidths=[ allpulsewidths Events(i).VarLaserpulsewidth];
+            alltrainisis=[alltrainisis Events(i).VarLaserisi]; %isi in train
+            alltrainnumpulses=[alltrainnumpulses Events(i).VarLasernumpulses]; %isi in train
+            LaserPulsewidth(i)=Events(i).VarLaserpulsewidth;
+            LaserStart(i)=Events(i).VarLaserstart;
+        else
+            LaserPulsewidth(i)=0;
+            allpulsewidths=[ allpulsewidths 0];
+            LaserStart(i)=-666;
+        end
     end
+else
+    error('wtf? is this not a varlaser session?')
 end
 laserstarts=unique(allVarLaserstarts);
 numlaserstarts=length(laserstarts);
@@ -422,7 +448,7 @@ PeakACC=SumTilt;
 fprintf('\n')
 for lsindex=1:numlaserstarts
     for pwindex=1:numpulsewidths
-        for gdindex=1:numgapdurs; % 
+        for gdindex=1:numgapdurs; %
             for k=1:nreps(gdindex, pwindex);
                 %traceON=squeeze(M1ON(gdindex,paindex, k, start:stop));
                 %PeakON(gdindex, paindex, k) = max(abs(traceON));

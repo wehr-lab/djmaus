@@ -43,6 +43,8 @@ for i=1:length(messages)
         check2=StartAcquisitionSamples;
     elseif strcmp(Events_type, 'TrialType')
         sound_index=sound_index+1;
+        
+        
         Events(sound_index).type=str2{3};
         for j=4:length(str2)
             str3=strsplit(str2{j}, ':');

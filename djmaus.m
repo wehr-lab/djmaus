@@ -209,9 +209,9 @@ switch action
         cd (pref.root)
         try load mouseDB
         end
-        str=sprintf('%s.mouseGenotype=''%s'';', SP.mouseID, SP.mouseGenotype);
+        str=sprintf('mouseID_%s.mouseGenotype=''%s'';', SP.mouseID, SP.mouseGenotype);
         eval(str);
-        save('mouseDB.mat', SP.mouseID, '-append')
+        save('mouseDB.mat', sprintf('mouseID_%s',SP.mouseID), '-append')
         
     case 'mouseSex'
         SP.mouseSex=lower(get(SP.mouseSexh, 'string'));
@@ -219,18 +219,18 @@ switch action
         cd (pref.root)
         try load mouseDB
         end
-        str=sprintf('%s.mouseSex=''%s'';', SP.mouseID, SP.mouseSex);
+        str=sprintf('mouseID_%s.mouseSex=''%s'';', SP.mouseID, SP.mouseSex);
         eval(str)
-        save('mouseDB.mat', SP.mouseID, '-append')
+        save('mouseDB.mat', sprintf('mouseID_%s',SP.mouseID), '-append')
         
     case 'mouseDOB'
         SP.mouseDOB=get(SP.mouseDOBh, 'string');
         cd (pref.root)
         try load mouseDB
         end
-        str=sprintf('%s.mouseDOB=''%s'';', SP.mouseID, SP.mouseDOB);
+        str=sprintf('mouseID_%s.mouseDOB=''%s'';', SP.mouseID, SP.mouseDOB);
         eval(str)
-        save('mouseDB.mat', SP.mouseID, '-append')
+        save('mouseDB.mat', sprintf('mouseID_%s',SP.mouseID), '-append')
         SP.Age=(datenum(date)-datenum(SP.mouseDOB))/30; %in months
         pos1=get(SP.mouseSexh, 'pos');
         pos=get(SP.mouseDOBh, 'pos');
@@ -393,23 +393,23 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function LoadMouse
-global SP
-cd (SP.datapath)
+global SP pref
+cd (pref.root)
 try
     mouseDB=load('mouseDB.mat');
-    if isfield(mouseDB, SP.mouseID)
+    if isfield(mouseDB, ['mouseID_', SP.mouseID])
         try
-            str=sprintf('SP.mouseGenotype=mouseDB.%s.mouseGenotype;', SP.mouseID);
+            str=sprintf('SP.mouseGenotype=mouseDB.mouseID_%s.mouseGenotype;', SP.mouseID);
             eval(str);
             set(SP.mouseGenotypeh, 'string', SP.mouseGenotype);
         end
         try
-            str=sprintf('SP.mouseDOB=mouseDB.%s.mouseDOB;', SP.mouseID);
+            str=sprintf('SP.mouseDOB=mouseDB.mouseID_%s.mouseDOB;', SP.mouseID);
             eval(str);
             set(SP.mouseDOBh, 'string', SP.mouseDOB);
         end
         try
-            str=sprintf('SP.mouseSex=mouseDB.%s.mouseSex;', SP.mouseID);
+            str=sprintf('SP.mouseSex=mouseDB.mouseID_%s.mouseSex;', SP.mouseID);
             eval(str);
             set(SP.mouseSexh, 'string', SP.mouseSex);
         end
@@ -567,6 +567,10 @@ PPAdj('load', 'var', samples, stimulus.param);
 str=sprintf('TrialType %s', stimulus.stimulus_description);
 %append a field saying whether the LaserON/OFF button is clicked or not:
 str=sprintf('%s %s:%g', str, 'LaserOnOff', SP.LaserOnOff);
+%note: the maximum length of this string is 255. Any longer and open ephys
+%will fail to write the text to messages.events (although the time stamp is OK)
+if length(str)>255 warning('TrialType message string is too long!!!!');end
+
 if ~isempty(SP.zhandle)
     zeroMQwrapper('Send', SP.zhandle, str)
 end
@@ -685,7 +689,7 @@ if SP.Record
         set(SP.camerapulse, 'backgroundcolor',[0 0.9 0],'String','Camera Stopped');
         PPAdj('camerapulse_off')
     else
-        fprintf('\n camera not recording\n')
+       fprintf('\n camera not recording\n')
     end
     
     UpdateNotebookFile

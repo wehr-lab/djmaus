@@ -567,6 +567,10 @@ PPAdj('load', 'var', samples, stimulus.param);
 str=sprintf('TrialType %s', stimulus.stimulus_description);
 %append a field saying whether the LaserON/OFF button is clicked or not:
 str=sprintf('%s %s:%g', str, 'LaserOnOff', SP.LaserOnOff);
+%note: the maximum length of this string is 255. Any longer and open ephys
+%will fail to write the text to messages.events (although the time stamp is OK)
+if length(str)>255 warning('TrialType message string is too long!!!!');end
+
 if ~isempty(SP.zhandle)
     zeroMQwrapper('Send', SP.zhandle, str)
 end

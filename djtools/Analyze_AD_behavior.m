@@ -16,7 +16,7 @@ elseif ismac
 
 end
 
-reprocess=1;
+reprocess=0;
 if reprocess
     %process group data
     fprintf('\nReprocessing data...\n')
@@ -85,10 +85,11 @@ if reprocess
             if ~isempty(d)
                 load(outfilename)
             else
-                % ProcessGPIAS_Behavior(datadir)
                 warning('outfile missing for this data directory')
-                %             load(outfilename);
-               % break
+              % keyboard
+               PlotGPIAS_Behavior_kip
+                 load(outfilename);
+               
             end
             
             
@@ -222,6 +223,9 @@ lw=2;
 
 cd(figs_dir)
 fname=sprintf('AD-stats-output-%s.txt', datestr(now));
+if ispc
+fname=strrep(fname, ':', '-');
+end
 fid=fopen(fname, 'w');
 fprintf(fid, '\nrun on %s with reprocess=%d', datestr(now), reprocess);
 

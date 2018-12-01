@@ -201,6 +201,12 @@ if reprocess
     fclose(fid); %close the output file
     close(wb); %close the waitbar window
     cd(dataroot)
+    clear figs_dir dataroot datadir datadir2
+    s=whos;
+    for i=1:size(s)
+        if s(i).bytes>10000 clear(s(i).name);end
+    end
+        
     generated_by=which(mfilename);
     generated_on=datestr(now);
     save ADgroupdata

@@ -375,9 +375,9 @@ if flag.plot
         str{ifig} = num2str(gapdurs(ifig));
     end
     legend(str)
-    FN = pwd;
-    ind = strfind(FN,'\');
-    title(FN(ind(end)+1:end),'interpreter','none')
+    [~, FN, ~] = fileparts(pwd);
+    
+    title(FN,'interpreter','none')
 end
 
 fprintf('\nmin num ON reps: %d\nmax num ON reps: %d', min(nrepsON(:)), max(nrepsON(:)))

@@ -15,8 +15,8 @@ elseif ismac
     figs_dir='/Users/mikewehr/Documents/Manuscripts/AD paper';
     
 end
-close all
-reprocess=1;
+close all hidden
+reprocess=0;
 if reprocess
     %process group data
     fprintf('\nReprocessing data...\n')
@@ -40,6 +40,8 @@ if reprocess
     sessioncount=0;
     excludedcount=0;
     
+    %fast-forward
+    %fseek(fid, 10000, -1)
     
     while 1 %processes until end of file is reached, then breaks
         tic;
@@ -70,6 +72,7 @@ if reprocess
             
             sessioncount=sessioncount+1;
             fprintf('\n%s', datadir);
+            fprintf('\ngroup: %s', group);
             
             dirstr=strsplit(datadir, '\');
             datadir2=dirstr{end};
@@ -110,7 +113,7 @@ if reprocess
             fprintf('\nsex: %s %s dob: %s age: %d %s', sex, genotype, dob, age_days, age_wks)
             
             if strcmp(genotype, 'unknown')
-                keyboard
+%                 keyboard
             end
             
             
@@ -149,7 +152,7 @@ if reprocess
             
             
             switch group
-                case 'XFAD'
+                case '5XFAD'
                     if numgapdurs==8 %skip partial gapdur arrays
                         XFADidx=XFADidx+1;
                         XFAD(XFADidx,:)=mPeakOFF;
@@ -216,6 +219,8 @@ else
     load ADgroupdata
 end %if process groupdata
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 numXFAD_sessions=size(XFAD, 1);
 numcontrol_sessions=size(ctrlgroup, 1);
 numXFAD_mice=length(unique(mouseID_xfad));
@@ -267,10 +272,17 @@ fprintf(fid, '(range: %d - %d)', min(control_sessionspermouse),max(control_sessi
 fprintf(fid, '\n');
 
 
+%restrict to ages > p60
+XFADp60_sessions=find(age_xfad>60);
+controlp60_sessions=find(age_control>60);
+fprintf(fid, '\n%d over-p60 XFAD sessions', length(XFADp60_sessions));
+fprintf(fid, '\n%d over-p60 control sessions', length(controlp60_sessions));
+
+
 %plot the mean peak rectified startle
 figure;
 hold on
-for i=1:numXFAD_sessions
+for i=XFADp60_sessions
     mPeakOFF=XFAD(i,:);
     gd=gdxfad(i,:);
     plot(1:length(gd), mPeakOFF, 'r-o')
@@ -281,7 +293,7 @@ for i=1:numXFAD_sessions
     
 end
 
-for i=1:numcontrol_sessions
+for i=1:controlp60_sessions
     mPeakOFF=ctrlgroup(i,:);
     gd=gdcontrol(i,:);
     plot(1:length(gd), mPeakOFF, 'k-o')
@@ -298,8 +310,8 @@ end
 
 figure;
 hold on
-xfad_purestartle=XFAD(:,1)';
-control_purestartle=ctrlgroup(:,1)';
+xfad_purestartle=XFAD(XFADp60_sessions,1)';
+control_purestartle=ctrlgroup(controlp60_sessions,1)';
 groupnames={'5XFAD'; 'control'};
 width=1;
 bw_colormap=[1 0 0; 0 0 0];
@@ -335,12 +347,12 @@ gpias=GPIASxfad(1,2:8);
 gd=gdxfad(1,:);
 plot(log2gapdurs, gpias, '.r-', 'markersize', ms, 'linewidth', lw)
 
-for i=1:numXFAD_sessions
+for i=XFADp60_sessions
     gpias=GPIASxfad(i,2:8);
     gd=gdxfad(i,:);
     plot(log2gapdurs, gpias, '.r-', 'markersize', ms, 'linewidth', lw)
 end
-for i=1:numcontrol_sessions
+for i=controlp60_sessions
     gpias=GPIAScontrol(i,2:8);
     gd=gdcontrol(i,:);
     plot(log2gapdurs, gpias, '.k-', 'markersize', ms, 'linewidth', lw)
@@ -378,10 +390,10 @@ legend('control', 'XFAD', 'location', 'southeast')
 
 figure
 hold on
-plot(log2gapdurs, nanmean(GPIAScontrol(:,2:8), 1), '.-k', 'markersize', ms)
-plot(log2gapdurs, nanmean(GPIASxfad(:,2:8), 1), '.-r', 'markersize', ms)
-e1=errorbar(log2gapdurs, nanmean(GPIAScontrol(:,2:8), 1), nanstd(GPIAScontrol(:,2:8),[], 1)./sqrt(numcontrol_sessions));
-e2=errorbar(log2gapdurs, nanmean(GPIASxfad(:,2:8), 1), nanstd(GPIASxfad(:,2:8),[], 1)./sqrt(numXFAD_sessions));
+plot(log2gapdurs, nanmean(GPIAScontrol(controlp60_sessions,2:8), 1), '.-k', 'markersize', ms)
+plot(log2gapdurs, nanmean(GPIASxfad(XFADp60_sessions,2:8), 1), '.-r', 'markersize', ms)
+e1=errorbar(log2gapdurs, nanmean(GPIAScontrol(controlp60_sessions,2:8), 1), nanstd(GPIAScontrol(controlp60_sessions,2:8),[], 1)./sqrt(length(controlp60_sessions)));
+e2=errorbar(log2gapdurs, nanmean(GPIASxfad(XFADp60_sessions,2:8), 1), nanstd(GPIASxfad(XFADp60_sessions,2:8),[], 1)./sqrt(length(XFADp60_sessions)));
 set(e1, 'color', 'k', 'markersize', ms, 'linewidth', lw)
 set(e2, 'color', 'r', 'markersize', ms, 'linewidth', lw)
 set(gca, 'xtick', log2gapdurs)
@@ -401,7 +413,7 @@ print -dpdf fig1b.pdf
 % stats on group data
 %convert to long form
 j=0;
-for i=1:numcontrol_sessions
+for i=controlp60_sessions
     for gd=1:numgapdurs
         j=j+1;
         X(j)=GPIAScontrol(i, gd);
@@ -409,7 +421,7 @@ for i=1:numcontrol_sessions
         grouping{j}='control';
     end
 end
-for i=1:numXFAD_sessions
+for i=XFADp60_sessions
     for gd=1:numgapdurs
         j=j+1;
         X(j)=GPIASxfad(i, gd);
@@ -420,13 +432,13 @@ end
 [p, anovatab, stats]=kruskalwallis(X, grouping);
 df=anovatab{2, 3};
 chisq=anovatab{2, 5};
-fprintf(fid, '\nkruskal wallis main effect of xfad vs control:');
+fprintf(fid, '\nkruskal wallis main effect of xfad vs control over-p60:');
 fprintf(fid, '\np=%g, d.f.=%d, chi-squared=%.2f ', p, df, chisq);
 
 %post-hoc test for each gapdur by ranksum
-fprintf(fid,'\npost-hoc test of xfad vs control at each gap duration:');
+fprintf(fid,'\npost-hoc test of xfad vs control at each gap duration, over-p60:');
 for gd=2:numgapdurs
-    p=ranksum(GPIASxfad(:, gd),GPIAScontrol(:, gd));
+    p=ranksum(GPIASxfad(XFADp60_sessions, gd),GPIAScontrol(controlp60_sessions, gd));
     fprintf(fid,'\ngd %d ms: p=%g, ', gapdurs(gd), p);
 end
 
@@ -437,26 +449,32 @@ male_xfad_sessions=find(strcmp(sex_xfad, 'm'));
 female_control_sessions=find(strcmp(sex_control, 'f'));
 male_control_sessions=find(strcmp(sex_control, 'm'));
 
-fprintf(fid,'\n %d female xfad sessions', length(female_xfad_sessions));
-fprintf(fid,'\n %d male xfad sessions', length(male_xfad_sessions));
-fprintf(fid,'\n %d female control sessions', length(female_control_sessions));
-fprintf(fid,'\n %d male control sessions', length(male_control_sessions));
+femalep60_xfad_sessions=intersect(female_xfad_sessions, XFADp60_sessions);
+malep60_xfad_sessions=intersect(male_xfad_sessions, XFADp60_sessions);
+femalep60_control_sessions=intersect(female_control_sessions, controlp60_sessions);
+malep60_control_sessions=intersect(male_control_sessions, controlp60_sessions);
+
+
+fprintf(fid,'\n %d female over-p60 xfad sessions', length(femalep60_xfad_sessions));
+fprintf(fid,'\n %d male over-p60 xfad sessions', length(malep60_xfad_sessions));
+fprintf(fid,'\n %d female over-p60 control sessions', length(femalep60_control_sessions));
+fprintf(fid,'\n %d male over-p60 control sessions', length(malep60_control_sessions));
 
 figure
 hold on
 legstr={};
 i=0;
-plot(log2gapdurs, nanmean(GPIAScontrol(male_control_sessions,2:8), 1), 'o-c')
+plot(log2gapdurs, nanmean(GPIAScontrol(malep60_control_sessions,2:8), 1), 'o-c')
 i=i+1;legstr{i}='male control';
-plot(log2gapdurs, nanmean(GPIAScontrol(female_control_sessions,2:8), 1), 'o-m')
+plot(log2gapdurs, nanmean(GPIAScontrol(femalep60_control_sessions,2:8), 1), 'o-m')
 i=i+1;legstr{i}='female control';
 plot(log2gapdurs, nanmean(GPIAScontrol(:,2:8), 1), 'o-k')
 i=i+1;legstr{i}='all control';
 plot(log2gapdurs, nanmean(GPIASxfad(:,2:8), 1), 'o-r')
 i=i+1;legstr{i}='all xfad';
-plot(log2gapdurs, nanmean(GPIASxfad(male_xfad_sessions,2:8), 1), 'o-b')
+plot(log2gapdurs, nanmean(GPIASxfad(malep60_xfad_sessions,2:8), 1), 'o-b')
 i=i+1;legstr{i}='male xfad';
-plot(log2gapdurs, nanmean(GPIASxfad(female_xfad_sessions,2:8), 1), 'o-m')
+plot(log2gapdurs, nanmean(GPIASxfad(femalep60_xfad_sessions,2:8), 1), 'o-m')
 i=i+1;legstr{i}='female xfad';
 set(gca, 'xtick', log2gapdurs)
 set(gca, 'xticklabel', [ 1 2 3 4 8 32 256])
@@ -470,23 +488,23 @@ figure
 hold on
 legstr={};
 i=0;p=[];e=[];
-mgpias=nanmean(GPIAScontrol(male_control_sessions,2:8), 1);
-sem=nanstd(GPIAScontrol(male_control_sessions,2:8), 1)./sqrt(length(male_control_sessions));
+mgpias=nanmean(GPIAScontrol(malep60_control_sessions,2:8), 1);
+sem=nanstd(GPIAScontrol(malep60_control_sessions,2:8), 1)./sqrt(length(malep60_control_sessions));
  p(i+1)=plot(log2gapdurs, mgpias, 'o-c');
 e(i+1)=errorbar(log2gapdurs, mgpias, sem, 'c');
 i=i+1;legstr{i}='male control';
-mgpias=nanmean(GPIAScontrol(female_control_sessions,2:8), 1);
-sem=nanstd(GPIAScontrol(female_control_sessions,2:8), 1)./sqrt(length(female_control_sessions));
+mgpias=nanmean(GPIAScontrol(femalep60_control_sessions,2:8), 1);
+sem=nanstd(GPIAScontrol(femalep60_control_sessions,2:8), 1)./sqrt(length(femalep60_control_sessions));
  p(i+1)=plot(log2gapdurs, mgpias, 'o-m');
 e(i+1)=errorbar(log2gapdurs, mgpias, sem, 'm');
 i=i+1;legstr{i}='female control';
-mgpias=nanmean(GPIASxfad(male_xfad_sessions,2:8), 1);
-sem=nanstd(GPIASxfad(male_xfad_sessions,2:8), 1)./sqrt(length(male_xfad_sessions));
+mgpias=nanmean(GPIASxfad(malep60_xfad_sessions,2:8), 1);
+sem=nanstd(GPIASxfad(malep60_xfad_sessions,2:8), 1)./sqrt(length(malep60_xfad_sessions));
  p(i+1)=plot(log2gapdurs, mgpias, '.-c');
 e(i+1)=errorbar(log2gapdurs, mgpias, sem, 'c');
 i=i+1;legstr{i}='male 5XFAD';
-mgpias=nanmean(GPIASxfad(female_xfad_sessions,2:8), 1);
-sem=nanstd(GPIASxfad(female_xfad_sessions,2:8), 1)./sqrt(length(female_xfad_sessions));
+mgpias=nanmean(GPIASxfad(femalep60_xfad_sessions,2:8), 1);
+sem=nanstd(GPIASxfad(femalep60_xfad_sessions,2:8), 1)./sqrt(length(femalep60_xfad_sessions));
 p(i+1)=plot(log2gapdurs, mgpias, '.-m');
 e(i+1)=errorbar(log2gapdurs, mgpias, sem, 'm');
 i=i+1;legstr{i}='female 5XFAD';
@@ -508,7 +526,7 @@ print -dpdf fig2.pdf
 %convert to long form
 clear sex
 j=0;
-for i=male_control_sessions
+for i=malep60_control_sessions
     for gd=1:numgapdurs
         j=j+1;
         X(j)=GPIAScontrol(i, gd);
@@ -519,7 +537,7 @@ for i=male_control_sessions
     end
 end
 k=0;
-for i=male_xfad_sessions
+for i=malep60_xfad_sessions
     for gd=1:numgapdurs
         k=k+1;
         j=j+1;
@@ -533,14 +551,14 @@ end
 [p, anovatab, stats]=kruskalwallis(X, grouping);
 df=anovatab{2, 3};
 chisq=anovatab{2, 5};
-fprintf(fid, '\n\nEffect of sex:');
+fprintf(fid, '\n\nEffect of sex (over-p60):');
 fprintf(fid, '\nkruskal wallis effect of xfad vs control for males:');
 fprintf(fid, '\np=%g, d.f.=%d, chi-squared=%.2f ', p, df, chisq);
 
 
 j=0;
 clear X grouping
-for i=female_control_sessions
+for i=femalep60_control_sessions
     for gd=1:numgapdurs
         j=j+1;
         X(j)=GPIAScontrol(i, gd);
@@ -551,7 +569,7 @@ for i=female_control_sessions
     end
 end
 k=0;
-for i=female_xfad_sessions
+for i=femalep60_xfad_sessions
     for gd=1:numgapdurs
         k=k+1;
         j=j+1;
@@ -565,9 +583,9 @@ end
 [p, anovatab, stats]=kruskalwallis(X, grouping);
 df=anovatab{2, 3};
 chisq=anovatab{2, 5};
-fprintf(fid, '\n\nkruskal wallis effect of xfad vs control for females:');
+fprintf(fid, '\nkruskal wallis effect of xfad vs control for females:');
 fprintf(fid, '\np=%g, d.f.=%d, chi-squared=%.2f ', p, df, chisq);
-
+fprintf(fid, '\n\nall age mice:')
 fprintf(fid, '\nn=%d control males', length(unique(mouseid_control_male)));
 fprintf(fid, '\nn=%d xfad males', length(unique(mouseid_xfad_male)));
 fprintf(fid, '\nn=%d control females', length(unique(mouseid_control_female)));
@@ -575,7 +593,7 @@ fprintf(fid, '\nn=%d xfad females', length(unique(mouseid_xfad_female)));
 
 j=0;
 clear X grouping sex
-for i=female_control_sessions
+for i=femalep60_control_sessions
     for gd=1:numgapdurs
         j=j+1;
         X(j)=GPIAScontrol(i, gd);
@@ -584,7 +602,7 @@ for i=female_control_sessions
         sex{j}='female';
     end
 end
-for i=male_control_sessions
+for i=malep60_control_sessions
     for gd=1:numgapdurs
         j=j+1;
         X(j)=GPIAScontrol(i, gd);
@@ -596,7 +614,7 @@ end
 [p, anovatab, stats]=kruskalwallis(X, sex);
 df=anovatab{2, 3};
 chisq=anovatab{2, 5};
-fprintf(fid, '\n\nkruskal wallis effect of sex for control mice:');
+fprintf(fid, '\n\nkruskal wallis effect of sex for over-p60 control mice:');
 fprintf(fid, '\np=%g, d.f.=%d, chi-squared=%.2f ', p, df, chisq);
 
 fprintf(fid, '\nn=%d male xfad sessions', length(male_xfad_sessions));
@@ -704,14 +722,18 @@ print -dpdf fig3b.pdf
 %look at GD over time
 fprintf(fid, '\n')
 fprintf(fid, '\nlinear regression of gap detection as a function of age:\n')
+figure
+subplot1(4,2);
+p=0;
 for gdindex=2:8
-    figure; hold on
-    set(gca, 'fontsize', fs)
-    plot(age_control, GPIAScontrol(:,gdindex), 'ko')
-    plot(age_xfad, GPIASxfad(:,gdindex), 'ro')
+    p=p+1;
+    subplot1(p)
+%     set(gca, 'fontsize', fs)
+    plot(age_control, GPIAScontrol(:,gdindex), 'k.', 'markersize', ms)
+    plot(age_xfad, GPIASxfad(:,gdindex), 'r.', 'markersize', ms)
     xlabel('age, days')
     ylabel('% gpias')
-    lsline
+    h=lsline;    set(h, 'linewidth', lw)
     title(sprintf('GPIAS for  %d ms gap',  gapdurs(gdindex)))
     
     Ycontrol=GPIAScontrol(:,gdindex);
@@ -721,18 +743,25 @@ for gdindex=2:8
     pcontrol=STATScontrol(3);
     Pcontrol(gdindex)=pcontrol;
     fprintf(fid, '\ncontrol GPIAS by age, %d ms gap, r2=%.2f,b=%.2f, p=%.4f', gapdurs(gdindex), r2control, B(1), pcontrol);
-    
-    
+       if pcontrol<.05
+       text(105, [105 1]*B, '*', 'color', 'k', 'fontsize', 32)
+   end
+
     Yxfad=GPIASxfad(:,gdindex);
     Xxfad=[age_xfad(:) ones(size(age_xfad(:)))];
     [B,BINT,R,RINT,STATSxfad] = regress(Yxfad,Xxfad);
     r2xfad=STATSxfad(1);
     pxfad=STATSxfad(3);
     Pxfad(gdindex)=pxfad;
-    fprintf(fid, '\nxfad GPIAS by age, %d ms gap, r2=%.2f, b=%.2f, p=%.4f', gapdurs(gdindex), r2xfad, B(2), pxfad);
-    legend(sprintf('control p=%.4f', pcontrol), sprintf('xfad p=%.4f', pxfad), 'location', 'southeast')
+    fprintf(fid, '\nxfad GPIAS by age, %d ms gap, r2=%.2f, b=%.2f, p=%.4f', gapdurs(gdindex), r2xfad, B(1), pxfad);
+       if pxfad<.05
+       text(105, [105 1]*B, '*', 'color', 'r', 'fontsize', 32)
+   end
+
+   % legend(sprintf('control p=%.4f', pcontrol), sprintf('xfad p=%.4f', pxfad), 'location', 'southeast')
     
 end
+set(gcf, 'pos', [25        1136         975        1322])
 
 % choose 4ms and 256ms as examples for fig3c,d
 for gdindex=[5 8]
@@ -827,7 +856,7 @@ end
 age_min=min(age_long);
 for age_max=45:5:80;
     i=find(age_long<age_max & age_long>age_min);
-    [p, anovatab, stats]=kruskalwallis(X(i), grouping(i), 'off')
+    [p, anovatab, stats]=kruskalwallis(X(i), grouping(i), 'off');
     df=anovatab{2, 3};
     chisq=anovatab{2, 5};
     fprintf(fid,'\nkruskal wallis main effect of xfad vs control, age range %d - %d:', age_min, age_max);
@@ -841,7 +870,43 @@ for age_max=45:5:80;
     fprintf(fid,'\n%d control mice',    length(unique(mouseID_long(j))));
     fprintf(fid,'\n');
 end
-fclose(fid)
+
+% repeat but only doing a 1-tailed rank sum on 256 ms
+    fprintf(fid,'\nrepeat but only doing a 1-tailed rank sum on 256 ms')
+for age_max=40:10:100;
+    i=find(age_long<age_max & age_long>age_min & gdgroup==8);
+    % for gd=2:numgapdurs
+    %     p=ranksum(GPIASxfad(:, gd),GPIAScontrol(:, gd));
+    %     fprintf(fid,'\ngd %d ms: p=%g, ', gapdurs(gd), p);
+    % end
+    
+    Xi=X(i);
+    Gi=grouping(i);
+    Xxfad=[];
+    Xcontrol=[];
+    for j=1:length(Gi)
+        switch Gi{j}
+            case 'xfad'
+                Xxfad=[Xxfad Xi(j)];
+            case 'control'
+                Xcontrol=[Xcontrol Xi(j)];
+        end
+    end
+    [p, h]=ranksum(Xcontrol,Xxfad, 'tail', 'right');
+    fprintf(fid,'\nranksum of gap 256 xfad vs control, age range %d - %d:', age_min, age_max);
+    fprintf(fid,'\nh=%d, p=%g ',h, p);
+    fprintf(fid,'\n%d xfad sessions', length(Xxfad));
+    m=strmatch('xfad', grouping(i));
+    fprintf(fid,'\n%d xfad mice',    length(unique(mouseID_long(m))));
+    
+    fprintf(fid,'\n%d control sessions', length(Xcontrol));
+    n=strmatch('control', grouping(i));
+    fprintf(fid,'\n%d control mice',    length(unique(mouseID_long(n))));
+    fprintf(fid,'\n');
+end
+
+
+fclose(fid);
 type(fname)
 
 if 0

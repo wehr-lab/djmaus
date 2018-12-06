@@ -166,7 +166,7 @@ switch action
         pref.datapath=pwd;
         SP.datapath=pref.datapath;
         set(SP.pathh, 'string', SP.datapath)
-        set(SP.mouseIDMenuh, 'string', pref.allmouseIDs)
+        %set(SP.mouseIDMenuh, 'string', pref.allmouseIDs)
         
     case 'mouseIDMenu'
         mouseIDs=get(SP.mouseIDMenuh, 'string');
@@ -177,6 +177,16 @@ switch action
         end
         SP.mouseID=mouseID;
         LoadMouse
+        
+    case 'mouse2IDMenu'
+        mouseIDs=get(SP.mouse2IDMenuh, 'string');
+        if ~iscell(mouseIDs) %skip if only one menu item
+        else
+            mouseID=mouseIDs{get(SP.mouse2IDMenuh, 'value')};
+            set(SP.mouse2IDh, 'string', mouseID)
+        end
+        SP.mouse2ID=mouseID;
+        LoadMouse2
         
     case 'mouseID'
         SP.mouseID=get(SP.mouseIDh, 'string');
@@ -198,8 +208,36 @@ switch action
         end
         set(SP.mouseIDMenuh, 'string',mouseIDs)
         SP.allmouseIDs=mouseIDs;
-        WriteMouseIDtoPrefs
+        %WriteMouseIDtoPrefs %not using prefs for this anymore 12.05.2018
+        %save('mouseDB.mat', sprintf('mouseID_%s',SP.mouseID), '-append')
         LoadMouse
+        
+    case 'mouse2ID'
+        SP.mouse2ID=get(SP.mouse2IDh, 'string');
+        mouseIDs=get(SP.mouse2IDMenuh, 'string');
+        if ~iscell(mouseIDs) mouseIDs={mouseIDs};end
+        
+        if isempty(mouseIDs)
+            mouseIDs=SP.mouse2ID;
+        elseif iscell(mouseIDs) & length(mouseIDs)>1 %more than one menu item
+            mouseIDs=unique({mouseIDs{:}, SP.mouse2ID});
+        elseif iscell(mouseIDs) & length(mouseIDs)==1 %only one menu item
+            mouseIDs=unique({mouseIDs{:}, SP.mouse2ID});
+            set(SP.mouseIDMenu2h, 'value',1)
+        elseif length(mouseIDs)==1 %only one menu item
+            mouseIDs={mouseIDs, SP.mouse2ID};
+            set(SP.mouseIDMenu2h, 'value',1)
+        else
+            error('?')
+        end
+        set(SP.mouse2IDMenuh, 'string',mouseIDs)
+        SP.allmouseIDs=mouseIDs;
+        %WriteMouseIDtoPrefs %not using prefs for this anymore 12.05.2018
+        %save('mouseDB.mat', sprintf('mouseID_%s',SP.mouse2ID), '-append')
+        LoadMouse2
+        
+    case 'SecondmouseIDbutton'
+        AddSecondMouse
         
     case 'Record'
         Record
@@ -239,6 +277,43 @@ switch action
         pos(1)=pos(1)+pos(3);
         SP.Ageh=uicontrol(gcf,'tag','mouseAgelabel','style','text','units','pixels',...
             'string', sprintf('age\n%.1f mo', SP.Age), 'fontsize', 10,...
+            'enable','inact','horiz','left','pos', pos);
+        
+    case 'mouse2Genotype'
+        SP.mouse2Genotype=get(SP.mouse2Genotypeh, 'string');
+        cd (pref.root)
+        try load mouseDB
+        end
+        str=sprintf('mouseID_%s.mouseGenotype=''%s'';', SP.mouse2ID, SP.mouse2Genotype);
+        eval(str);
+        save('mouseDB.mat', sprintf('mouseID_%s',SP.mouse2ID), '-append')
+        
+    case 'mouse2Sex'
+        SP.mouse2Sex=lower(get(SP.mouse2Sexh, 'string'));
+        set(SP.mouse2Sexh, 'string', SP.mouse2Sex)
+        cd (pref.root)
+        try load mouseDB
+        end
+        str=sprintf('mouseID_%s.mouseSex=''%s'';', SP.mouse2ID, SP.mouse2Sex);
+        eval(str)
+        save('mouseDB.mat', sprintf('mouseID_%s',SP.mouse2ID), '-append')
+        
+    case 'mouse2DOB'
+        SP.mouse2DOB=get(SP.mouse2DOBh, 'string');
+        cd (pref.root)
+        try load mouseDB
+        end
+        str=sprintf('mouseID_%s.mouseDOB=''%s'';', SP.mouse2ID, SP.mouse2DOB);
+        eval(str)
+        save('mouseDB.mat', sprintf('mouseID_%s',SP.mouse2ID), '-append')
+        SP.Age2=(datenum(date)-datenum(SP.mouse2DOB))/30; %in months
+        pos1=get(SP.mouse2Sexh, 'pos');
+        pos=get(SP.mouse2DOBh, 'pos');
+        pos(3)=.6*pos1(3);
+        set(SP.mouse2DOBh, 'pos',pos);
+        pos(1)=pos(1)+pos(3);
+        SP.Age2h=uicontrol(gcf,'tag','mouse2Agelabel','style','text','units','pixels',...
+            'string', sprintf('age\n%.1f mo', SP.Age2), 'fontsize', 10,...
             'enable','inact','horiz','left','pos', pos);
         
         
@@ -424,6 +499,41 @@ try
 catch
     djMessage('could not load mouse database')
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function LoadMouse2
+global SP pref
+cd (pref.root)
+try
+    mouseDB=load('mouseDB.mat');
+    if isfield(mouseDB, ['mouseID_', SP.mouse2ID])
+        try
+            str=sprintf('SP.mouse2Genotype=mouseDB.mouseID_%s.mouseGenotype;', SP.mouse2ID);
+            eval(str);
+            set(SP.mouse2Genotypeh, 'string', SP.mouse2Genotype);
+        end
+        try
+            str=sprintf('SP.mouse2DOB=mouseDB.mouseID_%s.mouseDOB;', SP.mouse2ID);
+            eval(str);
+            set(SP.mouse2DOBh, 'string', SP.mouse2DOB);
+        end
+        try
+            str=sprintf('SP.mouse2Sex=mouseDB.mouseID_%s.mouseSex;', SP.mouse2ID);
+            eval(str);
+            set(SP.mouse2Sexh, 'string', SP.mouse2Sex);
+        end
+    else
+        SP.mouse2Genotype='genotype unknown';
+        set(SP.mouse2Genotypeh, 'string', SP.mouse2Genotype);
+        SP.mouse2Sex='sex unknown';
+        set(SP.mouse2Sexh, 'string', SP.mouse2Sex);
+        SP.mouse2DOB='age unknown';
+        set(SP.mouse2DOBh, 'string', SP.mouse2DOB);
+    end
+catch
+    djMessage('could not load mouse database')
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function WriteMouseIDtoPrefs
 global SP pref
@@ -668,7 +778,7 @@ if SP.Record
             protocol=SP.ProtocolIndex;
             current=SP.CurrentStimulus(protocol);
             inQueue=current-status.SchedulePosition-SP.CurrStimatPPAstart;
-            Question=sprintf('stimuli have not finished playing yet (%d remaining).\nDo you really want to stop acquisition?', inQueue);            
+            Question=sprintf('stimuli have not finished playing yet (%d remaining).\nDo you really want to stop acquisition?', inQueue);
             ButtonName = questdlg(Question, 'Are you sure?', 'Cancel', 'Really Stop', 'Cancel');
             if strcmp(ButtonName, 'Cancel')
                 %unclick the record button
@@ -684,12 +794,16 @@ if SP.Record
     SP.Record=0;
     set(SP.mouseIDh, 'enable', 'on');
     set(SP.mouseIDMenuh, 'enable', 'on');
+    if isfield(SP, 'mouse2ID')
+        set(SP.mouse2IDh, 'enable', 'on');
+        set(SP.mouse2IDMenuh, 'enable', 'on');
+    end
     if pref.camera_rec==1 %set the camera to be turned off when stopped recording
         SP.Campulse=0;
         set(SP.camerapulse, 'backgroundcolor',[0 0.9 0],'String','Camera Stopped');
         PPAdj('camerapulse_off')
     else
-       fprintf('\n camera not recording\n')
+        fprintf('\n camera not recording\n')
     end
     
     UpdateNotebookFile
@@ -718,6 +832,10 @@ else
     set(SP.Recordh, 'backgroundcolor',[0.9 0 0],'String','Recording...');
     set(SP.mouseIDh, 'enable', 'off');
     set(SP.mouseIDMenuh, 'enable', 'off');
+    if isfield(SP, 'mouse2ID')
+        set(SP.mouse2IDh, 'enable', 'off');
+        set(SP.mouse2IDMenuh, 'enable', 'off');
+    end
     SP.Record=1;
     SP.stimcounter=0;
     if isfield(SP, 'stimlog')
@@ -769,7 +887,7 @@ try
     if strcmp(SP.activedir(1:6), 'o:\d:\') %hack mw 080217
         SP.activedir=SP.activedir([1:3 7:end]);
     end
-     if strcmp(SP.activedir(1:6), 'n:\e:\') %hack mw 081518
+    if strcmp(SP.activedir(1:6), 'n:\e:\') %hack mw 081518
         SP.activedir=SP.activedir([1:3 7:end]);
     end
     
@@ -812,6 +930,13 @@ try
     nb.Drugs=SP.Drugs;
     nb.notes=SP.Notes;
     nb.Reinforcement=SP.Reinforcement;
+    
+    if isfield(SP, 'mouse2ID')
+        nb.mouse2ID=SP.mouse2ID;
+        nb.mouse2DOB=SP.mouse2DOB;
+        nb.mouse2Sex=SP.mouse2Sex;
+        nb.mouse2Genotype=SP.mouse2Genotype;
+    end
     
     save('notebook.mat', 'nb')
     fprintf('\ncreated notebook file in %s', nb.activedir)
@@ -886,6 +1011,13 @@ nb.mouseGenotype=SP.mouseGenotype;
 nb.notes=SP.Notes;
 nb.Drugs=SP.Drugs;
 nb.Reinforcement=SP.Reinforcement;
+
+if isfield(SP, 'mouse2ID')
+    nb.mouse2ID=SP.mouse2ID;
+    nb.mouse2DOB=SP.mouse2DOB;
+    nb.mouse2Sex=SP.mouse2Sex;
+    nb.mouse2Genotype=SP.mouse2Genotype;
+end
 
 if ~isfield(SP, 'stimlog') %perhaps no stimuli were even delivered
     stimlog=[];
@@ -1292,8 +1424,8 @@ SP.Noteslabel=uicontrol(fig,'tag','Noteslabel','style','text','units','pixels',.
     'enable','inact','horiz','left','pos', [3*e+3*w  H w h/2]);
 
 H=H+h/2+e;
-hp = uipanel( 'Title','Notebook','units','pixels', 'Position',[3*e+3*w H 2*w 15*h]);
-
+hp = uipanel( 'Title','Notebook','units','pixels', 'Position',[3*e+3*w H 2*w 16*h]);
+SP.hp=hp;
 
 % Manipulation/conditions details (anesthesia, Any other drugs, Shock, Reward, etc)
 H=e;
@@ -1368,7 +1500,16 @@ SP.LaserPower='unknown';
 
 %mouseID menu
 warning('off', 'MATLAB:hg:uicontrol:StringMustBeNonEmpty');
-if isfield(pref, 'allmouseIDs') SP.allmouseIDs=pref.allmouseIDs; else SP.allmouseIDs='';end
+%old way was to have a list in djprefs
+%new way is to just read the database mw 12.05.2018
+%if isfield(pref, 'allmouseIDs') SP.allmouseIDs=pref.allmouseIDs; else SP.allmouseIDs='';end
+DB_IDs=whos('-file', 'mouseDB.mat');
+SP.allmouseIDs{1}='';
+for i=1:length(DB_IDs)
+    idname=DB_IDs(i).name;
+    idname=strrep(idname, 'mouseID_', '');
+    SP.allmouseIDs{i+1}=idname;
+end
 SP.mouseIDMenuh=uicontrol(fig,'Parent',hp,'tag','mouseIDMenu','style','popupmenu','units','pixels','fontweight','bold',...
     'string', SP.allmouseIDs,'enable','on','horiz','left','callback',[me ';'], 'pos',[e H w h]);
 H=H+h+e;
@@ -1380,6 +1521,12 @@ H=H+h+e;
 SP.mouseIDlabel=uicontrol(fig,'Parent',hp,'tag','mouseIDlabel','style','text','units','pixels',...
     'string', 'mouseID', 'fontsize', labelfs,...
     'enable','inact','horiz','left','pos', [e  H w h/2]);
+
+H=H+h/2;
+SP.SecondmouseIDbuttonh=uicontrol(fig,'Parent',hp,'tag','SecondmouseIDbutton',...
+    'style','togglebutton','fontweight','bold','units','pixels','value', 0, ...
+    'string', '+mouse','horiz','left', 'callback',[me ';'],'pos',[e+w/2  H w/2+e h ]);
+
 H=H+h;
 
 %check for mouseDB and initialize if not present
@@ -1408,6 +1555,89 @@ set(fig,'visible','on');
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%InitializeGui%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+function AddSecondMouse
+global SP pref
+fig=SP.fig;
+hp=SP.hp;
+pos=get(fig, 'position');
+e=2; H=e;
+w=100; h=25;
+labelfs=8; %fontsize for labels
+
+buttonstate=get( SP.SecondmouseIDbuttonh, 'value');
+if buttonstate %add second mouse
+    djMessage(' adding a second mouse...')
+    %keyboard
+    pos(3)=pos(3)+w+e;
+    set(fig, 'pos', pos)
+    set(SP.SecondmouseIDbuttonh,'string', '-mouse')
+    
+    %mouseID menu
+    H=H+10.5*h+9*e;
+    warning('off', 'MATLAB:hg:uicontrol:StringMustBeNonEmpty');
+    if isfield(pref, 'allmouseIDs') SP.allmouseIDs=pref.allmouseIDs; else SP.allmouseIDs='';end
+    SP.mouse2IDMenuh=uicontrol(fig,'Parent',hp,'tag','mouse2IDMenu','style','popupmenu','units','pixels','fontweight','bold',...
+        'string', SP.allmouseIDs,'enable','on','horiz','left','callback',[me ';'], 'pos',[e+w H w h]);
+    H=H+h+e;
+    
+    %mouseID edit box
+    SP.mouse2IDh=uicontrol(fig,'Parent',hp,'tag','mouse2ID','style','edit','fontweight','bold','units','pixels',...
+        'string', '','horiz','left', 'callback',[me ';'],'pos',[e+w  H w h ]);
+    H=H+h+e;
+    SP.mouse2IDlabel=uicontrol(fig,'Parent',hp,'tag','mouse2IDlabel','style','text','units','pixels',...
+        'string', 'mouse2ID', 'fontsize', labelfs,...
+        'enable','inact','horiz','left','pos', [e+w  H w h/2]);
+    
+    H=81;
+    %mouse details
+    SP.mouse2DOBh=uicontrol(fig,'Parent',hp,'tag','mouse2DOB','style','edit','units','pixels',...
+        'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[e+w  H w h ]);
+    H=H+h;
+    SP.mouse2DOBlabel=uicontrol(fig,'Parent',hp,'tag','mouse2DOBlabel','style','text','units','pixels',...
+        'string', 'mouse2DOB:', 'fontsize', labelfs,...
+        'enable','inact','horiz','left','pos', [e+w  H w h/2]);
+    H=H+h/2+e;
+    
+    SP.mouse2Sexh=uicontrol(fig,'Parent',hp,'tag','mouse2Sex','style','edit','units','pixels',...
+        'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[e+w  H w h ]);
+    H=H+h;
+    SP.mouse2Sexlabel=uicontrol(fig,'Parent',hp,'tag','mouse2Sexlabel','style','text','units','pixels',...
+        'string', 'mouse2Sex:', 'fontsize', labelfs,...
+        'enable','inact','horiz','left','pos', [e+w  H w h/2]);
+    H=H+h/2+e;
+    SP.mouse2Genotypeh=uicontrol(fig,'Parent',hp,'tag','mouse2Genotype','style','edit','units','pixels',...
+        'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[e+w  H w h ]);
+    H=H+h;
+    SP.mouse2Genotypelabel=uicontrol(fig,'Parent',hp,'tag','mouse2Genotypelabel','style','text','units','pixels',...
+        'string', 'mouse2Genotype:', 'fontsize', labelfs,...
+        'enable','inact','horiz','left','pos', [e+w  H w h/2]);
+    H=H+h/2+e;
+    SP.mouse2Sex='unknown';
+    SP.mouse2DOB='unknown';
+    SP.mouse2Genotype='unknown';
+    
+elseif ~buttonstate %remove second mouse
+    
+    clear SP.mouse2Sex SP.mouse2DOB SP.mouse2Genotype SP.mouse2ID
+    delete(SP.mouse2Genotypeh)
+    delete(SP.mouse2Genotypelabel)
+    delete(SP.mouse2Sexlabel)
+    delete(SP.mouse2Sexh)
+    delete(SP.mouse2DOBlabel)
+    delete(SP.mouse2DOBh)
+    delete(SP.mouse2IDMenuh)
+    delete(SP.mouse2IDh )
+    delete(SP.mouse2IDlabel)
+    
+    pos(3)=pos(3)-w-e;
+    set(SP.fig, 'pos', pos)
+    set(SP.SecondmouseIDbuttonh,'string', '+mouse')
+    
+    djMessage('removed second mouse')
+end
 
 
 

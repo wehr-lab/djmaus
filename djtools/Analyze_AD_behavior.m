@@ -17,6 +17,8 @@ elseif ismac
 end
 close all hidden
 reprocess=0;
+
+
 if reprocess
     %process group data
     fprintf('\nReprocessing data...\n')

@@ -281,7 +281,7 @@ fprintf('\nloading %s', outfilename)
             analysisWindow = 50;
             load(tempDir(icell).name)
             
-            nrepsOFF=min1(out.nrepsOFF);
+            nrepsOFF=min(out.nrepsOFF);
             M1OFF = out.M1OFF;
             gapdurs = out.gapdurs;
             [minGap, ind_minGap] =min(gapdurs);

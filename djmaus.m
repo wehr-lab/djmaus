@@ -166,7 +166,7 @@ switch action
         pref.datapath=pwd;
         SP.datapath=pref.datapath;
         set(SP.pathh, 'string', SP.datapath)
-        set(SP.mouseIDMenuh, 'string', pref.allmouseIDs)
+        %set(SP.mouseIDMenuh, 'string', pref.allmouseIDs)
         
     case 'mouseIDMenu'
         mouseIDs=get(SP.mouseIDMenuh, 'string');
@@ -208,7 +208,8 @@ switch action
         end
         set(SP.mouseIDMenuh, 'string',mouseIDs)
         SP.allmouseIDs=mouseIDs;
-        WriteMouseIDtoPrefs
+        %WriteMouseIDtoPrefs %not using prefs for this anymore 12.05.2018
+        %save('mouseDB.mat', sprintf('mouseID_%s',SP.mouseID), '-append')
         LoadMouse
         
     case 'mouse2ID'
@@ -231,7 +232,8 @@ switch action
         end
         set(SP.mouse2IDMenuh, 'string',mouseIDs)
         SP.allmouseIDs=mouseIDs;
-        WriteMouseIDtoPrefs
+        %WriteMouseIDtoPrefs %not using prefs for this anymore 12.05.2018
+        %save('mouseDB.mat', sprintf('mouseID_%s',SP.mouse2ID), '-append')
         LoadMouse2
         
     case 'SecondmouseIDbutton'

@@ -1498,7 +1498,16 @@ SP.LaserPower='unknown';
 
 %mouseID menu
 warning('off', 'MATLAB:hg:uicontrol:StringMustBeNonEmpty');
-if isfield(pref, 'allmouseIDs') SP.allmouseIDs=pref.allmouseIDs; else SP.allmouseIDs='';end
+%old way was to have a list in djprefs
+%new way is to just read the database mw 12.05.2018
+%if isfield(pref, 'allmouseIDs') SP.allmouseIDs=pref.allmouseIDs; else SP.allmouseIDs='';end
+DB_IDs=whos('-file', 'mouseDB.mat');
+SP.allmouseIDs{1}='';
+for i=1:length(DB_IDs)
+    idname=DB_IDs(i).name;
+    idname=strrep(idname, 'mouseID_', '');
+    SP.allmouseIDs{i+1}=idname;
+end
 SP.mouseIDMenuh=uicontrol(fig,'Parent',hp,'tag','mouseIDMenu','style','popupmenu','units','pixels','fontweight','bold',...
     'string', SP.allmouseIDs,'enable','on','horiz','left','callback',[me ';'], 'pos',[e H w h]);
 H=H+h+e;

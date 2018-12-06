@@ -36,6 +36,12 @@ else
     fprintf('eliminating traces with too much activity before test\n')
 end
 
+if exist('nb', 'var')
+    if isfield(nb, 'mouse2ID')
+        fprintf('\nnotebook file has a second mouse ID, will try to process that after the first mouse')
+    end
+end
+
 %read messages
 messagesfilename='messages.events';
 [messages] = GetNetworkEvents(messagesfilename);
@@ -626,6 +632,7 @@ end
 
 %save to outfiles
 out.IL=IL;
+out.flag=flag;
 
 out.M1ON=M1ON;    % scaledtrace (depends on flag.accel)
 out.M1OFF=M1OFF;    % scaledtrace
@@ -692,3 +699,18 @@ end
 outfilename=sprintf('outGPIAS_Behavior.mat');
 save (outfilename, 'out')
 fprintf('\nsaved outfile %s \nin directory %s\n', outfilename, pwd)
+
+if exist('nb', 'var')
+    if isfield(nb, 'mouse2ID')
+        filename5=sprintf('%s_ADC5.continuous', node);
+        
+        
+        if exist(filename5, 'file')==2
+            fprintf('\nnow processing second mouse...')
+            
+            ProcessGPIAS_BehaviorMouse2(out);
+        end
+    end
+end
+    
+    

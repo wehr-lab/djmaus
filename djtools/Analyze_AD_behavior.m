@@ -16,7 +16,7 @@ elseif ismac
 
 end
 
-reprocess=0;
+reprocess=1;
 if reprocess
     %process group data
     fprintf('\nReprocessing data...\n')

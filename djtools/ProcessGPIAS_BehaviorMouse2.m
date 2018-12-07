@@ -11,7 +11,11 @@ function ProcessGPIAS_BehaviorMouse2(out)
 % saves to outfile
 
 [Stack,i] = dbstack;
-Stack
+if length(Stack)<2
+error('this function is not meant to be run by itself. It''s called automatically from ProcessGPIAS_BehaviorTilt')
+elseif ~strcmp(Stack(i+1).name, 'ProcessGPIAS_BehaviorTilt')
+error('this function is not meant to be run by itself. It''s called automatically from ProcessGPIAS_BehaviorTilt')
+end
 
     %do error checking on Stack to make sure we were called by ProcessGPIAS_BehaviorTilt
     

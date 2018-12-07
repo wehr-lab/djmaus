@@ -18,7 +18,9 @@ ISIWindowms=[0 60]; % in ms relative to onset of pre-pulse    %added by APW 3_31
 
 
 [~, FNtemp, ~] = fileparts(datadir);
-force_reprocess=1;
+FNtemp=FNtemp(1:19); %trim mouseID from dirname
+
+force_reprocess=0;
 if force_reprocess
     fprintf('\nForce re-process\n')
     ProcessGPIAS_BehaviorTilt(datadir,4);
@@ -36,7 +38,7 @@ fprintf('\nfound %d outfiles.', length(d))
 for outindex=1:length(d)
     % outfilename=sprintf('outGPIAS_Behavior.mat');
     outfilename=d(outindex).name;
-fprintf('\nloading %s', outfilename)
+    fprintf('\nloading %s', outfilename)
     load(outfilename)
     
     
@@ -73,7 +75,13 @@ fprintf('\nloading %s', outfilename)
     mM1ONstim=out.mM1ONstim;
     mM1OFFstim=out.mM1OFFstim;
     xlimits=out.xlimits;
-    
+
+    if isfield(out, 'mouseID') & strcmp(out.outfilename, 'outGPIAS_Behavior.mat')
+        mouseID=out.mouseID;
+    elseif isfield(out, 'mouse2ID') & strcmp(out.outfilename, 'outGPIAS_BehaviorMouse2.mat')  
+        mouseID=out.mouse2ID;
+    else mouseID='???';
+    end
     % %find optimal axis limits
     if ~isempty(mM1OFF)
         ylimits(1)=min(mM1OFF(:));
@@ -132,12 +140,19 @@ fprintf('\nloading %s', outfilename)
                     %axis off
                     
                 end
+                
                 subplot1(1)
-                h=title(sprintf('%s:\nnreps: %d-%d, OFF',FNtemp,min(nrepsOFF(:)),max(nrepsOFF(:))));
+                h=title(sprintf('%s mouse %s:\nnreps: %d-%d, OFF',FNtemp,mouseID, min(nrepsOFF(:)),max(nrepsOFF(:))));
                 set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal','interpreter','none')
                 
                 subplot1(numgapdurs)
                 xlabel('Time (ms)');
+                
+                pos=get(gcf, 'pos');
+                pos(4)=pos(4)+160; %make taller 
+                pos(2)=pos(4)-160; %make taller 
+                set(gcf, 'pos', pos)
+
             end
             
             %plot the mean Laser ON tuning curve
@@ -212,7 +227,7 @@ fprintf('\nloading %s', outfilename)
     end
     set(gca, 'xtick', 1:numgapdurs)
     set(gca, 'xticklabel', gapdurs)
-    h = title ([FNtemp ' percent GPIAS']);
+    h = title ([FNtemp, ' mouse ', mouseID,' percent GPIAS']);
     set(h,'interpreter','none')
     xlabel('gap duration')
     ylabel('percent GPIAS')
@@ -231,7 +246,7 @@ fprintf('\nloading %s', outfilename)
         end
         set(gca, 'xtick', 1:numgapdurs)
         set(gca, 'xticklabel', gapdurs)
-        h = title ([FNtemp ' startle']);
+        h = title ([FNtemp, ' mouse ', mouseID, ' startle']);
         set(h,'interpreter','none')
         xlabel('gap duration')
         ylabel('startle response +- sem')
@@ -259,117 +274,120 @@ fprintf('\nloading %s', outfilename)
             
             set(gca, 'xtick', 1:numgapdurs)
             set(gca, 'xticklabel', gapdurs)
-            h = title ([FNtemp ' startle']);
+            h = title ([FNtemp, ' mouse ', mouseID, ' startle']);
             set(h,'interpreter','none')
             xlabel('gap duration')
             ylabel('startle responses all trials')
         end
     end
     
-    % now process GTR and burst responses for all cells in pwd
-    tempDir = dir([pwd '\out*']);
+end
+return
+%not sure why it's looking for cellular data here
+
+% now process GTR and burst responses for all cells in pwd
+tempDir = dir([pwd '\out*']);
+
+if length(tempDir)>1
+    % Hfig_percentGPIAS2 = figure; hold on
+    % xlabel('percent GPIAS')
+    % ylabel('percent burst or GTR')
+    X1 = [];
+    Y1 = [];
+    Y2 = [];
     
-    if length(tempDir)>1
-        % Hfig_percentGPIAS2 = figure; hold on
-        % xlabel('percent GPIAS')
-        % ylabel('percent burst or GTR')
-        X1 = [];
-        Y1 = [];
-        Y2 = [];
+    for icell = 2:length(tempDir)
+        analysisWindow = 50;
+        load(tempDir(icell).name)
         
-        for icell = 2:length(tempDir)
-            analysisWindow = 50;
-            load(tempDir(icell).name)
-            
-            nrepsOFF=min(out.nrepsOFF);
-            M1OFF = out.M1OFF;
-            gapdurs = out.gapdurs;
-            [minGap, ind_minGap] =min(gapdurs);
-            numgapdurs = length(gapdurs);
-            burstDelay = out.soa;
-            
-            % make arrays (last value is SPONT)
-            PGIspikesPerRep = nan(numgapdurs+1,nrepsOFF);
-            %     H_PGI = nan(1,numgapdurs);
-            %     P_PGI = nan(1,numgapdurs);
-            deltaGTR = nan(1,numgapdurs);
-            BURSTspikesPerRep = nan(numgapdurs+1,nrepsOFF);
-            %     H_burst = nan(1,numgapdurs);
-            %     P_burst = nan(1,numgapdurs);
-            deltaBurst = nan(1,numgapdurs);
-            
-            if minGap           % if there is no 0 gap, then use data before minGap
-                for irep = 1:nrepsOFF
-                    temp = M1OFF(ind_minGap,1,irep).spiketimes;
-                    PGIspikesPerRep(numgapdurs+1,irep) = length(find(temp>-(minGap+analysisWindow) & temp<=-minGap));
-                    BURSTspikesPerRep(numgapdurs+1,irep) = length(find(temp>burstDelay & temp<=burstDelay+analysisWindow*2));
-                end
-            else        % minGap==0
-                for irep = 1:nrepsOFF
-                    temp = M1OFF(ind_minGap,1,irep).spiketimes;
-                    PGIspikesPerRep(numgapdurs+1,irep) = length(find(temp>0 & temp<=analysisWindow));
-                    BURSTspikesPerRep(numgapdurs+1,irep) = length(find(temp>burstDelay & temp<=burstDelay+analysisWindow*2));
-                end
+        nrepsOFF=min(out.nrepsOFF);
+        M1OFF = out.M1OFF;
+        gapdurs = out.gapdurs;
+        [minGap, ind_minGap] =min(gapdurs);
+        numgapdurs = length(gapdurs);
+        burstDelay = out.soa;
+        
+        % make arrays (last value is SPONT)
+        PGIspikesPerRep = nan(numgapdurs+1,nrepsOFF);
+        %     H_PGI = nan(1,numgapdurs);
+        %     P_PGI = nan(1,numgapdurs);
+        deltaGTR = nan(1,numgapdurs);
+        BURSTspikesPerRep = nan(numgapdurs+1,nrepsOFF);
+        %     H_burst = nan(1,numgapdurs);
+        %     P_burst = nan(1,numgapdurs);
+        deltaBurst = nan(1,numgapdurs);
+        
+        if minGap           % if there is no 0 gap, then use data before minGap
+            for irep = 1:nrepsOFF
+                temp = M1OFF(ind_minGap,1,irep).spiketimes;
+                PGIspikesPerRep(numgapdurs+1,irep) = length(find(temp>-(minGap+analysisWindow) & temp<=-minGap));
+                BURSTspikesPerRep(numgapdurs+1,irep) = length(find(temp>burstDelay & temp<=burstDelay+analysisWindow*2));
             end
-            
-            for idur = 1:numgapdurs
-                for irep = 1:nrepsOFF
-                    temp = M1OFF(idur,1,irep).spiketimes;
-                    PGIspikesPerRep(idur,irep) = length(find(temp>0 & temp<=analysisWindow));
-                    BURSTspikesPerRep(idur,irep) = length(find(temp>burstDelay & temp<=burstDelay+analysisWindow*2));
-                end
-                % hypothesis and P-values
-                %[H_PGI(idur),P_PGI(idur)] = ttest(PGIspikesPerRep(idur,:), PGIspikesPerRep(numgapdurs+1,:),'tail','both');
-                %[H_burst(idur),P_burst(idur)] = ttest(BURSTspikesPerRep(idur,:), BURSTspikesPerRep(numgapdurs+1,:),'tail','both');
+        else        % minGap==0
+            for irep = 1:nrepsOFF
+                temp = M1OFF(ind_minGap,1,irep).spiketimes;
+                PGIspikesPerRep(numgapdurs+1,irep) = length(find(temp>0 & temp<=analysisWindow));
+                BURSTspikesPerRep(numgapdurs+1,irep) = length(find(temp>burstDelay & temp<=burstDelay+analysisWindow*2));
             end
-            
-            meanGTR = mean(PGIspikesPerRep,2);
-            meanBurst = mean(BURSTspikesPerRep,2);
-            figure(Hfig_allStartle)
-            for idur = 1:numgapdurs
-                deltaGTR(idur) = mean(PGIspikesPerRep(idur,:)) / max1(meanGTR);
-                deltaBurst(idur) = mean(BURSTspikesPerRep(idur,:)) / max1(meanBurst);
-                plot(idur*ones(1,nrepsOFF),PGIspikesPerRep(idur,:)/ max1(meanGTR),'ro')
-            end
-            %ylim([0 10]);
-            
-            figure(Hfig_percentGPIAS)
-            plot(2:numgapdurs, deltaGTR(2:numgapdurs)*100,'ro-')
-            plot(2:numgapdurs, deltaBurst(2:numgapdurs)*100,'bo-')
-            
-            figure(Hfig_meanStartle)
-            plot(2:numgapdurs, mean(PGIspikesPerRep(2:numgapdurs,:),2),'ro-')
-            plot(2:numgapdurs, mean(BURSTspikesPerRep(2:numgapdurs,:),2),'bo-')
-            
-            figure; hold on
-            plot(percentGPIAS_OFF, deltaGTR*100,'ro')
-            plot(percentGPIAS_OFF, deltaBurst*100,'bo')
-            xlabel('percent GPIAS')
-            ylabel('percent burst or GTR')
-            [B1,~,~,~,STATS1] = regress(deltaGTR' *100,[ones(size(percentGPIAS_OFF')) percentGPIAS_OFF']);
-            Hline(1) = plot(percentGPIAS_OFF,B1(1)+B1(2).*percentGPIAS_OFF,'r');
-            [B2,~,~,~,STATS2] = regress(deltaBurst' *100,[ones(size(percentGPIAS_OFF')) percentGPIAS_OFF']);
-            Hline(2) = plot(percentGPIAS_OFF,B2(1)+B2(2).*percentGPIAS_OFF,'b');
-            legend(Hline,['GTR   %var=' num2str(round(STATS1(1)*100)) '  p=' num2str(round(STATS1(3),2))], ...
-                ['burst   %var=' num2str(round(STATS2(1)*100))  '  p=' num2str(round(STATS2(3),2))]);
-            title(tempDir(icell).name)
-            
-            X1 = [X1 percentGPIAS_OFF];
-            Y1 = [Y1 deltaGTR*100];
-            Y2 = [Y2 deltaBurst*100];
-            
         end
         
+        for idur = 1:numgapdurs
+            for irep = 1:nrepsOFF
+                temp = M1OFF(idur,1,irep).spiketimes;
+                PGIspikesPerRep(idur,irep) = length(find(temp>0 & temp<=analysisWindow));
+                BURSTspikesPerRep(idur,irep) = length(find(temp>burstDelay & temp<=burstDelay+analysisWindow*2));
+            end
+            % hypothesis and P-values
+            %[H_PGI(idur),P_PGI(idur)] = ttest(PGIspikesPerRep(idur,:), PGIspikesPerRep(numgapdurs+1,:),'tail','both');
+            %[H_burst(idur),P_burst(idur)] = ttest(BURSTspikesPerRep(idur,:), BURSTspikesPerRep(numgapdurs+1,:),'tail','both');
+        end
+        
+        meanGTR = mean(PGIspikesPerRep,2);
+        meanBurst = mean(BURSTspikesPerRep,2);
+        figure(Hfig_allStartle)
+        for idur = 1:numgapdurs
+            deltaGTR(idur) = mean(PGIspikesPerRep(idur,:)) / max1(meanGTR);
+            deltaBurst(idur) = mean(BURSTspikesPerRep(idur,:)) / max1(meanBurst);
+            plot(idur*ones(1,nrepsOFF),PGIspikesPerRep(idur,:)/ max1(meanGTR),'ro')
+        end
+        %ylim([0 10]);
+        
+        figure(Hfig_percentGPIAS)
+        plot(2:numgapdurs, deltaGTR(2:numgapdurs)*100,'ro-')
+        plot(2:numgapdurs, deltaBurst(2:numgapdurs)*100,'bo-')
+        
+        figure(Hfig_meanStartle)
+        plot(2:numgapdurs, mean(PGIspikesPerRep(2:numgapdurs,:),2),'ro-')
+        plot(2:numgapdurs, mean(BURSTspikesPerRep(2:numgapdurs,:),2),'bo-')
+        
         figure; hold on
-        plot(X1,Y1,'ro')
-        plot(X1,Y2,'bo')
+        plot(percentGPIAS_OFF, deltaGTR*100,'ro')
+        plot(percentGPIAS_OFF, deltaBurst*100,'bo')
         xlabel('percent GPIAS')
         ylabel('percent burst or GTR')
-        [B1,BINT1,R1,RINT1,STATS1] = regress(Y1',[ones(size(X1')) X1']);
-        Hline(1) = plot(X1,B1(1)+B1(2).*X1,'r');
-        [B2,BINT2,R2,RINT2,STATS2] = regress(Y2',[ones(size(X1')) X1']);
-        Hline(2) = plot(X1,B2(1)+B2(2).*X1,'b');
+        [B1,~,~,~,STATS1] = regress(deltaGTR' *100,[ones(size(percentGPIAS_OFF')) percentGPIAS_OFF']);
+        Hline(1) = plot(percentGPIAS_OFF,B1(1)+B1(2).*percentGPIAS_OFF,'r');
+        [B2,~,~,~,STATS2] = regress(deltaBurst' *100,[ones(size(percentGPIAS_OFF')) percentGPIAS_OFF']);
+        Hline(2) = plot(percentGPIAS_OFF,B2(1)+B2(2).*percentGPIAS_OFF,'b');
         legend(Hline,['GTR   %var=' num2str(round(STATS1(1)*100)) '  p=' num2str(round(STATS1(3),2))], ...
             ['burst   %var=' num2str(round(STATS2(1)*100))  '  p=' num2str(round(STATS2(3),2))]);
+        title(tempDir(icell).name)
+        
+        X1 = [X1 percentGPIAS_OFF];
+        Y1 = [Y1 deltaGTR*100];
+        Y2 = [Y2 deltaBurst*100];
+        
     end
+    
+    figure; hold on
+    plot(X1,Y1,'ro')
+    plot(X1,Y2,'bo')
+    xlabel('percent GPIAS')
+    ylabel('percent burst or GTR')
+    [B1,BINT1,R1,RINT1,STATS1] = regress(Y1',[ones(size(X1')) X1']);
+    Hline(1) = plot(X1,B1(1)+B1(2).*X1,'r');
+    [B2,BINT2,R2,RINT2,STATS2] = regress(Y2',[ones(size(X1')) X1']);
+    Hline(2) = plot(X1,B2(1)+B2(2).*X1,'b');
+    legend(Hline,['GTR   %var=' num2str(round(STATS1(1)*100)) '  p=' num2str(round(STATS1(3),2))], ...
+        ['burst   %var=' num2str(round(STATS2(1)*100))  '  p=' num2str(round(STATS2(3),2))]);
 end

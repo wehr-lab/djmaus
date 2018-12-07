@@ -691,12 +691,15 @@ try
     out.nb=nb;
     out.stimlog=stimlog;
     out.user=nb.user;
+    out.mouseID=nb.mouseID;
 catch
     out.nb='notebook file missing';
     out.stimlog='notebook file missing';
     out.user='unknown';
+    out.mouseID='unknown';
 end
 outfilename=sprintf('outGPIAS_Behavior.mat');
+out.outfilename=outfilename;
 save (outfilename, 'out')
 fprintf('\nsaved outfile %s \nin directory %s\n', outfilename, pwd)
 

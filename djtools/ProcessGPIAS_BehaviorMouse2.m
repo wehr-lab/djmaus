@@ -657,16 +657,10 @@ out.soaflag=soaflag;
 out.xlimits=xlimits;
 out.startle_window=startle_window;
 out.samprate=samprate;
-try
-    out.nb=nb;
-    out.stimlog=stimlog;
-    out.user=nb.user;
-catch
-    out.nb='notebook file missing';
-    out.stimlog='notebook file missing';
-    out.user='unknown';
-end
+out=rmfield(out, 'mouseID');
+out.mouse2ID=out.nb.mouse2ID;
 outfilename=sprintf('outGPIAS_BehaviorMouse2.mat');
+out.outfilename=outfilename;
 save (outfilename, 'out')
 fprintf('\nsaved outfile %s \nin directory %s\n', outfilename, pwd)
 

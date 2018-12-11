@@ -16,7 +16,7 @@ elseif ismac
     
 end
 close all hidden
-reprocess=0;
+reprocess=1;
 
 
 if reprocess

@@ -27,6 +27,7 @@ if reprocess
     
     cell_list='behavior_list.txt';
     fid=fopen(cell_list);
+    fid_mouselist=fopen('mouse_list.txt', 'w'); %generate an output text file to compare behavior list with notebook (mouse ID, geneotype, sex, etc)
     fseek(fid, 0, 1); %fastforward to end, to get file size
     filesize=ftell(fid);
     fseek(fid, 0, -1); %rewind to start
@@ -75,6 +76,8 @@ if reprocess
             sessioncount=sessioncount+1;
             fprintf('\n%s', datadir);
             fprintf('\ngroup: %s', group);
+            fprintf(fid_mouselist, '\n%s', datadir);
+            fprintf(fid_mouselist, '\ngroup: %s', group);
             
             dirstr=strsplit(datadir, '\');
             datadir2=dirstr{end};
@@ -113,6 +116,7 @@ if reprocess
             end
             
             fprintf('\nsex: %s %s dob: %s age: %d %s', sex, genotype, dob, age_days, age_wks)
+            fprintf(fid_mouselist, '\nsex: %s %s dob: %s age: %d %s', sex, genotype, dob, age_days, age_wks)
             
             if strcmp(genotype, 'unknown')
 %                 keyboard
@@ -204,6 +208,7 @@ if reprocess
         
     end
     fclose(fid); %close the output file
+    fclose(fid_mouselist);
     close(wb); %close the waitbar window
     cd(dataroot)
     clear figs_dir dataroot datadir datadir2
@@ -841,7 +846,8 @@ for i=1:numcontrol_sessions
         gdgroup(j)=gd;
         grouping{j}='control';
         age_long(j)=age_control(i);
-        mouseID_long(j)=mouseID_control(i);
+        sex_long{j}=sex_control{i};
+        mouseID_long{j}=mouseID_control{i};
     end
 end
 for i=1:numXFAD_sessions
@@ -851,7 +857,8 @@ for i=1:numXFAD_sessions
         gdgroup(j)=gd;
         grouping{j}='xfad';
         age_long(j)=age_xfad(i);
-        mouseID_long(j)=mouseID_xfad(i);
+        sex_long{j}=sex_xfad{i};
+        mouseID_long{j}=mouseID_xfad{i};
     end
 end
 %bin age and do stats
@@ -872,6 +879,8 @@ for age_max=45:5:80;
     fprintf(fid,'\n%d control mice',    length(unique(mouseID_long(j))));
     fprintf(fid,'\n');
 end
+
+
 
 % repeat but only doing a 1-tailed rank sum on 256 ms
     fprintf(fid,'\nrepeat but only doing a 1-tailed rank sum on 256 ms')
@@ -906,6 +915,16 @@ for age_max=40:10:100;
     fprintf(fid,'\n%d control mice',    length(unique(mouseID_long(n))));
     fprintf(fid,'\n');
 end
+
+
+% do a nested GLM to jpintly test the effects of age, sex, genotype, and mouseID
+keyboard
+
+T=table(grouping(:), gdgroup(:), age_long(:), sex_long(:), mouseID_long(:), X(:));
+T.Properties.VariableNames={'genotype', 'gapdur', 'age', 'sex', 'mouseID', 'GPIAS'};
+mdl=fitglm(T, 'linear')
+mdl=fitglm(T, 'interactions')
+
 
 
 fclose(fid);

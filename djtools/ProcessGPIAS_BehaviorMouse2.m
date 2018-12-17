@@ -517,6 +517,13 @@ for paindex=1:numpulseamps
     fprintf('\nusing MEDIAN of peak(abs(trace)) or of sum(abs(trace))  responses\n')
     
     %only makes sense for numgapdurs >= 2
+    % duped here 12/11/2018 (Kip)
+    percentGPIAS_ON=[];
+    %         percentGPIAS_ONACC=[];
+    percentGPIAS_ONsum=[];
+    %         percentGPIAS_ONACCsum=[];
+    pON=[];
+    
     if isempty(PeakON)
         percentGPIAS_ON=[];
 %         percentGPIAS_ONACC=[];
@@ -563,7 +570,15 @@ for paindex=1:numpulseamps
 % %             fprintf('ACCEL(sum): gd: %dms  %%GPIAS = %.1f%%,  T-test:%d,  p-value:%.3f\n',gapdurs(p),percentGPIAS_ONACCsum(p),H,temp);
         end
     end
-    if isempty(PeakOFF)
+    
+    % duped here 12/11/2018 (Kip)
+    percentGPIAS_OFF=[];
+    %         percentGPIAS_OFFACC=[];
+    percentGPIAS_OFFsum=[];
+    percentGPIAS_OFFACCsum=[];
+    pOFF=[];
+    
+        if isempty(PeakOFF)
         percentGPIAS_OFF=[];
 %         percentGPIAS_OFFACC=[];
         percentGPIAS_OFFsum=[];

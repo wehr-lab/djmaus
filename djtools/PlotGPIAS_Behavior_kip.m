@@ -20,7 +20,7 @@ ISIWindowms=[0 60]; % in ms relative to onset of pre-pulse    %added by APW 3_31
 [~, FNtemp, ~] = fileparts(datadir);
 FNtemp=FNtemp(1:19); %trim mouseID from dirname
 
-force_reprocess=1;
+force_reprocess=0;
 if force_reprocess
     fprintf('\nForce re-process\n')
     ProcessGPIAS_BehaviorTilt(datadir,4);

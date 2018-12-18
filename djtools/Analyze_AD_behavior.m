@@ -16,7 +16,7 @@ elseif ismac
     
 end
 close all hidden
-reprocess=0;
+reprocess=1;
 
 
 if reprocess
@@ -25,8 +25,8 @@ if reprocess
     
     cd(dataroot);
     
-    %    cell_list='behavior_list.txt';
-    cell_list='behavior_list_PUPS.txt';
+        cell_list='behavior_list.txt';
+%     cell_list='behavior_list_PUPS.txt';
     fid=fopen(cell_list);
     fid_mouselist=fopen('mouse_list.txt', 'w'); %generate an output text file to compare behavior list with notebook (mouse ID, geneotype, sex, etc)
     fseek(fid, 0, 1); %fastforward to end, to get file size
@@ -784,7 +784,7 @@ end
 set(gcf, 'pos', [25        1136         975        1322])
 
 % choose 4ms and 256ms as examples for fig3c,d
-for gdindex=[5 8]
+for gdindex=[2 3 4 5 6 7 8]
     figure; hold on
     set(gca, 'fontsize', fs)
     plot(age_control, GPIAScontrol(:,gdindex), 'k.', 'markersize', ms)

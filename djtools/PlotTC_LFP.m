@@ -1,13 +1,13 @@
 function PlotTC_LFP(varargin)
 
-%plots continuous tuning curve data from djmaus
+% plots continuous tuning curve data from djmaus
 %
-%usage: PlotTC_LFP(datapath, [channel], [xlimits],[ylimits])
+% usage: PlotTC_LFP(datapath, [channel], [xlimits],[ylimits])
 % (xlimits & ylimits are optional)
 % xlimits default to [0 200]
 % channel number should be an integer
 %
-%Processes data if outfile is not found;
+% Processes data if outfile is not found;
 
 datadir=varargin{1};
 
@@ -236,7 +236,7 @@ for dindex=1:numdurs
     end
 end
 
-%% plot on
+% plot on
 if IL
     for dindex=1:numdurs
         figure

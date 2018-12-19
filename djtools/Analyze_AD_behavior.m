@@ -47,8 +47,8 @@ if reprocess
     %fast-forward
     %fseek(fid, 10000, -1)
     
-    while 1 %processes until end of file is reached, then breaks
         tic;
+    while 1 %processes until end of file is reached, then breaks
         line=fgetl(fid);
         waitbar(ftell(fid)/filesize, wb);
         if  ~ischar(line), break, end %break at end of file
@@ -206,7 +206,7 @@ if reprocess
         fpos=ftell(fid)/filesize;
         fileremain=1-fpos;
         t_remain=etime*fileremain/fpos;
-        str=sprintf('processing data... about %.1f minutes remaining', t_remain/60);
+        str=sprintf('processing data... %d sec elapsed, about %d sec remaining', round(etime), round(t_remain));
         waitbar(fpos,wb,  str)
         
     end

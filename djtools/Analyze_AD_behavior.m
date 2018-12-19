@@ -16,7 +16,7 @@ elseif ismac
     
 end
 close all hidden
-reprocess=1;
+reprocess=0;
 
 
 if reprocess
@@ -930,13 +930,73 @@ for age_max=40:10:100;
 end
 
 
-% do a nested GLM to jpintly test the effects of age, sex, genotype, and mouseID
-% keyboard
+% do a nested (mixed-effects) GLM to jpintly test the effects of age, sex, genotype, and mouseID
 
 T=table(grouping(:), gdgroup(:), age_long(:), sex_long(:), mouseID_long(:), X(:));
 T.Properties.VariableNames={'genotype', 'gapdur', 'age', 'sex', 'mouseID', 'GPIAS'};
-mdl=fitglm(T, 'linear')
-mdl=fitglm(T, 'interactions')
+% mdl=fitglm(T, 'linear')
+% mdl=fitglm(T, 'interactions')
+% 
+% mdl=stepwiseglm(T, 'linear')
+% plotSlice(mdl)
+% figure
+% plotDiagnostics(mdl)
+
+formula=['GPIAS ~ genotype + age + gapdur + sex +  ', ... 
+    'genotype*age + genotype*sex  + genotype*gapdur*age ']
+    
+feglme=fitglme(T, formula)
+anova(feglme)
+
+formula=['GPIAS ~ genotype + age + gapdur + sex +  ', ... 
+    'genotype*age + genotype*sex  + genotype*gapdur*age + ', ...
+    '(1 | mouseID)']
+glme=fitglme(T, formula)
+anova(glme)
+
+%compare 2 models
+results = compare(feglme,glme,'CheckNesting',true)
+
+%the idea here (like the hiker ditching a gallon of water, http://www.bodowinter.com/tutorial/bw_LME_tutorial2.pdf
+%is to compare two models that ditch a single parameter, and see if it
+%makes a significant difference. If it does, keep it.
+
+% should we try a model with random slopes in addition to random intercepts?
+formula1=['GPIAS ~  age + gapdur    ', ... 
+    '   + genotype*age + ', ...
+    '(1 + gapdur| mouseID)']
+glme1=fitglme(T, formula1)
+
+formula2=['GPIAS ~  age + gapdur + sex    ', ... 
+    '  + genotype*age  + ', ...
+    '(1 + gapdur | mouseID) + (1 + age | mouseID)']
+glme2=fitglme(T, formula2)
+results = compare(glme1,glme2,'CheckNesting',true) %the second model is supposed to have one additional param
+
+anova(glme2)
+% genotype*gapdur*age matters
+% genotype*age matters
+% gapdur matters
+% age matters
+%
+% genotype doesn't matter
+% sex doesn't matter
+% genotype*sex doesn't matter
+
+% adding in random slope (1 + GPIAS | mouseID) I might need to check all
+% the terms again
+
+% I don't understand how to compare models re: the interaction terms, since
+% the individual terms seem redundant with the interactions (same numbers,
+% p=0)
+
+%notes: since I am using linear/normal glme, it's really just a linaer mixed model
+% https://stats.idre.ucla.edu/other/mult-pkg/introduction-to-linear-mixed-models/
+figure
+plotResiduals(glme)
+plotResiduals(glme,'fitted')
+plotResiduals(glme,'probability')
+plotResiduals(glme,'histogram','ResidualType','Pearson')
 
 
 
@@ -953,7 +1013,7 @@ if 0
     end
 end
 
-% keyboard
+ keyboard
 
 
 

@@ -42,260 +42,98 @@ if ischar(channel) channel=str2num(channel);end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%fprintf('\nfound lostat file. using lostat %d %d',lostat );
-%lostat=getlostat(expdate,session, filenum); %discard data after this position (in samples), [] to skip
-%getgotat(expdate,session, filenum); %discard data before this position (in samples), [] to skip
-%[datafile, Eventsfile, stimfile]=getfilenames(expdate, session, filenum);
-%OEEventsfile=strrep(Eventsfile, 'AxopatchData1', 'OE');
-%[D E S]=gogetdata(expdate,session,filenum);
-fprintf('\nProcessing continuous data\nloading file: ')
-
-%     fprintf('\ntrying to load %s...', datafile)
-%     godatadir(expdate, session, filenum)
-%     pathname='C:\Program Files\Open Ephys\ira_2014-02-14_13-43-56\'
-%     cd(pathname)
-%     filename=sprintf('102_CH/max(abs(Lasertrace))%s.continuous',channel)
-
-%try to read OE filename from exper structure (only will work after
-%02.14.14)
-
-cd(pref.datapath)
+djPrefs;
+global pref
+cd (pref.datapath);
 cd(datadir)
-filename=getContinuousFilename('.', channel);
-if exist(filename, 'file')~=2 %couldn't find it
-    filename=sprintf('114_CH%d.continuous', channel);
-end
-if exist(filename, 'file')~=2 %couldn't find it
-    error(sprintf('could not find data file %s in datadir %s', filename, datadir))
-end
-
-
-
-[scaledtrace, datatimestamps, datainfo] =load_open_ephys_data(filename);
-
-%should record a copy of stim
-stim=0*scaledtrace;
-
-%might want to read settings.xml from this directory to grab info about
-%filter settings, etc.
 
 try
     load notebook.mat
 catch
     warning('could not find notebook file')
 end
-%read digital Events
-Eventsfilename='all_channels.events';
-[all_channels_data, all_channels_timestamps, all_channels_info] = load_open_ephys_data(Eventsfilename);
-sampleRate=all_channels_info.header.sampleRate; %in Hz
-
-% ADC1: sound monitor
-% ADC2: soundcard trigger monitor
-% ADC3: laser monitor
-
-%all_channels_data is the channel the Events are associated with
-% the 0 channel Events are network Events
-%all_channels_timestamps are in seconds
-%all_channels_info is a struct with the following:
-%Eventstype 5 are network events, according to https://open-ephys.atlassian.net/wiki/display/OEW/Network+Events
-%   the content of those network event are stored in messages
-%   Two network events are saved at the beginning of recording containing the system time and sampling information header.
-%Eventstype 3 are TTL (digital input lines) one each for up & down
-%eventId is 1 or 0 indicating up or down Events for the TTL signals
-
-%FYI the nodeID corresponds to the processor that was the source of that
-%Events or data. Which nodeIds correspond to which processor is listed in
-%the settings.xml
-%for example, in the test data file I'm working with, 100 is the Rhythm
-%FPGA, and 102 is the bandpass filter.
-
-%sanity check
-fid=fopen('temp.txt', 'w');
-for i=1:length(all_channels_timestamps)
-    fprintf(fid, '%f, eventType %d, Id %d, channel %d\n', ...
-        all_channels_timestamps(i), all_channels_info.eventType(i), ...
-        all_channels_info.eventId(i), all_channels_data(i));
-end
-fclose(fid);
-
 
 %read messages
 messagesfilename='messages.events';
 [messages] = GetNetworkEvents(messagesfilename);
 
 
-sound_index=0;
-cont_files=dir('*.continuous');
-[~, timestamps, ~] =load_open_ephys_data(cont_files(1).name);
-StartAcquisitionSec=timestamps(1);
-StartAcquisitionSamples=timestamps(1)*30e3;
-for i=1:length(messages)
-    str=messages{i};
-    str2=strsplit(str);
-    timestamp=str2num(str2{1});
-    Events_type=str2{2};
-    if strcmp(deblank(Events_type), 'StartAcquisition')
-        %if present, a convenient way to find start acquisition time
-        %for some reason not always present, though
-%         StartAcquisitionSamples=timestamp;
-%         StartAcquisitionSec=timestamp/sampleRate;
-        check1=StartAcquisitionSamples;
-    elseif strcmp(deblank(Events_type), 'Software')
-%         StartAcquisitionSamples=timestamp;
-%         StartAcquisitionSec=timestamp/sampleRate;
-        check2=StartAcquisitionSamples;
-    elseif strcmp(Events_type, 'TrialType')
-        sound_index=sound_index+1;
-        Events(sound_index).type=str2{3};
-        for j=4:length(str2)
-            str3=strsplit(str2{j}, ':');
-            fieldname=str3{1};
-            value=str2num(str3{2});
-            Events(sound_index).(fieldname)= value;
-        end
-            Events(sound_index).message_timestamp_samples=timestamp - StartAcquisitionSamples;
-            Events(sound_index).message_timestamp_sec=timestamp/sampleRate - StartAcquisitionSec;
-        
-        
-        %get corresponding SCT TTL timestamp and assign to Event
-        %first get all the soundcard triggers
-        all_SCTs=[];
-        for k=1:length(all_channels_timestamps)
-            if all_channels_info.eventType(k)==3 & all_channels_info.eventId(k)==1 & all_channels_data(k)==2
-                corrected_SCT=all_channels_timestamps(k)-StartAcquisitionSec;
-                all_SCTs=[all_SCTs corrected_SCT];
-            end
-        end
-        %find closest SCT by finding first before and first after, and
-        %choosing whichever is closer
-        [idx_after]=find(all_SCTs>Events(sound_index).message_timestamp_sec, 1); %find first SCT after the message timestamp
-        [idx_before]=find(all_SCTs<=Events(sound_index).message_timestamp_sec, 1, 'last'); %find first SCT before the message timestamp
-       
-        if isempty(idx_after)
-                        SCTtime_sec=all_SCTs(idx_before);
-        elseif isempty(idx_before)
-                        SCTtime_sec=all_SCTs(idx_after);
-        elseif abs(diff([all_SCTs(idx_before), Events(sound_index).message_timestamp_sec])) <= abs(diff([all_SCTs(idx_after), Events(sound_index).message_timestamp_sec]))
-            %before is closer
-            SCTtime_sec=all_SCTs(idx_before);
-        elseif abs(diff([all_SCTs(idx_before), Events(sound_index).message_timestamp_sec])) > abs(diff([all_SCTs(idx_after), Events(sound_index).message_timestamp_sec]))
-                      %after is closer
-            SCTtime_sec=all_SCTs(idx_after);
-        else
-        error('WTF how can this happen')
-        end
-        Events(sound_index).soundcard_trigger_timestamp_sec=SCTtime_sec;
-        
+%read digital Events
+Eventsfilename='all_channels.events';
+[all_channels_data, all_channels_timestamps, all_channels_info] = load_open_ephys_data(Eventsfilename);
+sampleRate=all_channels_info.header.sampleRate; %in Hz
 
+%get Events and soundcard trigger timestamps 
+[Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
+%there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
+
+%check if this is an appropriate stimulus protocol
+switch GetPlottingFunction(datadir)
+    case {'PlotTC_LFP', 'PlotTC_PSTH'}
+    otherwise
+        error('This does not appear to be a tuning curve stimulus protcol');
+end
+
+node='';
+nodes={};j=0;
+NodeIds=getNodes(pwd);
+for i=1:length(NodeIds)
+    filename=sprintf('%s_CH%d.continuous', NodeIds{i}, channel);
+    if exist(filename,'file')
+        node=NodeIds{i};
+        j=j+1;
+        nodes{j} =node;
     end
 end
-
-if ~exist('Events.mat')
-save('Events.mat', 'Events')
-elseif exist('Events.mat')
-    load('Events.mat')
-end
-datatimestamps=datatimestamps-StartAcquisitionSec;
-
-if exist('check1', 'var') & exist('check2', 'var')
-    fprintf('start acquisition method agreement check: %d, %d', check1, check2);
-end
-fprintf('\nNumber of sound events (from network messages): %d', length(Events));
-fprintf('\nNumber of hardware triggers (soundcardtrig TTLs): %d', length(all_SCTs));
-if length(Events) ~=  length(all_SCTs)
-    warning('ProcessTC_LFP: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
-    %[Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog  );
+%note if there are multiple continuous recordings of the requested channel,
+%this will only return the last node
+if length(nodes)>1 
+    fprintf('\n%d nodes found for channel %d: ', length(nodes), channel)
+    fprintf('\t%s', nodes{:})
+    fprintf('\n using node %s', node)
 end
 
-%messages is a list of all network event, which includes the stimuli
-%messages sent by djmaus, SCTchannelas well as the "ChangeDirectory" and
-%"GetRecordingPath" messages sent by djmaus, as well as 2 initial system
-%messages. I strip out the stimulus (sound) event and put them in "Events."
-%Events is a list of sound event, which were sent by djmaus with the
-%'TrialType' flag.
-
-%sanity check, continued
-% fid=fopen('temp.txt', 'a');
-% for i=1:length(Events)
-%     fprintf(fid, '%f, %s, freq %f\n', ...
-%         Events(i).message_timestamp_sec, Events(i).type, Events(i).frequency);
-% end
-% fclose(fid);
-
-
-%try to load laser and stimulus monitor
-Lasertrace=0*scaledtrace;
-stimtrace=0*scaledtrace;
-try
-    [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data(getLaserfile('.'));
-    %Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
-    Lasertimestamps=Lasertimestamps-Lasertimestamps(1);
-   % Lasertrace=Lasertrace./max(abs(Lasertrace));
-    fprintf('\nsuccessfully loaded laser trace')
+filename=sprintf('%s_CH%d.continuous', node, channel);
+if exist(filename, 'file')~=2 %couldn't find it
+    error(sprintf('could not find data file %s in datadir %s', filename, datadir))
 end
-try
-    [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(getStimfile('.'));
-    %Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
-    Stimtimestamps=Stimtimestamps-Stimtimestamps(1);
-  %  Stimtrace=Stimtrace./max(abs(Stimtrace));
-    fprintf('\nsuccessfully loaded stim trace')
+[scaledtrace, datatimestamps, datainfo] =load_open_ephys_data(filename);
+
+if isempty(getLaserfile('.'))
+    LaserRecorded=0;
+else
+    LaserRecorded=1;
+end
+if isempty(getStimfile('.'))
+    StimRecorded=0;
+else
+    StimRecorded=1;
 end
 
-
-monitor = 0;
-if monitor
-    figure
-    set(gcf, 'pos', [-1853 555 1818 420]);
-
-    %   I'm running the soundcard trigger (SCT) into ai1 as another sanity check.
+if LaserRecorded
     try
-        [SCTtrace, SCTtimestamps, SCTinfo] =load_open_ephys_data(getSCTfile('.'));
-        SCTtimestamps=SCTtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+        [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data(getLaserfile('.'));
+        Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+        Lasertrace=Lasertrace./max(abs(Lasertrace));
+        fprintf('\nsuccessfully loaded laser trace\n')
     catch
-        warning('cannot find soundcard trigger file')
+        fprintf('\nfound laser file %s but could not load laser trace', getLaserfile('.'))
     end
-   
-
-%     SCTtrace=SCTtrace./max(abs(SCTtrace));
-    hold on
-     plot(SCTtimestamps, SCTtrace./max(SCTtrace), 'k')
-    plot(Lasertimestamps, Lasertrace./max(Lasertrace)+1, 'c')
-    plot(Stimtimestamps, Stimtrace./max(Stimtrace)+2, 'm')
-    plot(all_SCTs, .8+0*all_SCTs, 'g^')
-
-    %plot "software trigs" i.e. network messages in red o's
-    for i=1:length(Events)
-        plot(Events(i).message_timestamp_sec, 0, 'ro');
-        text(Events(i).message_timestamp_sec, .2, sprintf('network message #%d', i), 'color', 'r')
-        plot(Events(i).soundcard_trigger_timestamp_sec, .5, 'g*');
-        text(Events(i).soundcard_trigger_timestamp_sec, .7, sprintf('SCT #%d', i), 'color', 'g')
+else
+    fprintf('\nLaser trace not recorded')
+end
+if StimRecorded
+    try
+        [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(getStimfile('.'));
+        Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+        Stimtrace=Stimtrace./max(abs(Stimtrace));
+        fprintf('\nsuccessfully loaded stim trace')
+    catch
+        fprintf('\nfound stim file %s but could not load stim trace', getStimfile('.'))
     end
-    
-    %all_channels_info.eventType(i) = 3 for digital line in (TTL), 5 for network Events
-    %all_channels_info.eventId = 1 for rising edge, 0 for falling edge
-    %all_channels_data(i) is the digital input line channel
-    
-    
-    % plot TTL SCTs in green ^=on, v=off
-    for i=1:length(all_channels_timestamps)
-        if all_channels_info.eventType(i)==3 & all_channels_info.eventId(i)==1 & all_channels_data(i)==2
-            plot(all_channels_timestamps(i)-StartAcquisitionSec, 1, 'g^')
-            text(all_channels_timestamps(i)-StartAcquisitionSec, 2, 'TTL on/off')
-        elseif all_channels_info.eventType(i)==3 & all_channels_info.eventId(i)==0 & all_channels_data(i)==2
-            plot(all_channels_timestamps(i)-StartAcquisitionSec, 1, 'gv')
-        end
-    end
-    
-    scaledtrace=scaledtrace./max(abs(scaledtrace));
-    plot(datatimestamps, scaledtrace, 'm')
-    
-    for i=1:length(Events)
-        xlim([Events(i).message_timestamp_sec-.02 Events(i).message_timestamp_sec+.2])
-        ylim([-4 2])
-        pause(0.5)
-    end
-end %if monitor
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+else
+    fprintf('\nSound stimulus trace not recorded')
+end
 
 
 
@@ -383,6 +221,14 @@ nreps=zeros(numfreqs, numamps, numdurs);
 nrepsON=zeros(numfreqs, numamps, numdurs);
 nrepsOFF=zeros(numfreqs, numamps, numdurs);
 
+
+
+fprintf('\ncomputing tuning curve...');
+
+samprate=sampleRate;
+
+
+
 %extract the traces into a big matrix M
 j=0;
 for i=1:length(Events)
@@ -399,12 +245,6 @@ for i=1:length(Events)
         stop=round(pos+xlimits(2)*1e-3*samprate)-1;
         region=start:stop;
         if isempty(find(region<1)) %(disallow negative or zero start times)
-            %             if stop>lostat
-            %                 fprintf('\ndiscarding trace (after lostat)')
-            %             elseif start<gotat
-            %                fprintf('\ndiscarding trace (before gotat)')
-            %                %commented out by ira 09-05-2013
-            %             else
             switch Events(i).type
                 case {'tone', '2tone'}
                     freq=Events(i).frequency;

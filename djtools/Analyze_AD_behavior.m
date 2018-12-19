@@ -16,7 +16,7 @@ elseif ismac
     
 end
 close all hidden
-reprocess=1;
+reprocess=0;
 
 
 if reprocess
@@ -961,14 +961,15 @@ results = compare(feglme,glme,'CheckNesting',true)
 %is to compare two models that ditch a single parameter, and see if it
 %makes a significant difference. If it does, keep it.
 
+% should we try a model with random slopes in addition to random intercepts?
 formula1=['GPIAS ~  age + gapdur    ', ... 
     '   + genotype*age + ', ...
-    '(1 + GPIAS| mouseID)']
+    '(1 + gapdur| mouseID)']
 glme1=fitglme(T, formula1)
 
 formula2=['GPIAS ~  age + gapdur + sex    ', ... 
     '  + genotype*age  + ', ...
-    '(1 + GPIAS | mouseID)']
+    '(1 + gapdur | mouseID) + (1 + age | mouseID)']
 glme2=fitglme(T, formula2)
 results = compare(glme1,glme2,'CheckNesting',true) %the second model is supposed to have one additional param
 

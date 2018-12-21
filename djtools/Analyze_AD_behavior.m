@@ -990,8 +990,55 @@ anova(glme2)
 % the individual terms seem redundant with the interactions (same numbers,
 % p=0)
 
-%notes: since I am using linear/normal glme, it's really just a linaer mixed model
+%notes: since I am using linear/normal glme, it's really just a linear mixed model
 % https://stats.idre.ucla.edu/other/mult-pkg/introduction-to-linear-mixed-models/
+
+%after talking to sanjay:
+%centering and/or scaling the data is really important to be able to
+%interpret the coefficients. Especially when there are interactions. In
+%that case the coefficient is telling you what the value of one thing is
+%when the other is zero. This is easiest to interpret when zero is a
+%meaningful place in your data, like e.g. the middle. This is why you
+%mean-center your data. For example, if there is an age*genotype
+%interaction, the coefficient means what the effect of genotype is when age
+%is zero. This isn't very helpful because p0 is outside our data range. If
+%you mean-center age, then the coefficient tells you the effect of genotype
+%for the average-aged mouse.    
+%it's also worth thinking about how gapdur is scaled. Right now I'm using
+%an index, which is sort of like a log2 transform (but not quite). It might
+%make more sense to use actual gapdur in ms, or log2(gapdur).
+%
+%model selection is not cut and dried. There are clearly multiple
+%defensible ways to approach it. One philosophy is to start minimally and
+%build up the model, running a compare each time to see if it's
+%significantly different and lowers the AIC/BIC. (those include a penalty
+%for model complexity, but differ on weighting). This includes checking fixed and
+%random effects. The 2 models being compared have to be nested (one has 1
+%additional effect than the other).
+%Another philosophy is to just use the full model with all the
+%interactions. The resulting output may look complicated but it's not
+%unlike an anova where it reports all the possible interactions. Terms that
+%have coefficients close to zero can just be ignored. Or alternatively you
+%can focus only on the terms that correspond to your hypotheses and ignore
+%other ones. Sometime the full model won't converge, in which case you are
+%fully justified in dropping terms that allow you to get the model to
+%converge.
+%So far this is all linear. Probably the dependence on age is nonlinear
+%(development + degeneration). If there was a reason to suspect a certain
+%form like quadratic, that would be fine, but usually there isn't. In that
+%case (i.e. in our case) a specific form might give you a bump facing the
+%right direction but would be unlikely to be a very good fit for the data.
+%So a piecewise linear fit is probably the best idea. Any a priori reason
+%to impose a kink (e.g. Abeta plaques start at p60) is helpful, but it's
+%probably OK to pick a transition point based on the data. To do this you
+%would create a new variable (call it age2) that is defined as one slope
+%before p60 and another after p60. This is widely done and there may even
+%be some matlab tutorial on it.
+%as for random slopes, it seems like age and gapdur both might reasonbly
+%show random slope effects, since a given mouse might age faster or show a
+%different gap-detection curve.
+
+
 figure
 plotResiduals(glme)
 plotResiduals(glme,'fitted')

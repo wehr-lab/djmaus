@@ -161,7 +161,7 @@ if reprocess
             
             
             switch group
-                case '5XFAD'
+                case {'5XFAD', 'XFAD'}
                     if numgapdurs==8 %skip partial gapdur arrays
                         XFADidx=XFADidx+1;
                         XFAD(XFADidx,:)=mPeakOFF;

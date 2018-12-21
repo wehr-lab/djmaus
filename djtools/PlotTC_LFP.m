@@ -38,6 +38,7 @@ fprintf('\nusing xlimits [%d-%d]', xlimits(1), xlimits(2))
 force_reprocess=1;
 if force_reprocess
     fprintf('\nForce Re-process')
+    fprintf('\ncalling ProcessTC_LFP')
     ProcessTC_LFP(datadir,  channel, xlimits, ylimits);
 end
 
@@ -47,6 +48,7 @@ d=dir(outfilename);
 if ~isempty(d)
     load(outfilename)
 else
+    fprintf('\ncalling ProcessTC_LFP')
     ProcessTC_LFP(datadir,  channel, xlimits, ylimits);
     load(outfilename);
 end

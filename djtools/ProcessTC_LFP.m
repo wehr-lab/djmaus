@@ -384,6 +384,6 @@ out.channel=channel;
 
 
 outfilename=sprintf('outLFP_ch%d',channel);
-save(outfilename, 'out')
+save(outfilename, 'out', '-v7.3' )
 fprintf('\n saved to %s', outfilename)
 

@@ -930,9 +930,15 @@ for age_max=40:10:100;
 end
 
 
+
 % do a nested (mixed-effects) GLM to jpintly test the effects of age, sex, genotype, and mouseID
 
-T=table(grouping(:), gdgroup(:), age_long(:), sex_long(:), mouseID_long(:), X(:));
+%mean-center age and gapdur
+age_centered=age_long-mean(age_long);
+gd_centered=gdgroup-mean(gdgroup);
+
+%T=table(grouping(:), gdgroup(:), age_long(:), sex_long(:), mouseID_long(:), X(:));
+T=table(grouping(:), gd_centered(:), age_centered(:), sex_long(:), mouseID_long(:), X(:));
 T.Properties.VariableNames={'genotype', 'gapdur', 'age', 'sex', 'mouseID', 'GPIAS'};
 % mdl=fitglm(T, 'linear')
 % mdl=fitglm(T, 'interactions')

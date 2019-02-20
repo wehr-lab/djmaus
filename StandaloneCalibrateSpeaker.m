@@ -420,13 +420,17 @@ function Reset_Callback(hObject, eventdata, handles)
 Reset(handles)
 
 function Reset(handles)
-userdata=get(handles.figure1, 'userdata');
-userdata.atten=[];
-userdata.DB=[];
-set(handles.figure1, 'userdata', userdata);
-% InitParams(handles)
-cla(handles.axes1)
-cla(handles.axes2)
+answer = questdlg('This will erase all calibration data and start over from scratch. Proceed with Reset?', 'Are you sure?', 'Cancel');
+switch answer
+    case 'Yes'
+        userdata=get(handles.figure1, 'userdata');
+        userdata.atten=[];
+        userdata.DB=[];
+        set(handles.figure1, 'userdata', userdata);
+        % InitParams(handles)
+        cla(handles.axes1)
+        cla(handles.axes2)
+end
 
 function minfreq_Callback(hObject, eventdata, handles)
 % hObject    handle to minfreq (see GCBO)

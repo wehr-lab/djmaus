@@ -77,6 +77,10 @@ continuous_noise=MakeWhiteNoise(noise_params, samplerate);
 % the following line is for gapdelay specifying time to gap onset
 %continuous_noise(gapdelay_samples:gapdelay_samples+gapdur_samples)=zeros(size(gapdelay_samples:gapdelay_samples+gapdur_samples));
 % the following line is for gapdelay specifying time to gap offset
+%some error checking:
+if (gapdelay_samples-gapdur_samples)<1
+warning('MakeGPIAS: gapdelay must be longer than gap duration')
+end
 continuous_noise(gapdelay_samples-gapdur_samples:gapdelay_samples)=zeros(size(gapdelay_samples-gapdur_samples:gapdelay_samples));
 
 %pulse

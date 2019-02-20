@@ -31,10 +31,13 @@ catch
     ylimits=[];
 end
 
-% high_pass_cutoff=400;
+ hi_pass_cutoff=400;
+ lo_pass_cutoff=10;
 % [a,b]=butter(1, high_pass_cutoff/(30e3/2), 'high');
-[b,a]=butter(2, [1 2000]/(30e3/2));
+[b,a]=butter(2, [lo_pass_cutoff hi_pass_cutoff]/(30e3/2));
+fprintf('\nband-pass filtering [%d-%d]', lo_pass_cutoff, hi_pass_cutoff)
 fprintf('\nusing xlimits [%d-%d]', xlimits(1), xlimits(2))
+fprintf('\n')
 
 force_reprocess=0;
 if force_reprocess
@@ -87,8 +90,8 @@ if isempty(ylimits)
     for dindex=1:numdurs
         for aindex=numamps:-1:1
             for findex=1:numfreqs
-                trace1=squeeze(mM1(findex, aindex, dindex, :));
-%                                  trace1=filtfilt(b,a,trace1);
+                trace1=squeeze(mM1OFF(findex, aindex, dindex, :));
+                trace1=filtfilt(b,a,trace1);
                 trace1=trace1-mean(trace1(1:100));
                 if min([trace1])<ylimits(1); ylimits(1)=min([trace1]);end
                 if max([trace1])>ylimits(2); ylimits(2)=max([trace1]);end
@@ -97,7 +100,7 @@ if isempty(ylimits)
     end
 end
 
-ylimits=round(ylimits*100)/100;
+% ylimits=round(ylimits*100)/100;
 
 %plot the mean tuning curve BOTH
 if IL
@@ -200,7 +203,7 @@ for dindex=1:numdurs
             hold on; plot(t, trace1, 'k');
             offset=ylimits(1)+.1*diff(ylimits);
             plot(t, Stimtrace+offset, 'm', t, Lasertrace+offset, 'c')
-%             ylim(ylimits)
+             ylim(ylimits)
             xlim(xlimits)
             xlabel off
             ylabel off
@@ -309,6 +312,87 @@ if IL
                         vpos=ylimits(1)-mean(ylimits);
                     end
                     text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
+                end
+                %             if findex==numfreqs && aindex==numamps
+                %                 axis on
+                %                 ylab=[ceil(ylimits(1)*10)/10 floor(ylimits(2)*10)/10];
+                %                 set(gca,'ytick',ylab,'yticklabel',ylab,'YAxisLocation','right')
+                %             end
+            end
+        end
+    end
+end
+
+
+%plot the OFF tuning curve with even and odd trials overlayed
+%as a cross-validation for estimating ABR thresholds
+%mw 02.20.2019
+for dindex=1:numdurs
+    figure
+    p=0;
+    subplot1(numamps,numfreqs)
+    for aindex=numamps:-1:1
+        for findex=1:numfreqs
+            p=p+1;
+            subplot1(p)
+%           trace1=squeeze(mM1OFF(findex, aindex, dindex, :));
+
+             trace0=squeeze(mean(M1OFF(findex, aindex, dindex, 1:nreps(findex, aindex, dindex),:), 4));
+             trace1=squeeze(mean(M1OFF(findex, aindex, dindex, 3:3:nreps(findex, aindex, dindex),:), 4));
+             trace1_even=squeeze(mean(M1OFF(findex, aindex, dindex, 2:3:nreps(findex, aindex, dindex),:), 4));
+             trace1_odd=squeeze(mean(M1OFF(findex, aindex, dindex, 1:3:nreps(findex, aindex, dindex),:), 4));
+            
+             trace0=filtfilt(b,a,trace0);
+             trace1=trace0 -mean(trace0(1:100));
+             trace1=filtfilt(b,a,trace1);
+             trace1=trace1 -mean(trace1(1:100));
+             trace1_even=filtfilt(b,a,trace1_even);
+             trace1_even=trace1_even -mean(trace1_even(1:100));
+             trace1_odd=filtfilt(b,a,trace1_odd);
+             trace1_odd=trace1_odd -mean(trace1_odd(1:100));
+            
+            
+            
+            t=1:length(trace1);
+            t=1000*t/out.samprate; %convert to ms
+            t=t+out.xlimits(1); %correct for xlim in original processing call
+            line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
+            hold on; plot(t, trace0, 'b',t, trace1, 'k', t, trace1_odd, 'k', t, trace1_even, 'k');
+            offset=ylimits(1)+.1*diff(ylimits);
+            xlim(xlimits)
+ylim(ylimits)
+box off
+        end
+    end
+    subplot1(1)
+%    h=title(sprintf('OFF %s: %dms, nreps: %d-%d',datadir,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
+    h=title(sprintf('OFF %s: %dms, nreps: %d-%d',datadir,durs(dindex), reps_to_use));
+%    set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
+    set(h,  'interpreter', 'none')
+    
+    %label amps and freqs
+    p=0;
+    for aindex=numamps:-1:1
+        for findex=1:numfreqs
+            p=p+1;
+            subplot1(p)
+            if findex==1
+                text(xlimits(1)-diff(xlimits)/2, mean(ylimits), int2str(amps(aindex)))
+                endmM1ONLaser=out.mM1ONLaser;
+            end
+                if aindex==1
+                    if mod(findex,2) %odd freq
+                        vpos=ylimits(1)-mean(ylimits);
+                    else
+                        vpos=ylimits(1)-mean(ylimits);
+                    end
+                    if freqs(findex)>0
+                        text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
+                    elseif freqs(findex)==-1000
+                        text(xlimits(1), vpos, 'WN')
+                    elseif freqs(findex)==-2000
+                        text(xlimits(1), vpos, 'SS')
+                    end
                 end
                 %             if findex==numfreqs && aindex==numamps
                 %                 axis on

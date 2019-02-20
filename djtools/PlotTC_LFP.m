@@ -33,6 +33,8 @@ end
 
 high_pass_cutoff=400;
 [a,b]=butter(1, high_pass_cutoff/(30e3/2), 'high');
+%[a,b]=butter(1, [ lo hi]/(30e3/2));
+
 fprintf('\nusing xlimits [%d-%d]', xlimits(1), xlimits(2))
 
 force_reprocess=1;

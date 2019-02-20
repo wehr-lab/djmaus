@@ -37,7 +37,7 @@ high_pass_cutoff=400;
 
 fprintf('\nusing xlimits [%d-%d]', xlimits(1), xlimits(2))
 
-force_reprocess=1;
+force_reprocess=0;
 if force_reprocess
     fprintf('\nForce Re-process')
     fprintf('\ncalling ProcessTC_LFP')

@@ -23,7 +23,7 @@ end
 try
     xlimits=varargin{3};
 catch
-    xlimits=[0 200];
+    xlimits=[-50 200];
 end
 try
     ylimits=varargin{4};
@@ -31,11 +31,12 @@ catch
     ylimits=[];
 end
 
-high_pass_cutoff=400;
-[a,b]=butter(1, high_pass_cutoff/(30e3/2), 'high');
+% high_pass_cutoff=400;
+% [a,b]=butter(1, high_pass_cutoff/(30e3/2), 'high');
+[b,a]=butter(2, [1 2000]/(30e3/2));
 fprintf('\nusing xlimits [%d-%d]', xlimits(1), xlimits(2))
 
-force_reprocess=1;
+force_reprocess=0;
 if force_reprocess
     fprintf('\nForce Re-process')
     fprintf('\ncalling ProcessTC_LFP')
@@ -70,6 +71,7 @@ traces_to_keep=out.traces_to_keep;
 mM1=out.mM1;
 mM1ON=out.mM1ON;
 mM1OFF=out.mM1OFF;
+M1OFF=out.M1OFF;
 mM1ONLaser=out.mM1ONLaser;
 M1ONLaser=out.M1ONLaser;
 mM1OFFLaser=out.mM1OFFLaser;
@@ -86,7 +88,7 @@ if isempty(ylimits)
         for aindex=numamps:-1:1
             for findex=1:numfreqs
                 trace1=squeeze(mM1(findex, aindex, dindex, :));
-                %                 trace1=filtfilt(b,a,trace1);
+%                                  trace1=filtfilt(b,a,trace1);
                 trace1=trace1-mean(trace1(1:100));
                 if min([trace1])<ylimits(1); ylimits(1)=min([trace1]);end
                 if max([trace1])>ylimits(2); ylimits(2)=max([trace1]);end
@@ -118,8 +120,8 @@ if IL
                 
                 trace1=trace1 -mean(trace1(1:10));
                 trace2=trace2-mean(trace2(1:10));
-                %             trace1=filtfilt(b,a,trace1);
-                %             trace2=filtfilt(b,a,trace2);
+                             trace1=filtfilt(b,a,trace1);
+                             trace2=filtfilt(b,a,trace2);
                 t=1:length(trace1);
                 t=1000*t/out.samprate; %convert to ms
                 t=t+out.xlimits(1); %correct for xlim in original processing call
@@ -165,6 +167,8 @@ if IL
     end
 end
 
+reps_to_use=[];
+
 %plot the mean tuning curve OFF
 for dindex=1:numdurs
     figure
@@ -174,8 +178,11 @@ for dindex=1:numdurs
         for findex=1:numfreqs
             p=p+1;
             subplot1(p)
-            trace1=squeeze(mM1OFF(findex, aindex, dindex, :));
-            %             trace1=filtfilt(b,a,trace1);
+           trace1=squeeze(mM1OFF(findex, aindex, dindex, :));
+%             reps_to_use=1000;
+%             trace1=squeeze(mean(M1OFF(findex, aindex, dindex, 1:reps_to_use,:), 4));
+            
+                         trace1=filtfilt(b,a,trace1);
             trace1=trace1 -mean(trace1(1:100));
             
             Lasertrace=squeeze(mM1OFFLaser(findex, aindex, dindex, :));
@@ -193,16 +200,18 @@ for dindex=1:numdurs
             hold on; plot(t, trace1, 'k');
             offset=ylimits(1)+.1*diff(ylimits);
             plot(t, Stimtrace+offset, 'm', t, Lasertrace+offset, 'c')
-            ylim(ylimits)
+%             ylim(ylimits)
             xlim(xlimits)
             xlabel off
             ylabel off
-            axis off
+%             axis off
         end
     end
     subplot1(1)
-    h=title(sprintf('OFF %s: %dms, nreps: %d-%d',datadir,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
-    set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
+%    h=title(sprintf('OFF %s: %dms, nreps: %d-%d',datadir,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
+    h=title(sprintf('OFF %s: %dms, nreps: %d-%d',datadir,durs(dindex), reps_to_use));
+%    set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
+    set(h,  'interpreter', 'none')
     
     %label amps and freqs
     p=0;
@@ -251,7 +260,7 @@ if IL
                 axis off
                 
                 trace1=squeeze(mM1ON(findex, aindex, dindex, :));
-                %             trace1=filtfilt(b,a,trace1);
+%                              trace1=filtfilt(b,a,trace1);
                 trace1=trace1 -mean(trace1(1:100));
                 
                 

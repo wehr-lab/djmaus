@@ -25,7 +25,7 @@ if reprocess
     
     cd(dataroot);
     
-        cell_list='behavior_list.txt';
+        cell_list='behavior_list_BACKUP.txt';
 %     cell_list='behavior_list_PUPS.txt';
     fid=fopen(cell_list);
     fid_mouselist=fopen('mouse_list.txt', 'w'); %generate an output text file to compare behavior list with notebook (mouse ID, geneotype, sex, etc)
@@ -1013,7 +1013,7 @@ if 0
     end
 end
 
- keyboard
+% keyboard
 
 
 

@@ -326,6 +326,7 @@ end
 
 %plot the OFF tuning curve with even and odd trials overlayed
 %as a cross-validation for estimating ABR thresholds
+%(actually the mean and the 3 every-third trials)
 %mw 02.20.2019
 for dindex=1:numdurs
     figure
@@ -335,21 +336,20 @@ for dindex=1:numdurs
         for findex=1:numfreqs
             p=p+1;
             subplot1(p)
-%           trace1=squeeze(mM1OFF(findex, aindex, dindex, :));
-
-             trace0=squeeze(mean(M1OFF(findex, aindex, dindex, 1:nreps(findex, aindex, dindex),:), 4));
-             trace1=squeeze(mean(M1OFF(findex, aindex, dindex, 3:3:nreps(findex, aindex, dindex),:), 4));
-             trace1_even=squeeze(mean(M1OFF(findex, aindex, dindex, 2:3:nreps(findex, aindex, dindex),:), 4));
-             trace1_odd=squeeze(mean(M1OFF(findex, aindex, dindex, 1:3:nreps(findex, aindex, dindex),:), 4));
             
-             trace0=filtfilt(b,a,trace0);
-             trace1=trace0 -mean(trace0(1:100));
-             trace1=filtfilt(b,a,trace1);
-             trace1=trace1 -mean(trace1(1:100));
-             trace1_even=filtfilt(b,a,trace1_even);
-             trace1_even=trace1_even -mean(trace1_even(1:100));
-             trace1_odd=filtfilt(b,a,trace1_odd);
-             trace1_odd=trace1_odd -mean(trace1_odd(1:100));
+            trace_mean=squeeze(mean(M1OFF(findex, aindex, dindex, 1:nreps(findex, aindex, dindex),:), 4));
+            trace1=squeeze(mean(M1OFF(findex, aindex, dindex, 3:3:nreps(findex, aindex, dindex),:), 4));
+            trace2=squeeze(mean(M1OFF(findex, aindex, dindex, 2:3:nreps(findex, aindex, dindex),:), 4));
+            trace3=squeeze(mean(M1OFF(findex, aindex, dindex, 1:3:nreps(findex, aindex, dindex),:), 4));
+            
+            trace_mean=filtfilt(b,a,trace_mean);
+            trace_mean=trace_mean -mean(trace_mean(1:100));
+            trace1=filtfilt(b,a,trace1);
+            trace1=trace1 -mean(trace1(1:100));
+            trace2=filtfilt(b,a,trace2);
+            trace2=trace2 -mean(trace2(1:100));
+            trace3=filtfilt(b,a,trace3);
+            trace3=trace3 -mean(trace3(1:100));
             
             
             
@@ -357,17 +357,15 @@ for dindex=1:numdurs
             t=1000*t/out.samprate; %convert to ms
             t=t+out.xlimits(1); %correct for xlim in original processing call
             line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
-            hold on; plot(t, trace0, 'b',t, trace1, 'k', t, trace1_odd, 'k', t, trace1_even, 'k');
+            hold on; plot(t, trace_mean, 'b',t, trace1, 'k', t, trace2, 'k', t, trace3, 'k');
             offset=ylimits(1)+.1*diff(ylimits);
             xlim(xlimits)
-ylim(ylimits)
-box off
+            ylim(ylimits)
+            box off
         end
     end
     subplot1(1)
-%    h=title(sprintf('OFF %s: %dms, nreps: %d-%d',datadir,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
-    h=title(sprintf('OFF %s: %dms, nreps: %d-%d',datadir,durs(dindex), reps_to_use));
-%    set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
+    h=title(sprintf('%s cross-validation',datadir));
     set(h,  'interpreter', 'none')
     
     %label amps and freqs
@@ -378,27 +376,20 @@ box off
             subplot1(p)
             if findex==1
                 text(xlimits(1)-diff(xlimits)/2, mean(ylimits), int2str(amps(aindex)))
-                endmM1ONLaser=out.mM1ONLaser;
             end
-                if aindex==1
-                    if mod(findex,2) %odd freq
-                        vpos=ylimits(1)-mean(ylimits);
-                    else
-                        vpos=ylimits(1)-mean(ylimits);
-                    end
-                    if freqs(findex)>0
-                        text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
-                    elseif freqs(findex)==-1000
-                        text(xlimits(1), vpos, 'WN')
-                    elseif freqs(findex)==-2000
-                        text(xlimits(1), vpos, 'SS')
-                    end
+            if aindex==1
+                if mod(findex,2) %odd freq
+                    vpos=ylimits(1)-mean(ylimits);
+                else
+                    vpos=ylimits(1)-mean(ylimits);
                 end
-                %             if findex==numfreqs && aindex==numamps
-                %                 axis on
-                %                 ylab=[ceil(ylimits(1)*10)/10 floor(ylimits(2)*10)/10];
-                %                 set(gca,'ytick',ylab,'yticklabel',ylab,'YAxisLocation','right')
-                %             end
+                if freqs(findex)>0
+                    text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
+                elseif freqs(findex)==-1000
+                    text(xlimits(1), vpos, 'WN')
+                elseif freqs(findex)==-2000
+                    text(xlimits(1), vpos, 'SS')
+                end
             end
         end
     end

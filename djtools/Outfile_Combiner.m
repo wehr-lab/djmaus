@@ -34,6 +34,7 @@ out = mfilename;
 
 function CreateNewOutfile
 global P
+wb=waitbar(0,'loading and combining outfiles...');
 sortedoutfilelist=sort (P.outfilelist);
 sorteddirlist=sort (P.dirlist);
 targetdir=sorteddirlist{1};
@@ -41,12 +42,14 @@ targetdir=sorteddirlist{1};
 for i=1:P.numoutfiles
     cd( sorteddirlist{i});
     Out_components(i)=load(sortedoutfilelist{i});
+    waitbar(i/(1+P.numoutfiles), wb);
 end
 for i=1:P.numoutfiles
     Freqs(i,:)=Out_components(i).out.freqs;
     Amps(i,:)=Out_components(i).out.amps;
     Durs(i,:)=Out_components(i).out.durs;
 end
+% situation 1: all outfiles have the same params
 if size(unique(Freqs, 'rows'), 1)~=1
     error('frequencies of outfiles don''t match')
 end
@@ -58,16 +61,43 @@ end
 Out.freqs=Out_components(1).out.freqs
 Out.amps=Out_components(1).out.amps
 Out.durs=Out_components(1).out.durs
+Out.numfreqs=Out_components(1).out.numfreqs;
+Out.numamps=Out_components(1).out.numamps;
+Out.numdurs=Out_components(1).out.numdurs;
+Out.samprate=Out_components(1).out.samprate;
+Out.IL=Out_components(1).out.IL;
+if size(Out_components(1).out.nrepsOFF)~=[Out.numfreqs Out.numamps]
+    error('nreps is not numfreqs x numamps')
+end
 
-%     nreps=out.nreps;
-%     numfreqs=out.numfreqs;
-%     numamps=out.numamps;
-%     numdurs=out.numdurs;
-%     samprate=out.samprate; %in Hz
-%     M1=out.M1;
-%     M1stim=out.M1stim;
-%     mM1=out.mM1;
-%     mM1ON=out.mM1ON;
+Out.nrepsOFF=Out_components(1).out.nrepsOFF;
+for i=2:P.numoutfiles
+    Out.nrepsOFF = Out.nrepsOFF + Out_components(i).out.nrepsOFF;
+end
+
+%pre-allocate
+sz=size(Out_components(i).out.M1OFF);
+sz(end-1)=max(Out.nrepsOFF(:));
+Out.M1OFF=nan(sz);
+
+  
+for i=1:P.numoutfiles
+    nr=max(Out_components(i).out.nrepsOFF(:));
+    start=1+(i-1)*nr;
+    stop=nr*i;
+    fprintf('\n%d-%d', start, stop)
+    Out.M1OFF(:,:,:,start:stop,:)=Out_components(i).out.M1OFF;
+end
+
+% for findex=1:Out.numfreqs
+%     for aindex=1:Out.numamps
+%         for i=1:P.numoutfiles
+%             Out_components(i).out.M1OFF
+%             Out.M1OFF
+%         end
+%     end
+% end
+
 %     mM1OFF=out.mM1OFF;
 %     M1OFF=out.M1OFF;
 %     mM1ONLaser=out.mM1ONLaser;
@@ -75,15 +105,13 @@ Out.durs=Out_components(1).out.durs
 %     mM1OFFLaser=out.mM1OFFLaser;
 %     mM1ONStim=out.mM1ONStim;
 %     mM1OFFStim=out.mM1OFFStim;
-%     nrepsON=out.nrepsON;
-%     nrepsOFF=out.nrepsOFF;
-%     IL=out.IL;
 
 
 cd(targetdir)
 combinedoutfilename='out_combined.mat';
-save combinedoutfilename Out
-
+waitbar(.9, wb, 'saving combined outfile...')
+save(combinedoutfilename, 'Out')
+close(wb)
 keyboard
 
 %include a field in the outfile saying which outfiles are in it

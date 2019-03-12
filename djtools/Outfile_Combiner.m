@@ -1,8 +1,19 @@
 function Outfile_Combiner(varargin)
 
-%simple GUI to pick multiple outfiles and combine them
+%simple GUI to pick multiple outfiles and combine them.
 %developed for ABRs (LFP tuning curves) so that we can split data
 %acquisition across multiple sessions
+%
+%Usage: click "Browse and Add" to select outfiles and add them to the list of
+%outfiles that you want to combine. Once you're finished adding files to
+%the list, then click "Combine them" which will generate an
+%"out_combined.mat" file in the chronologically first directory.
+%To plot the combined file, run PlotTC_LFP without any input and use the
+%dialog box to select the combined outfile.
+% current version only allows outfiles with identical
+% frequencies/amplitudes, but in the future we can revise it to combine
+% outfiles with different parameters.
+
 
 global P
 
@@ -19,6 +30,8 @@ end
 switch action
     case 'Init'
         InitializeGUI
+    case 'reset'
+        InitializeGUI
     case 'Close'
         delete(P.fig)
         clear global P
@@ -28,9 +41,6 @@ switch action
         BrowseAndAdd
 end
 
-% Return the name of this function.
-function out = me
-out = mfilename;
 
 function CreateNewOutfile
 global P
@@ -38,6 +48,11 @@ wb=waitbar(0,'loading and combining outfiles...');
 sortedoutfilelist=sort (P.outfilelist);
 sorteddirlist=sort (P.dirlist);
 targetdir=sorteddirlist{1};
+
+Out.dirlist=sorteddirlist;
+Out.targetdir=sorteddirlist{1};
+Out.generated_by=mfilename;
+Out.generated_on=datestr(now);
 
 for i=1:P.numoutfiles
     cd( sorteddirlist{i});
@@ -58,9 +73,9 @@ if size(unique(Amps, 'rows'), 1)~=1
 end
 
 %now that we've verified that all parameters are the same, we can just use one of them
-Out.freqs=Out_components(1).out.freqs
-Out.amps=Out_components(1).out.amps
-Out.durs=Out_components(1).out.durs
+Out.freqs=Out_components(1).out.freqs;
+Out.amps=Out_components(1).out.amps;
+Out.durs=Out_components(1).out.durs;
 Out.numfreqs=Out_components(1).out.numfreqs;
 Out.numamps=Out_components(1).out.numamps;
 Out.numdurs=Out_components(1).out.numdurs;
@@ -91,7 +106,6 @@ for i=1:P.numoutfiles
     nr=max(Out_components(i).out.nrepsOFF(:));
     start=1+(i-1)*nr;
     stop=nr*i;
-    fprintf('\n%d-%d', start, stop)
     Out.M1OFF(:,:,:,start:stop,:)=Out_components(i).out.M1OFF;
     Out.M1OFFLaser(:,:,:,start:stop,:)=Out_components(i).out.M1OFFLaser;
     Out.M1OFFStim(:,:,:,start:stop,:)=Out_components(i).out.M1OFFStim;
@@ -120,23 +134,6 @@ Out.mM1ONLaser(:,:,1:Out.numdurs,:)=mean(Out.M1ONLaser, 4);
 Out.mM1ONStim(:,:,1:Out.numdurs,:)=mean(Out.M1ONStim, 4);
 
 
-% for findex=1:Out.numfreqs
-%     for aindex=1:Out.numamps
-%         for i=1:P.numoutfiles
-%             Out_components(i).out.M1OFF
-%             Out.M1OFF
-%         end
-%     end
-% end
-
-%     mM1OFF=out.mM1OFF;
-%     M1OFF=out.M1OFF;
-%     mM1ONLaser=out.mM1ONLaser;
-%     M1ONLaser=out.M1ONLaser;
-%     mM1OFFLaser=out.mM1OFFLaser;
-%     mM1ONStim=out.mM1ONStim;
-%     mM1OFFStim=out.mM1OFFStim;
-
 
 cd(targetdir)
 combinedoutfilename='out_combined.mat';
@@ -149,29 +146,6 @@ close(wb)
 %include a field in the outfile saying which outfiles are in it
 
 
-% function SelectExistingCellList
-% global P
-% [fname, path] = uigetfile('*.txt', 'Select cell list');
-% if fname
-%     P.TargetCellList=fullfile(path, fname);
-%     set(P.TargetCellListDisplay, 'string', {'cell list:',path, fname});
-%     set([P.BrowseAndAddh P.AddCurrentDirh], 'enable', 'on')
-% end
-
-% function AddCurrentDir
-% global P
-%     d=dir('out*.mat');
-% if isempty(d)
-%     h = errordlg('no outfiles found in this directory.', 'no outfiles');
-% else
-%     SelectOutfiles(d)
-% end
-%
-% function SelectOutfiles(d)
-%     [selection, ok, ClustQual, PVcell]=myCellListDlg(d);
-%
-% if ok
-% end
 
 
 function BrowseAndAdd
@@ -218,6 +192,10 @@ switch response
         fclose(fid);
 end
 
+% Return the name of this function.
+function out = me
+out = mfilename;
+
 function InitializeGUI
 
 global P
@@ -231,156 +209,40 @@ P.fig=fig;
 set(fig,'visible','off');
 set(fig,'visible','off','numbertitle','off','name','Outfile Combiner',...
     'doublebuffer','on','menubar','none','closerequestfcn','Outfile_Combiner(''Close'')')
-height=220; width=350; e=2; H=e;
+height=500; width=350; e=2; H=e;
 w=200; h=25;
 set(fig,'pos',[1000 800         width         height],'visible','on');
 P.numoutfiles=0;
 
+H=400;
 P.Messageh=uicontrol(fig,'tag','message','style','edit','fontweight','bold','units','pixels',...
-    'enable','inact','horiz','left','Max', 8, 'pos',[e  H width 5*h ]);
+    'enable','inact','horiz','left','Max', 8, 'pos',[e  10 width H ]);
 
 
-% %TargetCellList display
-% P.TargetCellListDisplay= uicontrol('parent',fig,'string','','tag','OutfileListDisplay','units','pixels',...
-%     'position',[e H width-e 2*h],'enable','on',...
-%     'fontweight','bold','horiz', 'left',...
-%     'style','text');
 
 %Combine them button
-H=H+5*h+e;
+H=H+h+e;
 uicontrol('parent',fig,'string','Combine them','tag','CreateNewOutfile','units','pixels',...
     'position',[e H w h],'enable','on',...
     'fontweight','bold',...
     'style','pushbutton','callback',[me ';']);
 
-%SelectExistingCellList button
-% H=H+1*h+e;
-% uicontrol('parent',fig,'string','Select Existing Cell List','tag','SelectExistingCellList','units','pixels',...
-%     'position',[e H w h],'enable','on',...
-%     'fontweight','bold',...
-%     'style','pushbutton','callback',[me ';']);
+%help button
+uicontrol('parent',fig,'string','help','tag','help','units','pixels',...
+    'position',[e+w+20 H 50 h],'enable','on',...
+    'fontweight','bold',...
+    'style','pushbutton','callback', 'help(mfilename)');
+
+%reset button
+uicontrol('parent',fig,'string','reset','tag','reset','units','pixels',...
+    'position',[e+w+20 H+h+e 50 h],'enable','on',...
+    'fontweight','bold',...
+    'style','pushbutton','callback', me);
 
 %Browse and Add button
-H=H+2*h+e;
+H=H+1*h+e;
 P.BrowseAndAddh=uicontrol('parent',fig,'string','Browse and Add','tag','BrowseAndAdd','units','pixels',...
     'position',[e H w h],'enable','on',...
     'fontweight','bold',...
     'style','pushbutton','callback',[me ';']);
 
-% %AddCurrentDir button
-% H=H+h+e;
-% P.AddCurrentDirh=uicontrol('parent',fig,'string','Add Current Dir','tag','AddCurrentDir','units','pixels',...
-%     'position',[e H w h],'enable','off',...
-%     'fontweight','bold',...
-%     'style','pushbutton','callback',[me ';']);
-
-% %recursive checkbox
-% H=H+h+e;
-% P.recursive=uicontrol('parent',fig,'string','Recursive Scan','tag','Recursive','units','pixels',...
-%     'position',[e H w h],'enable','on',...
-%     'style','checkbox');
-
-
-% function doOK(src, evt, IncludeCellcheckbox, sl, pvcheckbox)
-%
-% for i=1:length(sl)
-%     IncludeCell(i)=get(IncludeCellcheckbox(i), 'value');
-%     ClustQual(i)=get(sl(i), 'value');
-%     PVcell(i)=get(pvcheckbox(i), 'value');
-% end
-% delete(gcbf);
-% global P
-% P.ok=1;
-% P.IncludeCell=IncludeCell;
-% P.ClustQual=ClustQual;
-% P.PVcell=PVcell;
-
-
-% function doCancel(src, evt)
-% % ad.selection = [];
-% % ad.ClustQual=[];
-% % ad.PVcell=[];
-% % setappdata(0,'ListDialogAppData__',ad)
-% delete(gcbf);
-% global P
-% P.ok=0;
-
-
-
-%
-% function [selection, ok, ClustQual, PVcell]=myCellListDlg(d)
-% global P
-%
-% fig=figure;
-% set(fig, 'pos',[800 150 500 800] )
-%
-% selection=[];
-% ClustQual=[];
-% PVcell=[];
-% P.ok=0;
-%
-% btn_wid=50;
-% btn_ht=25;
-%
-% %     top=ffs+uh+4*fus+(smode==2)*(fus+uh)+listsize(2);
-% fontsize=12;
-% linesize = fontsize*1.4;  % height extent per line of uicontrol text (approx)
-% linespacing=linesize*1.5;
-% pos=get(fig, 'pos');
-% width=pos(3);
-% top=pos(4);
-% col1width=150; %cell name
-% col2width=50; %include cell checkbox
-% col3width=120; %cluster quality slider
-% col4width=50; %cluster quality numeric indicator
-% col5width=50; %pv cell checkbox
-% sliderwidth=col3width;
-%
-% uicontrol('style', 'text', 'pos', [0, top-linesize, col1width, linesize], 'string', 'cell', ...
-%     'horizontalalignment', 'center', 'fontsize', fontsize)
-% uicontrol('style', 'text', 'pos', [col1width, top-linesize, col2width, linesize], 'string', 'include?', ...
-%     'horizontalalignment', 'center', 'fontsize', fontsize)
-% uicontrol('style', 'text', 'pos', [col1width+col2width, top-linesize, sliderwidth, linesize],...
-%     'string', 'cluster quality', 'fontsize', fontsize)
-% uicontrol('style', 'text', 'pos', [col1width+col2width+col3width+col4width, top-linesize, 50, linesize], ...
-%     'string', 'PV cell?', 'fontsize', fontsize, 'horizontalalign', 'left')
-%
-% for i=1:length(d)
-%     if ~mod(i,3)
-%         u=uipanel('units', 'pixels', 'pos',[ 0,top-(i+2)*linespacing-3, width, 2]);
-%     end
-%     cellstr(i)=uicontrol('style', 'text', 'pos',[2, top-(i+2)*linespacing, col1width, linesize],...
-%         'horizontalalignment', 'right','fontsize', fontsize,'string', d(i).name); %cell name
-%     IncludeCellcheckbox(i)=uicontrol('style', 'checkbox', 'pos', ...
-%         [col1width, top-(i+2)*linespacing, 30, linesize], 'value', 1); %include cell checkbox
-%     slstr(i)=uicontrol('style', 'text', 'pos', ...
-%         [col1width+col2width+col3width+2, top-(i+2)*linespacing, 10, linesize], 'string', 0); %cluster quality numeric indicator
-%     sl(i)=uicontrol('style', 'slider', 'pos', [col1width+col2width, top-(i+2)*linespacing, sliderwidth, linesize], ...
-%         'min', 0, 'max', 5, 'sliderstep', [.2 .2], 'value', 0, 'callback', {@doSlider, slstr(i)} ); %cluster quality slider
-%     pvcheckbox(i)=uicontrol('style', 'checkbox', 'pos', ...
-%         [col1width+col2width+col3width+col4width, top-(i+2)*linespacing, 30, linesize]); %pvcheckbox
-% end
-%
-% ok_btn = uicontrol('Style','pushbutton',...
-%     'String','OK',...
-%     'Position',[10 10 btn_wid btn_ht],...
-%     'Tag','ok_btn',...
-%     'Callback',{@doOK,IncludeCellcheckbox, sl, pvcheckbox });
-%
-% cancel_btn = uicontrol('Style','pushbutton',...
-%     'String','Cancel',...
-%     'Position',[20+btn_wid 10 btn_wid btn_ht],...
-%     'Tag','cancel_btn',...
-%     'Callback',@doCancel);
-%
-% uiwait(fig)
-% ok=P.ok;
-% if ok
-%     selection=P.IncludeCell;
-%     ClustQual=P.ClustQual;
-%     PVcell=P.PVcell;
-% else
-%     selection=[];
-%     ClustQual=[];
-%     PVcell=[];
-% end

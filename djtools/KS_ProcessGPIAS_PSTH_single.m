@@ -94,7 +94,7 @@ end
 
 if exist('params.py','file') || exist('dirs.mat','file') 
     fprintf('\nreading KiloSort output cell %d', clust)
-    spiketimes=readKiloSortOutput(clust, sampleRate);
+    spiketimes=readKiloSortOutput(cellnum, sampleRate);
 else
     fprintf('\nreading MClust output file %s', filename)
     spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds

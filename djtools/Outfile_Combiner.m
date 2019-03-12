@@ -66,12 +66,17 @@ Out.numamps=Out_components(1).out.numamps;
 Out.numdurs=Out_components(1).out.numdurs;
 Out.samprate=Out_components(1).out.samprate;
 Out.IL=Out_components(1).out.IL;
+Out.xlimits=Out_components(1).out.xlimits;
 if size(Out_components(1).out.nrepsOFF)~=[Out.numfreqs Out.numamps]
     error('nreps is not numfreqs x numamps')
 end
 
+Out.nreps=Out_components(1).out.nreps;
+Out.nrepsON=Out_components(1).out.nrepsON;
 Out.nrepsOFF=Out_components(1).out.nrepsOFF;
 for i=2:P.numoutfiles
+    Out.nreps = Out.nreps + Out_components(i).out.nreps;
+    Out.nrepsON = Out.nrepsON + Out_components(i).out.nrepsON;
     Out.nrepsOFF = Out.nrepsOFF + Out_components(i).out.nrepsOFF;
 end
 
@@ -79,15 +84,41 @@ end
 sz=size(Out_components(i).out.M1OFF);
 sz(end-1)=max(Out.nrepsOFF(:));
 Out.M1OFF=nan(sz);
+Out.M1OFFLaser=nan(sz);
+Out.M1OFFStim=nan(sz);
 
-  
 for i=1:P.numoutfiles
     nr=max(Out_components(i).out.nrepsOFF(:));
     start=1+(i-1)*nr;
     stop=nr*i;
     fprintf('\n%d-%d', start, stop)
     Out.M1OFF(:,:,:,start:stop,:)=Out_components(i).out.M1OFF;
+    Out.M1OFFLaser(:,:,:,start:stop,:)=Out_components(i).out.M1OFFLaser;
+    Out.M1OFFStim(:,:,:,start:stop,:)=Out_components(i).out.M1OFFStim;
 end
+Out.mM1OFF(:,:,1:Out.numdurs,:)=mean(Out.M1OFF, 4);
+Out.mM1OFFLaser(:,:,1:Out.numdurs,:)=mean(Out.M1OFFLaser, 4);
+Out.mM1OFFStim(:,:,1:Out.numdurs,:)=mean(Out.M1OFFStim, 4);
+
+sz=size(Out_components(i).out.M1ON);
+sz(end-1)=max(Out.nrepsON(:));
+Out.M1ON=nan(sz);
+Out.M1ONLaser=nan(sz);
+Out.M1ONStim=nan(sz);
+
+for i=1:P.numoutfiles
+    nr=max(Out_components(i).out.nrepsON(:));
+    start=1+(i-1)*nr;
+    stop=nr*i;
+    fprintf('\n%d-%d', start, stop)
+    Out.M1ON(:,:,:,start:stop,:)=Out_components(i).out.M1ON;
+    Out.M1ONLaser(:,:,:,start:stop,:)=Out_components(i).out.M1ONLaser;
+    Out.M1ONStim(:,:,:,start:stop,:)=Out_components(i).out.M1ONStim;
+end
+Out.mM1ON(:,:,1:Out.numdurs,:)=mean(Out.M1ON, 4);
+Out.mM1ONLaser(:,:,1:Out.numdurs,:)=mean(Out.M1ONLaser, 4);
+Out.mM1ONStim(:,:,1:Out.numdurs,:)=mean(Out.M1ONStim, 4);
+
 
 % for findex=1:Out.numfreqs
 %     for aindex=1:Out.numamps
@@ -110,9 +141,10 @@ end
 cd(targetdir)
 combinedoutfilename='out_combined.mat';
 waitbar(.9, wb, 'saving combined outfile...')
-save(combinedoutfilename, 'Out')
+out=Out;
+save(combinedoutfilename, 'out')
 close(wb)
-keyboard
+
 
 %include a field in the outfile saying which outfiles are in it
 

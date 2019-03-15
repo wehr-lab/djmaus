@@ -101,15 +101,16 @@ if isempty(channel)     %default to all tetrodes
         end
         %end of Nick addition 8/31/18. Some slight rearrangements below.
     else
-        d=dir('*.t');
-        if isempty(d)
-            fprintf('\nNo clustered data found (no .t files in this directory)')
-            KS_PlotGPIAS_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
-        end
-        for i=1:length(d)
-            fn=d(i).name;
-            KS_PlotGPIAS_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
-        end
+        fprintf('No dirs, so Im doing nothing')
+%         d=dir('*.t'); %Nick edit 3/11/2019
+%         if isempty(d)
+%             fprintf('\nNo clustered data found (no .t files in this directory)')
+%             KS_PlotGPIAS_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
+%         end
+%         for i=1:length(d)
+%             fn=d(i).name;
+%             KS_PlotGPIAS_PSTH_single(datadir, fn, xlimits, ylimits, binwidth)
+%         end
     end
 
 else %user specified a channel

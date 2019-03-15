@@ -211,7 +211,7 @@ set(fig,'visible','off','numbertitle','off','name','Outfile Combiner',...
     'doublebuffer','on','menubar','none','closerequestfcn','Outfile_Combiner(''Close'')')
 height=500; width=350; e=2; H=e;
 w=200; h=25;
-set(fig,'pos',[1000 800         width         height],'visible','on');
+set(fig,'pos',[1000 200         width         height],'visible','on');
 P.numoutfiles=0;
 
 H=400;

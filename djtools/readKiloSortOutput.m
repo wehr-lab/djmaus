@@ -1,5 +1,5 @@
 
-function [spiketimes, cell_ID]=readKiloSortOutput(cellnum, sampleRate) %output spiketimes and Kilosort ID number
+function [spiketimes, cell_ID]=readKiloSortOutput(clust, sampleRate) %output spiketimes and Kilosort ID number
 
 %reads Kilosort output, finds cell's spiking time
 % plot's statistics about this cell
@@ -23,10 +23,8 @@ cd(masterdir) %go to the first directory to load clustered data, we can call thi
 sp = loadKSdir(pwd); %load all cells, all spikes
 
 
-cell_ID=sp.cids(cellnum) %get Kilosort id
-
-cell_ID=sp.cids(cellnum); %get Kilosort id
-
+cell_ID=clust; %get Kilosort id
+cellnum=find(sp.cids==clust);
 cg=sp.cgs(cellnum); %whats the group
 if cg==0
     qual='noise';

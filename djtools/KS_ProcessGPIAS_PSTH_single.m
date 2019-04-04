@@ -1,8 +1,8 @@
 function KS_ProcessGPIAS_PSTH_single(varargin)
 
-%processes a single .t file of clustered spiking GPIAS data from djmaus
+%processes a single file of kilosrt clustered spiking GPIAS data from djmaus
 %
-% usage: ProcessGPIAS_PSTH_single(datadir, t_filename, [xlimits],[ylimits])
+% usage: KS_ProcessGPIAS_PSTH_single(datadir, filename, [xlimits],[ylimits])
 % (xlimits, ylimits are optional)
 % xlimits default to [-1.5*max(gapdurs) 2*soa]
 % saves to outfile
@@ -94,8 +94,10 @@ end
 
 if exist('params.py','file') || exist('dirs.mat','file') 
     fprintf('\nreading KiloSort output cell %d', clust)
-    spiketimes=readKiloSortOutput(cellnum, sampleRate);
+    spiketimes=readKiloSortOutput(clust, sampleRate);
+    fprintf('\nremoved cellnum from readKiloSortOutput, now its (clust, sampleRate). ira 4.2.19\n')
 else
+    error('no kilosort data found. To process MClust sorted data, use Plot/ProcessGPIAS_PSTH')
     fprintf('\nreading MClust output file %s', filename)
     spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
     %correct for OE start time, so that time starts at 0
@@ -587,6 +589,11 @@ catch
     out.stimlog='notebook file missing';
     out.user='unknown';
 end
+
+out.clustering_method='kilosort';
+out.generated_by=mfilename;
+out.generated_on=datestr(now);
+
 outfilename=sprintf('KS_outPSTH_ch%dc%d.mat',channel, clust);
 save (outfilename, 'out')
 fprintf('\nsaved %s', outfilename)

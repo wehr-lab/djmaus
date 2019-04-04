@@ -223,9 +223,12 @@ if ~isempty(M1OFF)
     end
     
     subplot1(1)
-    h=title(sprintf('%s: \ntetrode%d cell %d, nreps: %d-%d, OFF',datadir,channel,out.cluster,min(nrepsOFF(:)),max(nrepsOFF(:))));
+    h=title(sprintf('KS %s: \ntetrode%d cell %d, nreps: %d-%d, OFF',datadir,channel,out.cluster,min(nrepsOFF(:)),max(nrepsOFF(:))));
     set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
     
+    %print to pdf
+    print('-dpdf', sprintf('tet%d-cell%d',channel,out.cluster))
+
     %label amps and freqs
 %     p=0;
 %     for paindex=1:numpulseamps

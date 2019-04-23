@@ -57,7 +57,11 @@ if isempty(channel)     %default to all tetrodes
     %Nick addition 8/31/18 - defaults to kilosort output IF PRESENT. Otherwise defaults to .t files.
     if exist('dirs.mat','file')
         load('dirs.mat')
+        try
         masterdir=dirs{1};
+        catch
+            masterdir=pwd;
+        end
         cd(masterdir);
         sp = loadKSdir(pwd);
         %The rest of this addition is to find the channel your cell is on.

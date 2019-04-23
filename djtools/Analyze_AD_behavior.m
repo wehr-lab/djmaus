@@ -16,7 +16,7 @@ elseif ismac
     
 end
 close all hidden
-reprocess=0;
+reprocess=1;
 
 
 if reprocess
@@ -25,8 +25,8 @@ if reprocess
     
     cd(dataroot);
     
-        cell_list='behavior_list_BACKUP.txt';
-%     cell_list='behavior_list_PUPS.txt';
+        cell_list='behavior_list_phys3.txt';
+%     cell_list='behavior_list_phys.txt';
     fid=fopen(cell_list);
     fid_mouselist=fopen('mouse_list.txt', 'w'); %generate an output text file to compare behavior list with notebook (mouse ID, geneotype, sex, etc)
     fseek(fid, 0, 1); %fastforward to end, to get file size
@@ -105,10 +105,19 @@ if reprocess
             
             
             load notebook
-            sex=nb.mouseSex;
-            dob=nb.mouseDOB;
-            mouseID=nb.mouseID;
-            genotype=nb.mouseGenotype;
+            switch outfilename
+                case 'outGPIAS_Behavior.mat'
+                    sex=nb.mouseSex;
+                    dob=nb.mouseDOB;
+                    mouseID=nb.mouseID;
+                    genotype=nb.mouseGenotype;
+                case   'outGPIAS_BehaviorMouse2.mat'
+                    sex=nb.mouse2Sex;
+                    dob=nb.mouse2DOB;
+                    mouseID=nb.mouse2ID;
+                    genotype=nb.mouse2Genotype;
+            end
+
             rundate=stimlog(1).timestamp;
             if strcmp(dob, 'unknown') | strcmp(dob, 'age unknown')
                 age_days=nan;

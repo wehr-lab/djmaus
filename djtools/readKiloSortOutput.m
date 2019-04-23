@@ -13,7 +13,11 @@ function [spiketimes, cell_ID]=readKiloSortOutput(clust, sampleRate) %output spi
 % load all cells clustered by Kilosort
 
 load('dirs.mat') %find all directories that were clustered in one session of kilosort. all clusters are saved in the first directory
+try
 masterdir=dirs{1};
+catch
+ masterdir = pwd;
+end
 currentdir=pwd; %remember which directory you are in now
 currentdir_indx=find(strcmp(currentdir, dirs)==1); %which dir are we trying to plot?
 if currentdir_indx==0

@@ -21,10 +21,11 @@
 mex -setup C++
 
 % it helps to execute this from within the directory
-cd('C:\Users\WehrLab\Documents\GitHub\djmaus')
+djhome
 
 %Where is the plugin-GUI folder?
-GUIfolder = 'C:\Users\WehrLab\Documents\GitHub\plugin-GUI'; %wehrrig3
+%GUIfolder = 'C:\Users\WehrLab\Documents\GitHub\plugin-GUI'; %wehrrig3
+GUIfolder = 'C:\lab\plugin-GUI'; %wehrrig2b
 
 
 headerFolder = [GUIfolder, '\Resources\windows-libs\ZeroMQ\include'];% for compiled version of OE
@@ -38,7 +39,9 @@ elseif strcmp(computer,'PCWIN64')
     %libFolder =   'C:\lab\ZeroMQ4.0.4\lib'; %rig2, binary download
     %libraryName = 'libzmq-v110-mt-3_2_2';
     libraryName = 'libzmq-v120-mt-4_0_4.lib';
-    cppFile=  'C:\Users\WehrLab\Documents\GitHub\djmaus\windows\zeroMQwrapper.cpp';
+%     cppFile=  'C:\Users\WehrLab\Documents\GitHub\djmaus\windows\zeroMQwrapper.cpp'; %rig3
+    cppFile = 'windows/zeroMQwrapper.cpp'; %rig2
+
 elseif strcmp(computer,'GLNX86') || strcmp(computer,'GLNXA64')
     libFolder = '/usr/local/lib';
     libraryName = 'zmq';

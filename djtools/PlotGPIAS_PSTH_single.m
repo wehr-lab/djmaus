@@ -2,14 +2,14 @@ function PlotGPIAS_PSTH_single(varargin)
 
 %plots a single file of clustered spiking GPIAS data from djmaus
 %
-% usage: PlotGPIAS_PSTH(datapath, t_filename, [xlimits],[ylimits], [binwidth])
-% (xlimits, ylimits, binwidth are optional)
+% usage: PlotGPIAS_PSTH(datapath, t_filename, [xlimits],[ylimits], [binwidth], ['force-reprocess'])
+% (xlimits, ylimits, binwidth,  'force-reprocess' are optional)
 %
 %Processes data if outfile is not found;
 
 plotOFFON=1;
 rasters=1;
-force_reprocess=1;
+force_reprocess=0;
 
 if nargin==0
     fprintf('\nno input');
@@ -34,7 +34,14 @@ try
 catch
     binwidth=5;
 end
+try
+    if strcmp(varargin{6}, 'force-reprocess')
+        force_reprocess=1;
+    end
+end
 
+
+    
 if force_reprocess
     fprintf('\nForce re-process\n')
     ProcessGPIAS_PSTH_single(datadir,  t_filename, xlimits, ylimits, binwidth);

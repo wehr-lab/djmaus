@@ -71,7 +71,7 @@ if exist('dirs.mat','file')
     [ChanClustCellnum] = getChanClustCellnum(sp,maxChannel);
     
     if isempty(channel)     %default to all tetrodes
-        for i = 1:length(ChanClustCellnum)
+        for i = 1:size(ChanClustCellnum,1)
             KS_PlotGPIAS_PSTH_single(datadir, ChanClustCellnum(i,:), xlimits, ylimits, binwidth)
         end
     else    %user specified a channel

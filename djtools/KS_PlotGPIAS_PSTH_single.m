@@ -43,8 +43,8 @@ if ischar(t_filename)
     channel=str2num(ch{2});
     clust=str2num(split{end});
 else %reads kilosort input, which is [clust, channel, cellnum]
-    channel=t_filename(1,2);
-    clust=t_filename(1,1);
+    channel=t_filename(1,1);
+    clust=t_filename(1,2);
 end
 %end of Nick addition 8/31/18.
 

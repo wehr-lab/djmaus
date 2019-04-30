@@ -1,17 +1,11 @@
-function ProcessGPIAS_PSTH_single(varargin)
+function KS_ProcessGPIAS_PSTH_single(varargin)
 
-%processes a single .t file of clustered spiking GPIAS data from djmaus
+%processes a single file of kilosrt clustered spiking GPIAS data from djmaus
 %
-% usage: ProcessGPIAS_PSTH_single(datadir, t_filename, [xlimits],[ylimits])
+% usage: KS_ProcessGPIAS_PSTH_single(datadir, filename, [xlimits],[ylimits])
 % (xlimits, ylimits are optional)
 % xlimits default to [-1.5*max(gapdurs) 2*soa]
 % saves to outfile
-clustering='Mclust'; %'Kilo'
-% we're now using a separate suite of functions for plotting/processing
-% data sorted with kilosort. Please use one of these functions instead:    
-%KS_PlotGPIAS_PSTH_single.m     
-%KS_PlotGPIAS_PSTH.m            
-%KS_ProcessGPIAS_PSTH_single.m  
 
 if nargin==0
     fprintf('\nno input');
@@ -33,12 +27,20 @@ catch
     ylimits=[];
 end
 
-filename=varargin{2};
-[p,f,ext]=fileparts(filename);
-split=strsplit(f, '_');
-ch=strsplit(split{1}, 'ch');
-channel=str2num(ch{2});
-clust=str2num(split{end});
+%Nick addition 8/31/18 - accomodates kilosort input
+filename = varargin{2};
+if ischar(filename)
+    [p,f,ext]=fileparts(filename);
+    split=strsplit(f, '_');
+    ch=strsplit(split{1}, 'ch');
+    channel=str2num(ch{2});
+    clust=str2num(split{end});
+else %reads kilosort input, which is [clust, channel, cellnum]
+    channel=filename(1,1);
+    clust=filename(1,2);
+    cellnum=filename(1,3); %This number is necessary for 
+end
+%end of Nick addition 8/31/18.
 
 fprintf('\nchannel %d, cluster %d', channel, clust)
 
@@ -90,16 +92,12 @@ end
 
 %read MClust .t file or Kilosort
 
-if  strcmp(clustering, 'Kilo')
-    error(['we''re now using a separate suite of functions for plotting/processing ', ...
-' data sorted with kilosort. Please use one of these functions instead:    ', ...
-'KS_PlotGPIAS_PSTH_single.m     ', ...
-'KS_PlotGPIAS_PSTH.m            ', ...
-'KS_ProcessGPIAS_PSTH_single.m  ']);
-
+if exist('params.py','file') || exist('dirs.mat','file') 
     fprintf('\nreading KiloSort output cell %d', clust)
     spiketimes=readKiloSortOutput(clust, sampleRate);
-elseif strcmp(clustering, 'Mclust')
+    fprintf('\nremoved cellnum from readKiloSortOutput, now its (clust, sampleRate). ira 4.2.19\n')
+else
+    error('no kilosort data found. To process MClust sorted data, use Plot/ProcessGPIAS_PSTH')
     fprintf('\nreading MClust output file %s', filename)
     spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
     %correct for OE start time, so that time starts at 0
@@ -536,10 +534,6 @@ out.samprate=samprate;
 out.datadir=datadir;
 out.spiketimes=spiketimes;
 
-out.clustering_method=clustering;
-out.generated_by=mfilename;
-out.generated_on=datestr(now);
-
 out.LaserRecorded=LaserRecorded; %whether the laser signal was hooked up and recorded as a continuous channel
 out.StimRecorded=StimRecorded; %%whether the sound stimulus signal was hooked up and recorded as a continuous channel
 
@@ -595,7 +589,12 @@ catch
     out.stimlog='notebook file missing';
     out.user='unknown';
 end
-outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
+
+out.clustering_method='kilosort';
+out.generated_by=mfilename;
+out.generated_on=datestr(now);
+
+outfilename=sprintf('KS_outPSTH_ch%dc%d.mat',channel, clust);
 save (outfilename, 'out')
 fprintf('\nsaved %s', outfilename)
 end

@@ -13,13 +13,10 @@ elseif ismac
     system('mount_smbfs //lab:mausA1@wehrrig2b/d /Volumes/wehrrig2b');
     dataroot='/Volumes/wehrrig2b/lab/djmaus/Data/Kat';
     figs_dir='/Users/mikewehr/Documents/Manuscripts/AD paper';
-   
-% if you get this error:    mount_smbfs: mount error: /Volumes/wehrrig2b: File exists
-%  it's because the volume is already mounted 
-
+    
 end
 close all hidden
-reprocess=0;
+reprocess=1;
 
 
 if reprocess
@@ -29,7 +26,8 @@ if reprocess
     cd(dataroot);
     
         cell_list='behavior_list.txt';
-%     cell_list='behavior_list_PUPS.txt';
+%        cell_list='behavior_list_phys3.txt';
+%     cell_list='behavior_list_phys.txt';
     fid=fopen(cell_list);
     fid_mouselist=fopen('mouse_list.txt', 'w'); %generate an output text file to compare behavior list with notebook (mouse ID, geneotype, sex, etc)
     fseek(fid, 0, 1); %fastforward to end, to get file size
@@ -94,7 +92,7 @@ if reprocess
             end
             cd(datadir2)
             %             outfilename=sprintf('outGPIAS_Behavior.mat');
-            outfilename=deblank(filename);
+            outfilename=filename;
             d=dir(outfilename);
             if ~isempty(d)
                 load(outfilename)
@@ -108,10 +106,19 @@ if reprocess
             
             
             load notebook
-            sex=nb.mouseSex;
-            dob=nb.mouseDOB;
-            mouseID=nb.mouseID;
-            genotype=nb.mouseGenotype;
+            switch outfilename
+                case 'outGPIAS_Behavior.mat'
+                    sex=nb.mouseSex;
+                    dob=nb.mouseDOB;
+                    mouseID=nb.mouseID;
+                    genotype=nb.mouseGenotype;
+                case   'outGPIAS_BehaviorMouse2.mat'
+                    sex=nb.mouse2Sex;
+                    dob=nb.mouse2DOB;
+                    mouseID=nb.mouse2ID;
+                    genotype=nb.mouse2Genotype;
+            end
+
             rundate=stimlog(1).timestamp;
             if strcmp(dob, 'unknown') | strcmp(dob, 'age unknown')
                 age_days=nan;
@@ -159,17 +166,8 @@ if reprocess
             xlimits=out.xlimits;
             
             paindex=1;
-                      
-            start=-xlimits(1)*samprate/1000;
-            stop = start+150*samprate/1000;
-            S=squeeze(M1OFF(1,1,:,start:stop));
-            pre=squeeze(M1OFF(1,1,:,start-150*samprate/1000:start));
-            [h,p]=ttest(max(abs(S), [], 2), max(abs(pre), [], 2));
-            asr=mean(max(abs(S), [], 2));
-            sdasr=mean(std(abs(S), [], 2));
-            baseline=mean(max(abs(pre), [], 2));
-            sdbaseline=std(max(abs(pre), [], 2));
-
+            
+            
             
             
             switch group
@@ -183,14 +181,6 @@ if reprocess
                         age_wks_xfad{XFADidx}=age_wks;
                         sex_xfad{XFADidx}=sex;
                         mouseID_xfad{XFADidx}=mouseID;
-                        
-                        P_xfad(XFADidx)=p;
-                        ASR_xfad(XFADidx)=asr;
-                        sdASR_xfad(XFADidx)=sdasr;
-                        Baseline_xfad(XFADidx)=baseline;
-                        sdBaseline_xfad(XFADidx)=sdbaseline;
-                        SNR_xfad(XFADidx)=asr/baseline;
-                       
                     else
                         fprintf('\n\texcluded');
                         excludedcount=excludedcount+1;
@@ -206,14 +196,6 @@ if reprocess
                         age_wkscontrol{controlidx}=age_wks;
                         sex_control{controlidx}=sex;
                         mouseID_control{controlidx}=mouseID;
-                        
-                        P_control(controlidx)=p;
-                        ASR_control(controlidx)=asr;
-                        sdASR_control(controlidx)=sdasr;
-                        Baseline_control(controlidx)=baseline;
-                        sdBaseline_control(controlidx)=sdbaseline;
-                        SNR_control(controlidx)=asr/baseline;
-
                     else
                         fprintf('\n\texcluded');
                         excludedcount=excludedcount+1;
@@ -259,59 +241,14 @@ end %if process groupdata
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-% filter out sessions with crappy pure startle responses
-
-num_all_XFAD_sessions=size(XFAD, 1);
-num_all_control_sessions=size(ctrlgroup, 1);
-%number of sessions that aren't excluded due to crappy startles
-%(but early sessions with different stimulus arrays are already excluded)
-
-keep=find(P_control<1e-3);
-num_excluded_control_sessions=num_all_control_sessions-length(keep);
-ctrlgroup=ctrlgroup(keep,:);
-gdcontrol=gdcontrol(keep,:);
-GPIAScontrol=GPIAScontrol(keep,:);
-age_control=age_control(keep);
-age_wkscontrol=age_wkscontrol(keep);
-sex_control=sex_control(keep);
-mouseID_control=mouseID_control(keep);
-P_control=P_control(keep);
-ASR_control=ASR_control(keep);
-sdASR_control=sdASR_control(keep);
-Baseline_control=Baseline_control(keep);
-sdBaseline_control=sdBaseline_control(keep);
-SNR_control=SNR_control(keep);
-
-keep=find(P_xfad<1e-3);
-num_excluded_XFAD_sessions=num_all_XFAD_sessions-length(keep);
-XFAD=XFAD(keep,:);
-gdxfad=gdxfad(keep,:);
-GPIASxfad=GPIASxfad(keep,:);
-age_xfad=age_xfad(keep);
-age_wks_xfad=age_wks_xfad(keep);
-sex_xfad=sex_xfad(keep);
-mouseID_xfad=mouseID_xfad(keep);
-P_xfad=P_xfad(keep);
-ASR_xfad=ASR_xfad(keep);
-sdASR_xfad=sdASR_xfad(keep);
-Baseline_xfad=Baseline_xfad(keep);
-sdBaseline_xfad=sdBaseline_xfad(keep);
-SNR_xfad=SNR_xfad(keep);
-
-
-
 numXFAD_sessions=size(XFAD, 1);
 numcontrol_sessions=size(ctrlgroup, 1);
 numXFAD_mice=length(unique(mouseID_xfad));
 numcontrol_mice=length(unique(mouseID_control));
 log2gapdurs=log2(gapdurs(2:8));
 
-%plotting params
 fs=18;
-ms=40; %fig 1b (used for '.')
-ms1=12; %fig 2, 3a-b (used for 'o'
-mso=6; %fig 3c-d (scatterplots)
+ms=40;
 lw=2;
 
 if ispc %assume we're on wehrrig2b
@@ -339,8 +276,6 @@ fprintf(fid, '\n%d XFAD mice', numXFAD_mice);
 fprintf(fid, '\n%d control mice', numcontrol_mice);
 fprintf(fid, '\n%d total mice', numXFAD_mice + numcontrol_mice);
 fprintf(fid, '\n%.1f average sessions per mouse', (numXFAD_sessions+numcontrol_sessions)/(numXFAD_mice + numcontrol_mice));
-fprintf(fid, '\n\n%d XFAD sessions excluded due to crappy pure startles', num_excluded_XFAD_sessions);
-fprintf(fid, '\n%d control sessions excluded due to crappy pure startles', num_excluded_control_sessions);
 
 %how many sessions per mouse?
 [umid, ~, ic]=unique(mouseID_xfad);
@@ -355,55 +290,15 @@ fprintf(fid, '(range: %d - %d)', min(control_sessionspermouse),max(control_sessi
 
 
 fprintf(fid, '\n');
-% are negative gap detection values any more prevalent for xfad mice vs controls?
-fprintf(fid, '\nAre negative gap detection values any more prevalent for xfad mice vs controls? enter the following into an online chi-square contingency table');
-fprintf(fid,'\nnumber of negative-gpias control sessions: %d', length(find(GPIAScontrol<0)));
-fprintf(fid,'\nnumber of positive-gpias control sessions: %d', length(find(GPIAScontrol>=0)));
-fprintf(fid,'\nnumber of negative-gpias xfad sessions: %d', length(find(GPIASxfad<0)));
-fprintf(fid,'\nnumber of positive-gpias xfad sessions: %d', length(find(GPIASxfad>=0)));
-fprintf(fid, '\n');
 
 
 %restrict to ages > p60
 XFADp60_sessions=find(age_xfad>60);
 controlp60_sessions=find(age_control>60);
-XFADunderp60_sessions=find(age_xfad<=60);
-controlunderp60_sessions=find(age_control<=60);
-%important: these session indices are local to the age list
-%i.e. XFADp60_sessions are the indices of age_xfad
-
-
-j=0;
-for i=XFADp60_sessions
-    j=j+1;
-    mouseid_overp60_xfad(j)=mouseID_xfad(i);
-end
-j=0;
-for i=controlp60_sessions
-    j=j+1;
-    mouseid_overp60_control(j)=mouseID_control(i);
-end
-j=0;
-for i=XFADunderp60_sessions
-    j=j+1;
-    mouseid_underp60_xfad(j)=mouseID_xfad(i);
-end
-j=0;
-for i=controlunderp60_sessions
-    j=j+1;
-    mouseid_underp60_control(j)=mouseID_control(i);
-end
-fprintf(fid, '\n%d unique mice under p60 xfad ' , length(unique(mouseid_underp60_xfad)));
-fprintf(fid, '\n%d unique mice over p60 control ' , length(unique(mouseid_overp60_control)));
-fprintf(fid, '\n%d unique mice under p60 control ' , length(unique(mouseid_underp60_control)));
-fprintf(fid, '\n%d unique mice over p60 xfad ' , length(unique(mouseid_overp60_xfad)));
-
 fprintf(fid, '\n%d over-p60 XFAD sessions', length(XFADp60_sessions));
 fprintf(fid, '\n%d over-p60 control sessions', length(controlp60_sessions));
-fprintf(fid, '\n%d under-p60 XFAD sessions', length(XFADunderp60_sessions));
-fprintf(fid, '\n%d under-p60 control sessions', length(controlunderp60_sessions));
 
-    
+
 %plot the mean peak rectified startle
 figure;
 hold on
@@ -454,7 +349,7 @@ set(hctrl, 'FaceColor', [1 1 1]*.25)
 
 try
     p=ranksum(xfad_purestartle, control_purestartle);
-    fprintf(fid, '\n\npure startles, ranksum p=%.4f', p);
+    fprintf(fid, '\n\npure startles, ranks sum p=%.4f', p);
 catch
         fprintf(fid, '\nnot enough >p60 sessions for stats');
 end
@@ -471,20 +366,20 @@ figure;
 hold on
 %dummies for legend
 gpias=GPIAScontrol(1,2:8);
-plot(log2gapdurs, gpias, 'ok-', 'markersize', ms1, 'linewidth', lw)
+plot(log2gapdurs, gpias, '.k-', 'markersize', ms, 'linewidth', lw)
 gpias=GPIASxfad(1,2:8);
 gd=gdxfad(1,:);
-plot(log2gapdurs, gpias, 'or-', 'markersize', ms1, 'linewidth', lw)
+plot(log2gapdurs, gpias, '.r-', 'markersize', ms, 'linewidth', lw)
 
 for i=XFADp60_sessions
     gpias=GPIASxfad(i,2:8);
     gd=gdxfad(i,:);
-    plot(log2gapdurs, gpias, 'or-', 'markersize', ms1, 'linewidth', lw)
+    plot(log2gapdurs, gpias, '.r-', 'markersize', ms, 'linewidth', lw)
 end
 for i=controlp60_sessions
     gpias=GPIAScontrol(i,2:8);
     gd=gdcontrol(i,:);
-    plot(log2gapdurs, gpias, 'ok-', 'markersize', ms1, 'linewidth', lw)
+    plot(log2gapdurs, gpias, '.k-', 'markersize', ms, 'linewidth', lw)
     xlabel('gap duration')
     ylabel('% gpias')
 end
@@ -559,7 +454,7 @@ try
             grouping{j}='xfad';
         end
     end
-    [p, anovatab, stats]=kruskalwallis(X, grouping, 'off');
+    [p, anovatab, stats]=kruskalwallis(X, grouping);
     df=anovatab{2, 3};
     chisq=anovatab{2, 5};
     fprintf(fid, '\nkruskal wallis main effect of xfad vs control over-p60:');
@@ -592,8 +487,6 @@ fprintf(fid,'\n %d male over-p60 xfad sessions', length(malep60_xfad_sessions));
 fprintf(fid,'\n %d female over-p60 control sessions', length(femalep60_control_sessions));
 fprintf(fid,'\n %d male over-p60 control sessions', length(malep60_control_sessions));
 
-
-    
 figure
 hold on
 legstr={};
@@ -617,31 +510,6 @@ title('group means')
 ylabel('% gpias')
 legend(legstr, 'location', 'southeast')
 
-% effect size for males vs females (over p60)
-for gdindex=2:8
-    X=GPIAScontrol(malep60_control_sessions,gdindex);
-    Y=GPIASxfad(malep60_xfad_sessions,gdindex);
-    [p,h,stats]=ranksum(X,Y);
-    W=stats.ranksum;
-    U=W-(length(X)*(length(X)+1))/2;
-    r=1-(2*U)/(length(X)*length(Y)); %rank bi-serial correlation = effect size -1:1
-    Rmale(gdindex)=r;
-    fprintf(fid, '\neffect size for male over-p60, gd %d ms: %.4f', gapdurs(gdindex), r);
-end
-for gdindex=2:8
-    X=GPIAScontrol(femalep60_control_sessions,gdindex);
-    Y=GPIASxfad(femalep60_xfad_sessions,gdindex);
-    [p,h,stats]=ranksum(X,Y);
-    W=stats.ranksum;
-    U=W-(length(X)*(length(X)+1))/2;
-    r=1-(2*U)/(length(X)*length(Y)); %rank bi-serial correlation = effect size -1:1
-    Rfemale(gdindex)=r;
-    fprintf(fid, '\neffect size for female over-p60, gd %d ms: %.4f', gapdurs(gdindex), r);
-end
-    fprintf(fid, '\naverage effect size for male over-p60: %.4f', mean(Rmale(2:8)));
-    fprintf(fid, '\naverage effect size for female over-p60: %.4f', mean(Rfemale(2:8)));
-
-
 %same thing but prettier
 figure
 hold on
@@ -659,15 +527,13 @@ e(i+1)=errorbar(log2gapdurs, mgpias, sem, 'm');
 i=i+1;legstr{i}='female control';
 mgpias=nanmean(GPIASxfad(malep60_xfad_sessions,2:8), 1);
 sem=nanstd(GPIASxfad(malep60_xfad_sessions,2:8), 1)./sqrt(length(malep60_xfad_sessions));
-p(i+1)=plot(log2gapdurs, mgpias, 'o-c');
+p(i+1)=plot(log2gapdurs, mgpias, '.-c');
 e(i+1)=errorbar(log2gapdurs, mgpias, sem, 'c');
-set(p(i+1), 'markerfacecolor', 'c')
 i=i+1;legstr{i}='male 5XFAD';
 mgpias=nanmean(GPIASxfad(femalep60_xfad_sessions,2:8), 1);
 sem=nanstd(GPIASxfad(femalep60_xfad_sessions,2:8), 1)./sqrt(length(femalep60_xfad_sessions));
-p(i+1)=plot(log2gapdurs, mgpias, 'o-m');
+p(i+1)=plot(log2gapdurs, mgpias, '.-m');
 e(i+1)=errorbar(log2gapdurs, mgpias, sem, 'm');
-set(p(i+1), 'markerfacecolor', 'm')
 i=i+1;legstr{i}='female 5XFAD';
 set(gca, 'xtick', log2gapdurs)
 set(gca, 'xticklabel', [ 1 2 3 4 8 32 256])
@@ -678,15 +544,15 @@ ylabel('gap detection, %')
 xlabel('gap duration, ms')
 set([p], 'markersize', ms, 'linewidth', lw)
 set([e],  'linewidth', lw)
-set(p(:), 'markersize', ms1) %, 'MarkerFaceColor', 'w')
+set(p(1:2), 'markersize', 12, 'MarkerFaceColor', 'w')
 ylim([-25 100])
 cd(figs_dir)
-print -dpdf fig2a.pdf
+print -dpdf fig2.pdf
 
 %stats on sex
 %convert to long form
 try
-    clear sex gdgroup X grouping mesgroup
+    clear sex
     j=0;
     for i=malep60_control_sessions
         for gd=1:numgapdurs
@@ -710,7 +576,7 @@ try
             mouseid_xfad_male(k)=mouseID_xfad(i);
         end
     end
-    [p, anovatab, stats]=kruskalwallis(X, grouping, 'off');
+    [p, anovatab, stats]=kruskalwallis(X, grouping);
     df=anovatab{2, 3};
     chisq=anovatab{2, 5};
     fprintf(fid, '\n\nEffect of sex (over-p60):');
@@ -742,19 +608,16 @@ try
             mouseid_xfad_female(k)=mouseID_xfad(i);
         end
     end
-    [p, anovatab, stats]=kruskalwallis(X, grouping, 'off');
+    [p, anovatab, stats]=kruskalwallis(X, grouping);
     df=anovatab{2, 3};
     chisq=anovatab{2, 5};
     fprintf(fid, '\nkruskal wallis effect of xfad vs control for females:');
     fprintf(fid, '\np=%g, d.f.=%d, chi-squared=%.2f ', p, df, chisq);
-    fprintf(fid, '\n\nover-p60 mice:');
-    fprintf(fid, '\nn=%d over p-60 control mice', length(unique(mouseid_control_male))+length(unique(mouseid_control_female)));
-    fprintf(fid, '\nn=%d over p-60 xfad mice', length(unique(mouseid_xfad_male))+length(unique(mouseid_xfad_female)));
-    fprintf(fid, '\n');
-    fprintf(fid, '\nn=%d control males >p60', length(unique(mouseid_control_male)));
-    fprintf(fid, '\nn=%d xfad males >p60', length(unique(mouseid_xfad_male)));
-    fprintf(fid, '\nn=%d control females >p60', length(unique(mouseid_control_female)));
-    fprintf(fid, '\nn=%d xfad females >p60', length(unique(mouseid_xfad_female)));
+    fprintf(fid, '\n\nall age mice:')
+    fprintf(fid, '\nn=%d control males', length(unique(mouseid_control_male)));
+    fprintf(fid, '\nn=%d xfad males', length(unique(mouseid_xfad_male)));
+    fprintf(fid, '\nn=%d control females', length(unique(mouseid_control_female)));
+    fprintf(fid, '\nn=%d xfad females', length(unique(mouseid_xfad_female)));
     
     j=0;
     clear X grouping sex
@@ -776,14 +639,13 @@ try
             sex{j}='male';
         end
     end
-    [p, anovatab, stats]=kruskalwallis(X, sex, 'off');
+    [p, anovatab, stats]=kruskalwallis(X, sex);
     df=anovatab{2, 3};
     chisq=anovatab{2, 5};
     fprintf(fid, '\n\nkruskal wallis effect of sex for over-p60 control mice:');
     fprintf(fid, '\np=%g, d.f.=%d, chi-squared=%.2f ', p, df, chisq);
     
-    fprintf(fid, '\n\nall-ages total sessions:');
-     fprintf(fid, '\nn=%d male xfad sessions', length(male_xfad_sessions));
+    fprintf(fid, '\nn=%d male xfad sessions', length(male_xfad_sessions));
     fprintf(fid, '\nn=%d female control sessions', length(female_control_sessions));
     fprintf(fid, '\nn=%d female xfad sessions', length(female_xfad_sessions));
     fprintf(fid, '\nn=%d male control sessions',length( male_control_sessions));
@@ -820,18 +682,17 @@ fprintf(fid, '\n%d', round(age_ticks));
 % alpha .5
 
 figure; hold on
-clear h
 [~,x]=sort(age_xfad);
 for i=x
     gpias=GPIASxfad(i,2:8);
     gd=gdxfad(i,:);
-    h(i)=plot(log2gapdurs, gpias, 'o-');
+    h(i)=plot(log2gapdurs, gpias, '.-');
     set(h(i), 'color', cmap(1+age_xfad(i)-minage,:))
     %      legstr{i}=sprintf('%d days',age_xfad(i)) ;
     xlabel('gap duration')
     ylabel('% gpias')
 end
-set(h, 'markersize', ms1, 'linewidth', lw)
+set(h, 'markersize', ms, 'linewidth', lw)
 
 xlim([-.5 8.5])
 set(gca, 'xtick', log2gapdurs)
@@ -848,7 +709,7 @@ set(cb, 'ticklabels', round(age_ticks));
 cbl=get(cb, 'label');
 set(cbl, 'string', 'age in days');
 cd(figs_dir)
-print -dpdf fig3b.pdf
+print -dpdf fig3a.pdf
 
 
 figure; hold on
@@ -866,10 +727,9 @@ for i=x
     xlabel('gap duration')
     ylabel('% gpias')
 end
-set(h2, 'markersize', ms1, 'linewidth', lw)
+set(h2, 'markersize', 12, 'linewidth', lw)
 
 xlim([-.5 8.5])
-ylim([-100 100])
 set(gca, 'xtick', log2gapdurs)
 set(gca, 'xticklabel', [1 2 3 4 8 32 256])
 set(gca, 'fontsize', fs)
@@ -885,7 +745,7 @@ cbl=get(cb, 'label');
 set(cbl, 'string', 'age in days');
 
 cd(figs_dir)
-print -dpdf fig3a.pdf
+print -dpdf fig3b.pdf
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -899,13 +759,11 @@ for gdindex=2:8
     p=p+1;
     subplot1(p)
     %     set(gca, 'fontsize', fs)
-    p1=plot(age_control, GPIAScontrol(:,gdindex), 'ko', 'markersize', mso);
-    p2=plot(age_xfad, GPIASxfad(:,gdindex), 'ro', 'markersize', mso);
-    set(p1, 'markerfacecolor', 'k')
-    set(p2, 'markerfacecolor', 'r')
+    plot(age_control, GPIAScontrol(:,gdindex), 'k.', 'markersize', ms)
+    plot(age_xfad, GPIASxfad(:,gdindex), 'r.', 'markersize', ms)
     xlabel('age, days')
     ylabel('% gpias')
-%     h=lsline;    set(h, 'linewidth', lw)
+    h=lsline;    set(h, 'linewidth', lw)
     title(sprintf('GPIAS for  %d ms gap',  gapdurs(gdindex)))
     
     Ycontrol=GPIAScontrol(:,gdindex);
@@ -916,7 +774,7 @@ for gdindex=2:8
     Pcontrol(gdindex)=pcontrol;
     fprintf(fid, '\ncontrol GPIAS by age, %d ms gap, r2=%.2f,b=%.2f, p=%.4f', gapdurs(gdindex), r2control, B(1), pcontrol);
     if pcontrol<.05
-%         text(105, [105 1]*B, '*', 'color', 'k', 'fontsize', 32)
+        text(105, [105 1]*B, '*', 'color', 'k', 'fontsize', 32)
     end
     
     Yxfad=GPIASxfad(:,gdindex);
@@ -927,7 +785,7 @@ for gdindex=2:8
     Pxfad(gdindex)=pxfad;
     fprintf(fid, '\nxfad GPIAS by age, %d ms gap, r2=%.2f, b=%.2f, p=%.4f', gapdurs(gdindex), r2xfad, B(1), pxfad);
     if pxfad<.05
-%         text(105, [105 1]*B, '*', 'color', 'r', 'fontsize', 32)
+        text(105, [105 1]*B, '*', 'color', 'r', 'fontsize', 32)
     end
     
     % legend(sprintf('control p=%.4f', pcontrol), sprintf('xfad p=%.4f', pxfad), 'location', 'southeast')
@@ -939,11 +797,8 @@ set(gcf, 'pos', [25        1136         975        1322])
 for gdindex=[2 3 4 5 6 7 8]
     figure; hold on
     set(gca, 'fontsize', fs)
-    p1=plot(age_control, GPIAScontrol(:,gdindex), 'ko', 'markersize', mso);
-    p2=plot(age_xfad, GPIASxfad(:,gdindex), 'ro', 'markersize', mso);
-    set(p1, 'markerfacecolor', 'k')
-    set(p2, 'markerfacecolor', 'r')
-    
+    plot(age_control, GPIAScontrol(:,gdindex), 'k.', 'markersize', ms)
+    plot(age_xfad, GPIASxfad(:,gdindex), 'r.', 'markersize', ms)
     xlabel('age, days')
     ylabel('gap detection, %')
     h=lsline;
@@ -951,252 +806,54 @@ for gdindex=[2 3 4 5 6 7 8]
     title(sprintf('%d ms gap',  gapdurs(gdindex)))
     legend(sprintf('control p=%.4f', Pcontrol(gdindex)), sprintf('xfad p=%.4f', Pxfad(gdindex)), 'location', 'southeast')
     cd(figs_dir)
-%     if gdindex==5
-%         print -dpdf fig3c.pdf
-%     elseif gdindex==8
-%         legend('location', 'southwest')
-%         print -dpdf fig3d.pdf
-%     end
-end
-
-fprintf(fid, '\n\nage range for all controls: %d - %d', min(age_control), max(age_control));
-fprintf(fid, '\n\nage range for all XFAD:  %d - %d', min(age_xfad), max(age_xfad));
-
-
-% try some sort of log regression since it isn't linear
-warning off stats:nlinfit:IllConditionedJacobian
- bigfig=figure;
- orient tall
- subplot1(4,2);ph=0;
-for gdindex=[2 3 4 5 6 7 8]
-    littlefig=figure;
-    hold on
-    xdatacontrol=age_control(:);
-    xdataxfad=age_xfad(:);
-    ydatacontrol=GPIAScontrol(:,gdindex);
-    ydataxfad=GPIASxfad(:,gdindex);
-
-    p1=plot(age_control, (ydatacontrol), 'ko', 'markersize', 12);
-    p2=plot(age_xfad, (ydataxfad), 'ro', 'markersize', 12);
-    set(p1, 'markerfacecolor', 'k')
-    set(p2, 'markerfacecolor', 'r')
-    xlabel('age, days')
-    ylabel('gap detection, %')
-    ylim([-20 100])
-    title(sprintf('%d ms gap',  gapdurs(gdindex)))
-    legend('control', '5XFAD')
-    
-    figure(bigfig)
-    ph=ph+1;    
-    subplot1(ph);
-    p1=plot(age_control, (ydatacontrol), 'ko', 'markersize', 8);
-    p2=plot(age_xfad, (ydataxfad), 'ro', 'markersize', 8);
-    set(p1, 'markerfacecolor', 'k')
-    set(p2, 'markerfacecolor', 'r')
-    xlabel('age, days')
-    ylabel('% gpias')
-    ylim([-20 100])
-    title(sprintf('%d ms gap',  gapdurs(gdindex)))
-    legend('control', '5XFAD')
-    
-    %fit to myfun which is a*log(b*x+c)+d
-    %also try myalphafun
-    x0=[ 20 100 20 100 ];
-    [xcontrol,Rcontrol,J,sigmacontrol,MSEcontrol] = nlinfit(xdatacontrol,ydatacontrol, @myalphafun, x0);
-    [xxfad,Rxfad,J,sigmaxfad,MSExfad] = nlinfit(xdataxfad,ydataxfad, @myalphafun, x0);
-    Betacontrol(gdindex,:)=xcontrol;
-    Betaxfad(gdindex,:)=xxfad;
-    
-    %compare to linear regression
-    xdatacontrol_2=[age_control(:) ones(size(age_control(:)))];
-    [B,BINT,R,RINT,STATScontrol] = regress(ydatacontrol,xdatacontrol_2);
-    MSEcontrol_linear=STATScontrol(4);
-    if MSEcontrol_linear<MSEcontrol
-        fprintf('\n%dms: linear regression (%d) is a better fit than a*log(b*x+c) (%d)', gapdurs(gdindex), round(MSEcontrol_linear), round(MSEcontrol));
-    else
-        fprintf('\n%dms:  g*(e(-t/tau1) - e(-t/tau2)) (%d) is a better fit than linear regression (%d)', gapdurs(gdindex), round(MSEcontrol), round(MSEcontrol_linear));
-    end
-    
-    
-    xfitcontrol=round(xcontrol(1)): max(xdatacontrol); %xl=xlim
-    xfitxfad=round(xxfad(1)): max(xdataxfad); %xl=xlim
-    yhatcontrol=myalphafun(xcontrol, xfitcontrol);
-    yhatxfad=myalphafun(xxfad, xfitxfad);
-
-    figure(bigfig)
-    p=plot(xfitcontrol, yhatcontrol, 'k-', xfitxfad, yhatxfad, 'r');
-    set(p, 'linewidt', 2)
-    xlim([min([xdatacontrol; xdataxfad])-10 max([xdatacontrol; xdataxfad])+10])
-    
-    figure(littlefig)
-    p=plot(xfitcontrol, yhatcontrol, 'k-', xfitxfad, yhatxfad, 'r');
-    set(p, 'linewidt', 2)
-    xlim([min([xdatacontrol; xdataxfad])-10 max([xdatacontrol; xdataxfad])+10])
-    
-    if gdindex==7
-        set(gca, 'fontsize', fs)
-        ylim([-10 100])
-        legend('control', '5XFAD', 'location', 'southeast')
+    if gdindex==5
         print -dpdf fig3c.pdf
     elseif gdindex==8
-        ylim([-10 100])
-        set(gca, 'fontsize', fs)
-        legend('control', '5XFAD', 'location', 'southeast')
+        legend('location', 'southwest')
         print -dpdf fig3d.pdf
     end
-    
-    %examine the 95% confidence intervals for the log fit a*log(b*x+c)
-    CIcontrol = nlparci(xcontrol,Rcontrol,'covar',sigmacontrol);
-    CIxfad = nlparci(xxfad,Rxfad,'covar',sigmaxfad);
-        
 end
 
- bigfig=figure;
- orient tall
-
-
-fprintf(fid, '\nfitted betas for dual exponential:');
-fprintf(fid, '\nControl ');
-for gdindex=[2 3 4 5 6 7 8]
-fprintf(fid, '\ngd=%dms: \tt_onset: %d \ttau1:%d \ttau2:%d \tgmax: %d', gapdurs(gdindex), round(Betacontrol(gdindex,:)));
-end
-fprintf(fid, '\n\n5XFAD ');
-for gdindex=[2 3 4 5 6 7 8]
-fprintf(fid, '\ngd=%dms: \tt_onset: %d \ttau1:%d \ttau2:%d \tgmax: %d', gapdurs(gdindex), round(Betaxfad(gdindex,:)));
-end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Make Table 1
-%this is a table of linear regression params,
-% let's restrict it to >p60 and then we can say "significantly deteriorated
-% with age over p60'
-% % allp60_control_sessions=[malep60_control_sessions femalep60_control_sessions];
-% % allp60_xfad_sessions=[malep60_xfad_sessions femalep60_xfad_sessions];
-
-%I see now that these are almost duplicates of XFADp60_sessions controlp60_sessions
-%you might think that they should match
-% but they don't, bc XFADp60_sessions are indices of age_xfad
-%whereas allp60_xfad_sessions are indices of XFADp60_sessions
-%confusing, right?
-
-%try using XFADp60_sessions instead of allp60_xfad_sessions - I think
-%XFADp60_sessions is correct - for some reason it doesn't make a
-%difference.
-
-fprintf(fid, '\n%d unique mice under p60 xfad ' , length(unique(mouseid_underp60_xfad)));
-fprintf(fid, '\n%d unique mice over p60 control ' , length(unique(mouseid_overp60_control)));
-fprintf(fid, '\n%d unique mice under p60 control ' , length(unique(mouseid_underp60_control)));
-fprintf(fid, '\n%d unique mice over p60 xfad ' , length(unique(mouseid_overp60_xfad)));
-
-fprintf(fid, '\n%d over-p60 XFAD sessions', length(XFADp60_sessions));
-fprintf(fid, '\n%d over-p60 control sessions', length(controlp60_sessions));
-fprintf(fid, '\n%d under-p60 XFAD sessions', length(XFADunderp60_sessions));
-fprintf(fid, '\n%d under-p60 control sessions', length(controlunderp60_sessions));
-
 fidtable=fopen('Table 1.txt', 'w');
-fprintf(fidtable,'\nThis is a table of linear regression slopes for age > p60 %s\n\n', datestr(datenum(now)));
-
 fprintf(fidtable, '\t\t slope \t r^2 \t p \t n');
 fprintf(fidtable, '\n5XFAD');
-figure;subplot1(4, 2);
 for gdindex=2:8
-    Yxfad=GPIASxfad(XFADp60_sessions,gdindex);
-    Xxfad=[age_xfad(XFADp60_sessions)' ones(size(age_xfad(XFADp60_sessions)))'];
-subplot1(gdindex)
-plot(Xxfad(:,1), Yxfad, 'ro');
-% h=lsline;set(h, 'color', 'r')
-lsline
+    Yxfad=GPIASxfad(:,gdindex);
+    Xxfad=[age_xfad(:) ones(size(age_xfad(:)))];
     [B,BINT,R,RINT,STATSxfad] = regress(Yxfad,Xxfad);
     slope_xfad=B(1);
     Slopes_xfad(gdindex-1)=slope_xfad;
     r2xfad=STATSxfad(1);
     pxfad=STATSxfad(3);
-    nsess=length(XFADp60_sessions);
-    nmice=length(unique(mouseid_overp60_xfad));
+    nsess=length(age_xfad);
+    nmice=length(unique(mouseID_xfad));
     fprintf(fidtable, '\n\t%d ms \t %.2f \t %.2f \t p=%.4f \t %d sessions, %d mice',...
         gapdurs(gdindex), slope_xfad, r2xfad, pxfad, nsess, nmice);
 end
 fprintf(fidtable, '\ncontrol');
 for gdindex=2:8
-    Ycontrol=GPIAScontrol(controlp60_sessions,gdindex);
-    Xcontrol=[age_control(controlp60_sessions)' ones(size(age_control(controlp60_sessions)))'];
-   subplot1(gdindex)
-plot(Xcontrol(:,1), Ycontrol, 'ko');
-lsline
- [B,BINT,R,RINT,STATScontrol] = regress(Ycontrol,Xcontrol);
+    Ycontrol=GPIAScontrol(:,gdindex);
+    Xcontrol=[age_control(:) ones(size(age_control(:)))];
+    [B,BINT,R,RINT,STATScontrol] = regress(Ycontrol,Xcontrol);
     slope_control=B(1);
     Slopes_control(gdindex-1)=slope_control;
     r2control=STATScontrol(1);
     pcontrol=STATScontrol(3);
-    nsess= length(controlp60_sessions);
-    nmice= length(unique(mouseid_overp60_control));
+    nsess=length(age_control);
+    nmice=length(unique(mouseID_control));
     fprintf(fidtable, '\n\t%d ms \t %.2f \t %.2f \t p=%.4f \t %d sessions, %d mice',...
         gapdurs(gdindex), slope_control, r2control, pcontrol, nsess, nmice);
     
 end
-% fclose(fidtable);
-subplot1(1)
-title('over p60 linear regressions')
-fprintf(fid,'\n\nSee Table 2.txt for a table of linear regression slopes (for age > p60)\n')
+fclose(fidtable);
 p=ranksum(Slopes_control, Slopes_xfad, 'tail', 'right');
-fprintf(fid,'\nlinear regression slopes of gap detection vs age (>p60) were significantly less for xfad mice compared to controls');
+fprintf(fid,'\nlinear regression slopes of gap detection vs age were significantly less for xfad mice compared to controls');
 fprintf(fid,'\np=%4f, 1-tailed ranksum', p);
 
 
-%%%%%%%%%%%%%%%%%%%%
-% repeat for young mice (<p60)
-
-
-fprintf(fidtable,'\n\n\nBelow are values of linear regression slopes for age <= p60\n\n');
-
-fprintf(fidtable, '\t\t slope \t r^2 \t p \t n');
-fprintf(fidtable, '\n5XFAD');
-figure;subplot1(4, 2);
-for gdindex=2:8
-    Yxfad=GPIASxfad(XFADunderp60_sessions,gdindex);
-    Xxfad=[age_xfad(XFADunderp60_sessions)' ones(size(age_xfad(XFADunderp60_sessions)))'];
-subplot1(gdindex)
-plot(Xxfad(:,1), Yxfad, 'ro');
-% h=lsline;set(h, 'color', 'r')
-lsline
-    [B,BINT,R,RINT,STATSxfad] = regress(Yxfad,Xxfad);
-    slope_xfad=B(1);
-    Slopes_xfad(gdindex-1)=slope_xfad;
-    r2xfad=STATSxfad(1);
-    pxfad=STATSxfad(3);
-    nsess=length(XFADunderp60_sessions);
-    nmice=length(unique(mouseid_underp60_xfad));
-    fprintf(fidtable, '\n\t%d ms \t %.2f \t %.2f \t p=%.4f \t %d sessions, %d mice',...
-        gapdurs(gdindex), slope_xfad, r2xfad, pxfad, nsess, nmice);
-end
-fprintf(fidtable, '\ncontrol');
-for gdindex=2:8
-    Ycontrol=GPIAScontrol(controlunderp60_sessions,gdindex);
-    Xcontrol=[age_control(controlunderp60_sessions)' ones(size(age_control(controlunderp60_sessions)))'];
-   subplot1(gdindex)
-plot(Xcontrol(:,1), Ycontrol, 'ko');
-lsline
- [B,BINT,R,RINT,STATScontrol] = regress(Ycontrol,Xcontrol);
-    slope_control=B(1);
-    Slopes_control(gdindex-1)=slope_control;
-    r2control=STATScontrol(1);
-    pcontrol=STATScontrol(3);
-    nsess=length(controlunderp60_sessions);
-    nmice=length(unique(mouseid_underp60_control));
-    fprintf(fidtable, '\n\t%d ms \t %.2f \t %.2f \t p=%.4f \t %d sessions, %d mice',...
-        gapdurs(gdindex), slope_control, r2control, pcontrol, nsess, nmice);
-    
-end
-subplot1(1)
-title('under p60 linear regressions')
-
-p=ranksum(Slopes_control, Slopes_xfad);
-fprintf(fid,'\nlinear regression slopes of gap detection vs age (<=p60), xfad compared to controls');
-fprintf(fid,'\np=%4f, 2-tailed ranksum', p);
-fprintf(fid,'\nmean slopes for control <=p60: %.2f', Slopes_control);
-fprintf(fid,'\nmean slopes for xfad <=p60: %.2f', Slopes_xfad);
-
-fclose(fidtable);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 fprintf(fid,'\n');
@@ -1210,7 +867,6 @@ for i=1:numcontrol_sessions
         j=j+1;
         X(j)=GPIAScontrol(i, gd);
         gdgroup(j)=gd;
-        gdms(j)=gapdurs(gd);
         grouping{j}='control';
         age_long(j)=age_control(i);
         sex_long{j}=sex_control{i};
@@ -1222,39 +878,36 @@ for i=1:numXFAD_sessions
         j=j+1;
         X(j)=GPIASxfad(i, gd);
         gdgroup(j)=gd;
-        gdms(j)=gapdurs(gd);
         grouping{j}='xfad';
         age_long(j)=age_xfad(i);
         sex_long{j}=sex_xfad{i};
         mouseID_long{j}=mouseID_xfad{i};
     end
 end
-
 %bin age and do stats
 age_min=min(age_long);
-% for age_max=45:5:80;
-%     i=find(age_long<age_max & age_long>age_min);
-%     [p, anovatab, stats]=kruskalwallis(X(i), grouping(i), 'off');
-%     df=anovatab{2, 3};
-%     chisq=anovatab{2, 5};
-%     fprintf(fid,'\nkruskal wallis main effect of xfad vs control, age range %d - %d:', age_min, age_max);
-%     fprintf(fid,'\np=%g, d.f.=%d, chi-squared=%.2f ', p, df, chisq);
-%     fprintf(fid,'\n%d xfad sessions', length(strmatch('xfad', grouping(i)))/numgapdurs);
-%     k=strmatch('xfad', grouping(i));
-%     fprintf(fid,'\n%d xfad mice',    length(unique(mouseID_long(k))));
-%     
-%     fprintf(fid,'\n%d control sessions', length(strmatch('control', grouping(i)))/numgapdurs);
-%     j=strmatch('control', grouping(i));
-%     fprintf(fid,'\n%d control mice',    length(unique(mouseID_long(j))));
-%     fprintf(fid,'\n');
-% end
+for age_max=45:5:80;
+    i=find(age_long<age_max & age_long>age_min);
+    [p, anovatab, stats]=kruskalwallis(X(i), grouping(i), 'off');
+    df=anovatab{2, 3};
+    chisq=anovatab{2, 5};
+    fprintf(fid,'\nkruskal wallis main effect of xfad vs control, age range %d - %d:', age_min, age_max);
+    fprintf(fid,'\np=%g, d.f.=%d, chi-squared=%.2f ', p, df, chisq);
+    fprintf(fid,'\n%d xfad sessions', length(strmatch('xfad', grouping(i)))/numgapdurs);
+    k=strmatch('xfad', grouping(i));
+    fprintf(fid,'\n%d xfad mice',    length(unique(mouseID_long(k))));
+    
+    fprintf(fid,'\n%d control sessions', length(strmatch('control', grouping(i)))/numgapdurs);
+    j=strmatch('control', grouping(i));
+    fprintf(fid,'\n%d control mice',    length(unique(mouseID_long(j))));
+    fprintf(fid,'\n');
+end
 
 
 
 % repeat but only doing a 1-tailed rank sum on 256 ms
-fprintf(fid,'\n only doing a 1-tailed rank sum on 256 ms');
+fprintf(fid,'\nrepeat but only doing a 1-tailed rank sum on 256 ms')
 for age_max=40:10:100;
-    age_min=age_max-10;
     i=find(age_long<age_max & age_long>age_min & gdgroup==8);
     % for gd=2:numgapdurs
     %     p=ranksum(GPIASxfad(:, gd),GPIAScontrol(:, gd));
@@ -1278,107 +931,19 @@ for age_max=40:10:100;
     fprintf(fid,'\nh=%d, p=%g ',h, p);
     fprintf(fid,'\n%d xfad sessions', length(Xxfad));
     m=strmatch('xfad', grouping(i));
-    fprintf(fid,'\n%d xfad mice',    length(unique(mouseID_long(i(m)))));
+    fprintf(fid,'\n%d xfad mice',    length(unique(mouseID_long(m))));
     
     fprintf(fid,'\n%d control sessions', length(Xcontrol));
     n=strmatch('control', grouping(i));
-    fprintf(fid,'\n%d control mice',    length(unique(mouseID_long(i(n)))));
+    fprintf(fid,'\n%d control mice',    length(unique(mouseID_long(n))));
     fprintf(fid,'\n');
 end
 
 
-
 % do a nested (mixed-effects) GLM to jpintly test the effects of age, sex, genotype, and mouseID
 
-%mean-center age and gapdur
-% age_centered=age_long-mean(age_long);
-% gd_centered=gdms-mean(gdms);
-
 T=table(grouping(:), gdgroup(:), age_long(:), sex_long(:), mouseID_long(:), X(:));
-%T=table(grouping(:), gd_centered(:), age_centered(:), sex_long(:), mouseID_long(:), X(:));
 T.Properties.VariableNames={'genotype', 'gapdur', 'age', 'sex', 'mouseID', 'GPIAS'};
-
-% does the centering matter?
-%swapping between the T definitions above makes a big difference
-% it changes whether genotype, genotype:gapdur are significant
-%(they are significant without centering, non-significant with centering)
-% the coefficients are also wildly different (changed signs, values change by
-% orders of magnitude)
-
-%'genotype', 'gapdur', 'age', 'sex', 'mouseID'
-fprintf(fid,'full glme (age and gapdur are NOT mean-centered)):\n');
-  
-fullformula=['GPIAS ~  genotype + gapdur + age + sex    ', ... 
-    '  + genotype:gapdur  ', ...
-    '  + genotype:age  ', ...
-    '  + genotype:sex  ', ...
-    '  + gapdur:age  ', ...
-    '  + gapdur:sex  ', ...
-    '  + age:sex  ', ...
-    '+ (1 + gapdur | mouseID) + (1 + age | mouseID)'];
-fprintf('\nfitting glme...')
-fullglme=fitglme(T, fullformula);
-% anova(fullglme)
-fprintf('done\n')
-
-
-
-
-% I could specify the distributions (normal, poisson, binomial, etc)
-
-fprintf('\n\npiecewise linear glme (age early and age late):\n');
-%how to use a piecewise linear fit for age?
-%I will use 60 days as the inflection point ("knot" or "break-point")
-% https://www.lexjansen.com/pharmasug-cn/2015/ST/PharmaSUG-China-2015-ST08.pdf
-bk=60; %breakpoint
-% NO mean-centering
-%k=bk-mean(age_long); %adjust for mean centering
-age_early=zeros(size(age_long(:)));
-age_late=zeros(size(age_long(:)));
-%age_centered_minus_k=age_centered-k;
-% age_early(find(age_centered<=k))=age_centered_minus_k(find(age_centered<=k));
-% age_late(find(age_centered>k))=age_centered_minus_k(find(age_centered>k));
-age_early(find(age_long<=bk))=age_long(find(age_long<=bk));
-age_late(find(age_long>bk))=age_long(find(age_long>bk));
-
-
-
-%T2=table(grouping(:), find(age_long<=bk)(:), age_early(:), age_late(:), sex_long(:), mouseID_long(:), X(:));
-T2=table(grouping(:), gdgroup(:), age_early(:), age_late(:), sex_long(:), mouseID_long(:), X(:));
-T2.Properties.VariableNames={'genotype', 'gapdur', 'age_early', 'age_late', 'sex', 'mouseID', 'GPIAS'};
-
-piecewiseformula=['GPIAS ~  genotype + gapdur + age_early + age_late + sex    ', ... 
-    '  + genotype*gapdur  ', ...
-    '  + genotype*age_early  ', ...
-    '  + genotype*age_late  ', ...
-    '  + genotype*sex  ', ...
-    '  + gapdur*age_early  ', ...
-    '  + gapdur*age_late  ', ...
-    '  + gapdur*sex  ', ...
-    '  + age_early*sex  ', ...
-    '  + age_late*sex  ', ...
-    '+ (1 + gapdur | mouseID) + (1 + age_early | mouseID) + (1 + age_late | mouseID)'];
-fprintf('\nfitting piecewise glme...')
-piecewiseglme=fitglme(T2, piecewiseformula);
-% anova(piecewiseglme)
-fprintf('done\n')
-
-figure
-subplot(321)
-plotPartialDependence(piecewiseglme, 1)
-subplot(322)
-plotPartialDependence(piecewiseglme, 2)
-subplot(323)
-plotPartialDependence(piecewiseglme, 3)
-subplot(324)
-plotPartialDependence(piecewiseglme, 4)
-subplot(325)
-plotPartialDependence(piecewiseglme, 5)
-subplot(326)
-plotPartialDependence(piecewiseglme, 6)
-
-
-
 % mdl=fitglm(T, 'linear')
 % mdl=fitglm(T, 'interactions')
 % 
@@ -1386,37 +951,39 @@ plotPartialDependence(piecewiseglme, 6)
 % plotSlice(mdl)
 % figure
 % plotDiagnostics(mdl)
-% 
-% formula=['GPIAS ~ genotype + age + gapdur + sex +  ', ... 
-%     'genotype*age + genotype*sex  + genotype*gapdur*age ']
-%     
-% feglme=fitglme(T, formula)
-% anova(feglme)
-% 
-% formula=['GPIAS ~ genotype + age + gapdur + sex +  ', ... 
-%     'genotype*age + genotype*sex  + genotype*gapdur*age + ', ...
-%     '(1 | mouseID)']
-% glme=fitglme(T, formula)
-% anova(glme)
-% 
-% %compare 2 models
-% results = compare(feglme,glme,'CheckNesting',true)
-% 
-% %the idea here (like the hiker ditching a gallon of water, http://www.bodowinter.com/tutorial/bw_LME_tutorial2.pdf
-% %is to compare two models that ditch a single parameter, and see if it
-% %makes a significant difference. If it does, keep it.
-% 
-% % should we try a model with random slopes in addition to random intercepts?
-% formula1=['GPIAS ~  age + gapdur    ', ... 
-%     '   + genotype*age + ', ...
-%     '(1 + gapdur| mouseID)']
-% glme1=fitglme(T, formula1)
-% 
-% 
-% 
-% results = compare(glme1,glme2,'CheckNesting',true) %the second model is supposed to have one additional param
-% 
-% anova(glme2)
+
+formula=['GPIAS ~ genotype + age + gapdur + sex +  ', ... 
+    'genotype*age + genotype*sex  + genotype*gapdur*age ']
+    
+feglme=fitglme(T, formula)
+anova(feglme)
+
+formula=['GPIAS ~ genotype + age + gapdur + sex +  ', ... 
+    'genotype*age + genotype*sex  + genotype*gapdur*age + ', ...
+    '(1 | mouseID)']
+glme=fitglme(T, formula)
+anova(glme)
+
+%compare 2 models
+results = compare(feglme,glme,'CheckNesting',true)
+
+%the idea here (like the hiker ditching a gallon of water, http://www.bodowinter.com/tutorial/bw_LME_tutorial2.pdf
+%is to compare two models that ditch a single parameter, and see if it
+%makes a significant difference. If it does, keep it.
+
+% should we try a model with random slopes in addition to random intercepts?
+formula1=['GPIAS ~  age + gapdur    ', ... 
+    '   + genotype*age + ', ...
+    '(1 + gapdur| mouseID)']
+glme1=fitglme(T, formula1)
+
+formula2=['GPIAS ~  age + gapdur + sex    ', ... 
+    '  + genotype*age  + ', ...
+    '(1 + gapdur | mouseID) + (1 + age | mouseID)']
+glme2=fitglme(T, formula2)
+results = compare(glme1,glme2,'CheckNesting',true) %the second model is supposed to have one additional param
+
+anova(glme2)
 % genotype*gapdur*age matters
 % genotype*age matters
 % gapdur matters
@@ -1433,95 +1000,30 @@ plotPartialDependence(piecewiseglme, 6)
 % the individual terms seem redundant with the interactions (same numbers,
 % p=0)
 
-%notes: since I am using linear/normal glme, it's really just a linear mixed model
+%notes: since I am using linear/normal glme, it's really just a linaer mixed model
 % https://stats.idre.ucla.edu/other/mult-pkg/introduction-to-linear-mixed-models/
-
-%after talking to sanjay:
-%centering and/or scaling the data is really important to be able to
-%interpret the coefficients. Especially when there are interactions. In
-%that case the coefficient is telling you what the value of one thing is
-%when the other is zero. This is easiest to interpret when zero is a
-%meaningful place in your data, like e.g. the middle. This is why you
-%mean-center your data. For example, if there is an age*genotype
-%interaction, the coefficient means what the effect of genotype is when age
-%is zero. This isn't very helpful because p0 is outside our data range. If
-%you mean-center age, then the coefficient tells you the effect of genotype
-%for the average-aged mouse.    
-%it's also worth thinking about how gapdur is scaled. Right now I'm using
-%an index, which is sort of like a log2 transform (but not quite). It might
-%make more sense to use actual gapdur in ms, or log2(gapdur).
-%
-%model selection is not cut and dried. There are clearly multiple
-%defensible ways to approach it. One philosophy is to start minimally and
-%build up the model, running a compare each time to see if it's
-%significantly different and lowers the AIC/BIC. (those include a penalty
-%for model complexity, but differ on weighting). This includes checking fixed and
-%random effects. The 2 models being compared have to be nested (one has 1
-%additional effect than the other).
-%Another philosophy is to just use the full model with all the
-%interactions. The resulting output may look complicated but it's not
-%unlike an anova where it reports all the possible interactions. Terms that
-%have coefficients close to zero can just be ignored. Or alternatively you
-%can focus only on the terms that correspond to your hypotheses and ignore
-%other ones. Sometime the full model won't converge, in which case you are
-%fully justified in dropping terms that allow you to get the model to
-%converge.
-%So far this is all linear. Probably the dependence on age is nonlinear
-%(development + degeneration). If there was a reason to suspect a certain
-%form like quadratic, that would be fine, but usually there isn't. In that
-%case (i.e. in our case) a specific form might give you a bump facing the
-%right direction but would be unlikely to be a very good fit for the data.
-%So a piecewise linear fit is probably the best idea. Any a priori reason
-%to impose a kink (e.g. Abeta plaques start at p60) is helpful, but it's
-%probably OK to pick a transition point based on the data. To do this you
-%would create a new variable (call it age2) that is defined as one slope
-%before p60 and another after p60. This is widely done and there may even
-%be some matlab tutorial on it.
-%as for random slopes, it seems like age and gapdur both might reasonbly
-%show random slope effects, since a given mouse might age faster or show a
-%different gap-detection curve.
-
-
 figure
-plotResiduals(piecewiseglme)
-plotResiduals(piecewiseglme,'fitted')
-plotResiduals(piecewiseglme,'probability')
-plotResiduals(piecewiseglme,'histogram','ResidualType','Pearson')
+plotResiduals(glme)
+plotResiduals(glme,'fitted')
+plotResiduals(glme,'probability')
+plotResiduals(glme,'histogram','ResidualType','Pearson')
+
 
 
 fclose(fid);
-
-diary(fname)
-anova(fullglme)
-fullglme
-
-piecewiseformula
-anova(piecewiseglme)
-piecewiseglme
-
-diary off
-
-diary('Table 2.txt')
-piecewiseformula
-anova(piecewiseglme)
-piecewiseglme
-diary off
-
 type(fname)
 
-
-
-if 1
-    cd(figs_dir)
+if 0
+    cd(dataroot)
     delete ADfigs.ps
     f=findobj('type', 'figure');
     for i=1:length(f)
         figure(i)
-        print -bestfit -dpsc2 ADfigs.ps -append
+        print -dpsc2 ADfigs.ps -append
     end
 end
 
-%  keyboard
+% keyboard
 
 
 

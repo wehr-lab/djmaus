@@ -1,9 +1,9 @@
-function PlotGPIAS_PSTH_single(varargin)
+function KS_PlotGPIAS_PSTH_single(varargin)
 
 %plots a single file of clustered spiking GPIAS data from djmaus
 %
-% usage: PlotGPIAS_PSTH(datapath, t_filename, [xlimits],[ylimits], [binwidth], ['force-reprocess'])
-% (xlimits, ylimits, binwidth,  'force-reprocess' are optional)
+% usage: PlotGPIAS_PSTH(datapath, t_filename, [xlimits],[ylimits], [binwidth])
+% (xlimits, ylimits, binwidth are optional)
 %
 %Processes data if outfile is not found;
 
@@ -34,28 +34,28 @@ try
 catch
     binwidth=5;
 end
-try
-    if strcmp(varargin{6}, 'force-reprocess')
-        force_reprocess=1;
-    end
+
+%Nick addition 8/31/18 - accomodates kilosort input
+if ischar(t_filename)
+    [p,f,ext]=fileparts(t_filename);
+    split=strsplit(f, '_');
+    ch=strsplit(split{1}, 'ch');
+    channel=str2num(ch{2});
+    clust=str2num(split{end});
+else %reads kilosort input, which is [clust, channel, cellnum]
+    channel=t_filename(1,1);
+    clust=t_filename(1,2);
 end
+%end of Nick addition 8/31/18.
 
-
-    
 if force_reprocess
     fprintf('\nForce re-process\n')
-    ProcessGPIAS_PSTH_single(datadir,  t_filename, xlimits, ylimits, binwidth);
+    KS_ProcessGPIAS_PSTH_single(datadir,  t_filename, xlimits, ylimits, binwidth);
 end
 
-[p,f,ext]=fileparts(t_filename);
-split=strsplit(f, '_');
-ch=strsplit(split{1}, 'ch');
-channel=str2num(ch{2});
-clust=str2num(split{end});
-
-outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
-fprintf('\nchannel %d, cluster %d', channel, clust)
-fprintf('\n%s', t_filename)
+outfilename=sprintf('KS_outPSTH_ch%dc%d.mat',channel, clust);
+fprintf('\nchannel %d, cluster %d\n', channel, clust)
+fprintf('\t%d', t_filename)
 fprintf('\n%s', outfilename)
 
 cd(datadir)
@@ -64,8 +64,8 @@ if exist(outfilename,'file')
     load(outfilename)
     fprintf('\nloaded outfile')
 else
-    fprintf('\ncould not find outfile, calling ProcessGPIAS_PSTH_single...')
-    ProcessGPIAS_PSTH_single(datadir,  t_filename, xlimits, ylimits, binwidth);
+    fprintf('\ncould not find outfile, calling KS_ProcessGPIAS_PSTH_single...')
+    KS_ProcessGPIAS_PSTH_single(datadir,  t_filename, xlimits, ylimits, binwidth);
     load(outfilename);
 end
 
@@ -73,7 +73,7 @@ end
 if ~isempty(xlimits)
     if out.xlimits(1)>xlimits(1) | out.xlimits(2)<xlimits(2) %xlimits in outfile are too narrow, so reprocess
         fprintf('\nPlot called with xlimits [%d %d] but xlimits in outfile are [%d %d], calling ProcessAsymGPIAS_PSTH_single...', xlimits(1), xlimits(2), out.xlimits(1), out.xlimits(2))
-        ProcessGPIAS_PSTH_single(datadir,  t_filename, xlimits, ylimits, binwidth);
+        KS_ProcessGPIAS_PSTH_single(datadir,  t_filename, xlimits, ylimits, binwidth);
         load(outfilename);
     end
 end
@@ -223,7 +223,7 @@ if ~isempty(M1OFF)
     end
     
     subplot1(1)
-    h=title(sprintf('%s: \ntetrode%d cell %d, nreps: %d-%d, OFF',datadir,channel,out.cluster,min(nrepsOFF(:)),max(nrepsOFF(:))));
+    h=title(sprintf('KS %s: \ntetrode%d cell %d, nreps: %d-%d, OFF',datadir,channel,out.cluster,min(nrepsOFF(:)),max(nrepsOFF(:))));
     set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
     
     %print to pdf

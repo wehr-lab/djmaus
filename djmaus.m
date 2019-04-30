@@ -869,6 +869,15 @@ try
     pause(1)
     RecordingPath = zeroMQwrapper('GetReply',SP.zhandle )
     
+    if ~ exist('RecordingPath')
+        %sometimes it doesn't work for some reason, and we get
+        %"zmq wrapper GetReply: there is no reply available"
+        %so we can re-try and see if that helps
+        %mw 04.22.2019
+        fprintf('\nzeroMQwrapper:GetReply did not return a reply, re-trying once...')
+        pause(2)
+        RecordingPath = zeroMQwrapper('GetReply',SP.zhandle )
+    end
     %     cd(pref.root)
     %     fid=fopen('RecordingPath.txt', 'r');
     %     RecordingPath=fgetl(fid);
@@ -941,7 +950,10 @@ try
     save('notebook.mat', 'nb')
     fprintf('\ncreated notebook file in %s', nb.activedir)
 catch
-    fprintf('\nCould not create notebook file in active data directory')
+     errordlg('Go get Mike', '', 'modal');
+        keyboard
+    
+        fprintf('\nCould not create notebook file in active data directory')
     %ask user if they want to manually save notebook file
     ButtonName = questdlg('Could not create notebook file in active data directory. Do you want to manually save the notebook file?');
     switch ButtonName,

@@ -869,15 +869,28 @@ try
     pause(1)
     RecordingPath = zeroMQwrapper('GetReply',SP.zhandle )
     
-    if ~ exist('RecordingPath')
+    wb1=[];
+    while ~ exist('RecordingPath')
         %sometimes it doesn't work for some reason, and we get
         %"zmq wrapper GetReply: there is no reply available"
         %so we can re-try and see if that helps
         %mw 04.22.2019
-        fprintf('\nzeroMQwrapper:GetReply did not return a reply, re-trying once...')
+        wb1=waitbar(0, 'zeroMQwrapper:GetReply did not return a reply, re-trying ...');
+        w=0;
+        
+        set(wb1, 'units', 'pixels');
+        pos=get(wb1, 'pos');
+        set(wb1, 'pos', [pref.windowpos(1),pref.windowpos(2)+pref.windowpos(4)-2*pos(4), pos(3), pos(4)]);
+        
+        fprintf('\nzeroMQwrapper:GetReply did not return a reply, re-trying ...')
         pause(2)
+        w=w+.1;
+        waitbar(mod(w, 1),wb1)
+        
         RecordingPath = zeroMQwrapper('GetReply',SP.zhandle )
     end
+    close(wb1)
+    
     %     cd(pref.root)
     %     fid=fopen('RecordingPath.txt', 'r');
     %     RecordingPath=fgetl(fid);
@@ -950,6 +963,7 @@ try
     save('notebook.mat', 'nb')
     fprintf('\ncreated notebook file in %s', nb.activedir)
 catch
+    close(wb1)
      errordlg('Go get Mike', '', 'modal');
         keyboard
     

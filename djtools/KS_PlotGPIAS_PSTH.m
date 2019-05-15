@@ -60,6 +60,13 @@ if exist('dirs.mat','file')
     catch
         masterdir=pwd;
     end
+    if ismac
+        %hack to make this work remotely from a mac
+        masterdir= strrep(masterdir, '\', '/');
+        masterdir= strrep(masterdir, 'C:', '/Volumes/C');
+        masterdir= strrep(masterdir, 'D:', '/Volumes/wehrrig2b');
+    end
+
     cd(masterdir);
     sp = loadKSdir(pwd);
     

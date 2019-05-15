@@ -25,7 +25,7 @@ if reprocess
     
     cd(dataroot);
     
-        cell_list='behavior_list.txt';
+        cell_list='behavior_list_phys3.txt';
 %        cell_list='behavior_list_phys3.txt';
 %     cell_list='behavior_list_phys.txt';
     fid=fopen(cell_list);

@@ -19,16 +19,18 @@ close(f)
 switch answer
     case 'OK'
         clean_it
+    otherwise
+        fprintf('\ndid nothing')
 end
 
 for i=1:length(dirs)
-    str=sprintf('delete all kilosort output files in %s ?', dirs{i});
+    str=sprintf('following dirs.mat to companion directory\ndelete all kilosort output files in %s ?', dirs{i});
     f=uifigure;
     answer=uiconfirm(f,str, title) ;
     close(f);
     switch answer
         case 'OK'
-            cd(dirs(i})
+            cd(dirs{i})
             clean_it
             cd(wd)
     end
@@ -36,41 +38,52 @@ end
 
 
 function clean_it
-delete 'whitening_mat_inv.npy'
-delete 'whitening_mat.npy'
-delete 'templates_unw.npy'
-delete 'templates_ind.npy'
-delete 'templates.npy'
-delete 'template_features.npy'
-delete 'template_feature_ind.npy'
-delete 'spike_times.npy'
-delete 'spike_templates.npy'
-delete 'spike_clusters.npy'
-delete 'similar_templates.npy'
-delete 'rez.mat'
-delete 'phy.log'
-delete 'pc_features.npy'
-delete 'pc_feature_ind.npy'
-delete 'params.py'
-delete 'OEtetrodes.dat'
-delete 'dirs.mat'
-delete 'cluster_groups.csv'
-delete 'channel_positions.npy'
-delete 'channel_map.npy'
-delete 'chanMap.mat'
-
-if exist('.phy','dir')
-    cd .phy
-    delete 'joblib'
-    delete 'memcache'
-    delete 'new_cluster_id.json'
-    cd ..
-    rmdir .phy
+filelist={...
+    'amplitudes.npy', ...
+    'whitening_mat_inv.npy', ...
+    'whitening_mat.npy', ...
+    'templates_unw.npy', ...
+    'templates_ind.npy', ...
+    'templates.npy', ...
+    'template_features.npy', ...
+    'template_feature_ind.npy', ...
+    'spike_times.npy', ...
+    'spike_templates.npy', ...
+    'spike_clusters.npy', ...
+    'similar_templates.npy', ...
+    'rez.mat', ...
+    'phy.log', ...
+    'pc_features.npy', ...
+    'pc_feature_ind.npy', ...
+    'params.py', ...
+    'OEtetrodes.dat', ...
+    'dirs.mat', ...
+    'cluster_groups.csv', ...
+    'channel_positions.npy', ...
+    'channel_map.npy', ...
+    'chanMap.mat'};
+count=0;
+for i=1:length(filelist)
+    d=dir(filelist{i});
+    if ~isempty(d)
+        delete(filelist{i})
+        fprintf('\ndeleted %s', filelist{i})
+        count=count+1;
+    end
 end
-if exist('Figs','dir')
+
+if exist(fullfile(pwd, '.phy'),'dir')
+    rmdir('.phy', 's')
+    fprintf('\ndeleted .phy directory')
+    count=count+1;
+end
+if exist(fullfile(pwd, 'Figs'),'dir')
     cd Figs
     delete *.fig
     cd ..
     rmdir Figs
+    fprintf('\ndeleted Figs directory')
+    count=count+1;
 end
-fprintf('deleted all kilosort output files in %s ', pwd);
+fprintf('\nfound and deleted %d kilosort files/folders',count);
+fprintf('\ndeleted all kilosort output files\n in %s ', pwd);

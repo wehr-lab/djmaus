@@ -62,9 +62,10 @@ figure
 imagesc(C)
 % set(gca, 'ydir', 'normal', 'xtick', 1:nks, 'yticks', 1:nmc) 
 set(gca,  'xtick', 1:nks, 'ytick', 1:nmc) 
-t1=text( -0.7131   , 5.4869, 'mclust cells');
+xl=xlim;yl=ylim;
+t1=text( -0.075 , .5, 'mclust cells', 'units', 'normal', 'horizontalalign', 'center');
  set(t1, 'rotation', 90, 'fontsize', 18)
-t2=text(5.4274 ,  12.4781, 'kilosort cells');
+t2=text(.5, -.075, 'kilosort cells', 'units', 'normal', 'horizontalalign', 'center');
  set(t2, 'fontsize', 18)
 colorbar
 print -dpdf 'mclust-kilosort-correlation-matrix.pdf'
@@ -99,7 +100,7 @@ for i=1:nmc
         ylim(YL)
         line([0 0], [ylim], 'linestyle', '--')
         line([xlim], [0 0])
-        text(0, .9*YL(2), sprintf('%.4f',C(i,j)))
+        text(0, .9*YL(2), sprintf('%.3f',C(i,j)), 'horizontalalign', 'center')
     end
 end
 
@@ -110,23 +111,26 @@ for i=1:nmc
         p=p+1;
         subplot1(p);
         mcfn=mcdir(i).name;
-        mcfn=erase(mcfn, 'outPSTH_');
+        mcfn=erase(mcfn, 'outPSTH_ch');
         mcfn=erase(mcfn, '.mat');
-        mcfn=['mc', mcfn];
+        mcfn=['m', mcfn];
 
         ksfn=ksdir(j).name;
-        ksfn=erase(ksfn, 'KS_outPSTH_');
+        ksfn=erase(ksfn, 'KS_outPSTH_ch');
         ksfn=erase(ksfn, '.mat');
-        ksfn=['ks', ksfn];
+        ksfn=['k', ksfn];
 
         if i==nmc
-            xlabel(ksfn)
+           xh= xlabel(ksfn);
+            set(xh, 'rotation', 20)
+
         end
         if j==1
-            ylabel(mcfn)
+           yh= ylabel(mcfn);
         end
     end
-    end
+end
+    orient tall
 print -dpdf 'mclust-kilosort-cross-correlations.pdf'
 
 for i=1:nmc

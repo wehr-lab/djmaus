@@ -68,6 +68,8 @@ if exist('dirs.mat','file')
     end
 
     cd(masterdir);
+    s=which('loadParamsPy');
+    if isempty(s) warning('phy not installed on this computer?'), end
     sp = loadKSdir(pwd);
     
     %These two lines adapted from: https://groups.google.com/forum/?utm_medium=email&utm_source=footer#!msg/phy-users/Ydu1etOXwF0/-vEM9Rx_BgAJ

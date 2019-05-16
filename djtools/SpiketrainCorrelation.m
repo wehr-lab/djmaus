@@ -1,4 +1,8 @@
- [filename1, pathname1] = uigetfile('out*.mat',   'Pick first outfile (MClust)');
+%simple script that compares an MClust outfile to a Kilosort outfile
+%you select the outfiles with a dialog box
+%plots a cross-correlation and prints out the correlation coefficient
+
+[filename1, pathname1] = uigetfile('out*.mat',   'Pick first outfile (MClust)');
  [filename2, pathname2] = uigetfile('KS_out*.mat',   'Pick first outfile (Kilosort)');
  cd(pathname1)
  out=load(filename1);
@@ -26,6 +30,5 @@ plot(lags, xc)
 title(sprintf('r = %.4f', r))
 text(lags(1), min(xc), [filename1, '     ',  filename2], 'interpreter', 'none')
 
-
-
-
+fprintf('\n\n%s, %s', filename1,  filename2)%
+fprintf('\nr=%.4f, MClust: %d spikes, Kilosort: %d spikes', r, length(out.out.spiketimes), length(KSout.out.spiketimes))

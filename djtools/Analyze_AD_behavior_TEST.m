@@ -4,18 +4,18 @@ function Analyze_AD_behavior
 %(I switched to full gapdur arrays early on as soon as I found the "save
 %time" bug)
 
-if ispc %assume we're on wehrrig2b
-    dataroot='D:\lab\djmaus\Data\Kat';
-    figs_dir=dataroot;
-elseif ismac
-    cd /Volumes
-    mkdir wehrrig2b
-    system('mount_smbfs //lab:mausA1@wehrrig2b/d /Volumes/wehrrig2b');
-    dataroot='/Volumes/wehrrig2b/lab/djmaus/Data/Kat';
-    figs_dir='/Users/mikewehr/Documents/Manuscripts/AD paper';
-    
-end
-close all hidden
+% if ispc %assume we're on wehrrig2b
+%     dataroot='D:\lab\djmaus\Data\Kat';
+%     figs_dir=dataroot;
+% elseif ismac
+%     cd /Volumes
+%     mkdir wehrrig2b
+%     system('mount_smbfs //lab:mausA1@wehrrig2b/d /Volumes/wehrrig2b');
+%     dataroot='/Volumes/wehrrig2b/lab/djmaus/Data/Kat';
+%     figs_dir='/Users/mikewehr/Documents/Manuscripts/AD paper';
+%     
+% end
+% close all hidden
 reprocess=1;
 
 
@@ -25,9 +25,9 @@ if reprocess
     
     cd('D:\lab\djmaus\Data\Kat');
     
-        cell_list='behavior_list_phys.txt';
+        cell_list='behavior_list_phys3.txt';
 %        cell_list='behavior_list_phys3.txt';
-%     cell_list='test.txt';
+%     cell_list='behavior_list_phys.txt';
     fid=fopen(cell_list);
     fid_mouselist=fopen('mouse_list.txt', 'w'); %generate an output text file to compare behavior list with notebook (mouse ID, geneotype, sex, etc)
     fseek(fid, 0, 1); %fastforward to end, to get file size
@@ -85,13 +85,13 @@ if reprocess
             dirstr=strsplit(datadir, '\');
             datadir2=dirstr{end};
             
-             cd(dataroot)
+%             cd(dataroot)
             cd(datadir)
 
             if  strfind(datadir, 'lab\djmaus\Data\lab\')
                 cd ../lab
             end
-%             cd(datadir2)
+            cd(datadir2)
             %             outfilename=sprintf('outGPIAS_Behavior.mat');
             outfilename=filename;
             d=dir(outfilename);
@@ -326,7 +326,7 @@ for i=1:controlp60_sessions
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%figPureStartles - bar graph of pure startles
+%fig1d - bar graph of pure startles
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 figure;
@@ -355,7 +355,7 @@ catch
         fprintf(fid, '\nnot enough >p60 sessions for stats');
 end
 cd(figs_dir)
-print -dpdf figPureStartles.pdf
+print -dpdf fig1d.pdf
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -410,7 +410,7 @@ legend('control', 'XFAD', 'location', 'southeast')
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%figGroupMeans - group means GPIAS
+%fig1b - group means GPIAS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 figure
@@ -431,7 +431,7 @@ ylim([-10 100])
 xlabel('gap duration, ms')
 set(gca, 'ytick', [0:25:100])
 cd(figs_dir)
-print -dpdf figGroupMeans.pdf
+print -dpdf fig1b.pdf
 
 
 
@@ -548,7 +548,7 @@ set([e],  'linewidth', lw)
 set(p(1:2), 'markersize', 12, 'MarkerFaceColor', 'w')
 ylim([-25 100])
 cd(figs_dir)
-print -dpdf figGroupMeanxSex.pdf
+print -dpdf fig2.pdf
 
 %stats on sex
 %convert to long form
@@ -808,10 +808,10 @@ for gdindex=[2 3 4 5 6 7 8]
     legend(sprintf('control p=%.4f', Pcontrol(gdindex)), sprintf('xfad p=%.4f', Pxfad(gdindex)), 'location', 'southeast')
     cd(figs_dir)
     if gdindex==5
-        print -dpdf fig4ms.pdf
+        print -dpdf fig3c.pdf
     elseif gdindex==8
         legend('location', 'southwest')
-        print -dpdf fig256ms.pdf
+        print -dpdf fig3d.pdf
     end
 end
 
@@ -919,26 +919,26 @@ for age_max=40:10:100;
     Gi=grouping(i);
     Xxfad=[];
     Xcontrol=[];
-%     for j=1:length(Gi)
-%         switch Gi{j}
-%             case 'xfad'
-%                 Xxfad=[Xxfad Xi(j)];
-%             case 'control'
-%                 Xcontrol=[Xcontrol Xi(j)];
-%         end
-%     end
-%     [p, h]=ranksum(Xcontrol,Xxfad, 'tail', 'right');
-%     fprintf(fid,'\nranksum of gap 256 xfad vs control, age range %d - %d:', age_min, age_max);
-%     fprintf(fid,'\nh=%d, p=%g ',h, p);
-%     fprintf(fid,'\n%d xfad sessions', length(Xxfad));
-%     m=strmatch('xfad', grouping(i));
-%     fprintf(fid,'\n%d xfad mice',    length(unique(mouseID_long(m))));
-%     
-%     fprintf(fid,'\n%d control sessions', length(Xcontrol));
-%     n=strmatch('control', grouping(i));
-%     fprintf(fid,'\n%d control mice',    length(unique(mouseID_long(n))));
-%     fprintf(fid,'\n');
- end
+    for j=1:length(Gi)
+        switch Gi{j}
+            case 'xfad'
+                Xxfad=[Xxfad Xi(j)];
+            case 'control'
+                Xcontrol=[Xcontrol Xi(j)];
+        end
+    end
+    [p, h]=ranksum(Xcontrol,Xxfad, 'tail', 'right');
+    fprintf(fid,'\nranksum of gap 256 xfad vs control, age range %d - %d:', age_min, age_max);
+    fprintf(fid,'\nh=%d, p=%g ',h, p);
+    fprintf(fid,'\n%d xfad sessions', length(Xxfad));
+    m=strmatch('xfad', grouping(i));
+    fprintf(fid,'\n%d xfad mice',    length(unique(mouseID_long(m))));
+    
+    fprintf(fid,'\n%d control sessions', length(Xcontrol));
+    n=strmatch('control', grouping(i));
+    fprintf(fid,'\n%d control mice',    length(unique(mouseID_long(n))));
+    fprintf(fid,'\n');
+end
 
 
 % do a nested (mixed-effects) GLM to jpintly test the effects of age, sex, genotype, and mouseID

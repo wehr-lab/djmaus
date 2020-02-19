@@ -3,6 +3,7 @@ function SpiketrainCorrelationAll
 %in the current directory (all possible combinations, so it takes a while
 %to run)
 %plots a correlation matrix of r values and the cross-correlations 
+clear textprogressbar
 
 mcdir=dir('outPSTH*.mat');
 ksdir=dir('KS_outPSTH*.mat');
@@ -10,18 +11,23 @@ ksdir=dir('KS_outPSTH*.mat');
 nmc=length(mcdir);
 nks=length(ksdir);
 
-fprintf('\nloading mclust outfiles (%d)', nmc')
+fprintf('\n\n%s\n%s \n%d mclust outfiles \n%d kilsort outfiles', mfilename, pwd, nmc, nks)
+
+fprintf('\n')
+textprogressbar('loading mclust outfiles ');
 for i=1:nmc
     load(mcdir(i).name);
-fprintf('.')
-mcspiketimes(i).spiketimes=out.spiketimes;
+    textprogressbar(100*i/nmc);
+    mcspiketimes(i).spiketimes=out.spiketimes;
 end
-fprintf('\nloading kilosort outfiles (%d)', nks)
+textprogressbar(' ') %terminate
+textprogressbar('loading kilosort outfiles ')
 for i=1:nks
     load(ksdir(i).name);
-fprintf('.')
+    textprogressbar(100*i/nks);
     ksspiketimes(i).spiketimes=out.spiketimes;
 end
+textprogressbar(' ') %terminate
 
  for i=1:nmc
      min_all(i)=min(mcspiketimes(i).spiketimes);
@@ -34,30 +40,35 @@ end
  xlimits=[min([min_all, min_all2]) max([max_all, max_all2])]*1000;
  
  
-fprintf('\nsmoothing mclust outfiles (%d)', nmc')
+textprogressbar('smoothing mclust outfiles ')
 for i=1:nmc
-    fprintf('.')
+    textprogressbar(100*i/nmc);
     [t, frmc(i,:)]=GaussSmooth(mcspiketimes(i).spiketimes*1000, 1, xlimits);
 end
-fprintf('\nsmoothing kilosort outfiles (%d)', nmc')
+textprogressbar(' ') %terminate
+textprogressbar('smoothing kilosort outfiles ')
 for i=1:nks
-    fprintf('.')
+    textprogressbar(100*i/nks);
     [t, frks(i,:)]=GaussSmooth(ksspiketimes(i).spiketimes*1000, 1, xlimits);
 end
 frmc=frmc(:,1:end-100);
 frks=frks(:,1:end-100);
+textprogressbar(' ') %terminate
 
 
-fprintf('\ncalculating correlation coefficients (%d)', nmc*nks')
+textprogressbar('calculating correlation coefficients ');
+p=0;
 for i=1:nmc
-    fprintf('\n')
     for j=1:nks
-    fprintf('.')
+        p=p+1;
+        textprogressbar(100*p/(nmc*nks));
         r=corrcoef(frmc(i,:), frks(j,:));
         r=r(2);
         C(i,j)=r;
     end
 end
+textprogressbar(' ') %terminate
+
 figure
 imagesc(C)
 % set(gca, 'ydir', 'normal', 'xtick', 1:nks, 'yticks', 1:nmc) 
@@ -70,15 +81,17 @@ t2=text(.5, -.075, 'kilosort cells', 'units', 'normal', 'horizontalalign', 'cent
 colorbar
 print -dpdf 'mclust-kilosort-correlation-matrix.pdf'
 
-fprintf('\ncalculating cross correlations (%d)', nmc*nks')
+textprogressbar('calculating cross correlations ');
+p=0;
 for i=1:nmc
-    fprintf('\n')
     for j=1:nks
-    fprintf('.')
+        p=p+1;
+        textprogressbar(100*p/(nmc*nks));
         [xc, lags]=xcorr(frmc(i,:), frks(j,:), 256);
         XC(i,j,:)=xc;
     end
 end
+textprogressbar(' ') %terminate
 
 figure;
 subplot1(nmc, nks)
@@ -156,3 +169,6 @@ fprintf(fid, '\nr=%.4f, MClust: %d spikes, Kilosort: %d spikes', C(i,j), length(
     end
 end
 fclose(fid)
+
+% save mclust-kilosort-correlation
+%file is too big

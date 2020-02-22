@@ -231,7 +231,11 @@ for outindex=1:length(d)
     set(h,'interpreter','none')
     xlabel('gap duration')
     ylabel('percent GPIAS')
-    
+    if isfield(out, 'generated_by')
+        if strcmp(out.generated_by, 'Outfile_Combiner')
+            text(.1, .9, 'combined outfile', 'units', 'normal')
+        end
+    end
     
     %plot the mean peak rectified startle
     for paindex=1:numpulseamps
@@ -250,6 +254,11 @@ for outindex=1:length(d)
         set(h,'interpreter','none')
         xlabel('gap duration')
         ylabel('startle response +- sem')
+        if isfield(out, 'generated_by')
+            if strcmp(out.generated_by, 'Outfile_Combiner')
+                text(.1, .9, 'combined outfile', 'units', 'normal')
+            end
+        end
     end
     
     %plot all trials peak rectified startle

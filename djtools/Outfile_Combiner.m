@@ -59,84 +59,198 @@ for i=1:P.numoutfiles
     Out_components(i)=load(sortedoutfilelist{i});
     waitbar(i/(1+P.numoutfiles), wb);
 end
-for i=1:P.numoutfiles
-    Freqs(i,:)=Out_components(i).out.freqs;
-    Amps(i,:)=Out_components(i).out.amps;
-    Durs(i,:)=Out_components(i).out.durs;
-end
-% situation 1: all outfiles have the same params
-if size(unique(Freqs, 'rows'), 1)~=1
-    error('frequencies of outfiles don''t match')
-end
-if size(unique(Amps, 'rows'), 1)~=1
-    error('amps of outfiles don''t match')
-end
 
-%now that we've verified that all parameters are the same, we can just use one of them
-Out.freqs=Out_components(1).out.freqs;
-Out.amps=Out_components(1).out.amps;
-Out.durs=Out_components(1).out.durs;
-Out.numfreqs=Out_components(1).out.numfreqs;
-Out.numamps=Out_components(1).out.numamps;
-Out.numdurs=Out_components(1).out.numdurs;
-Out.samprate=Out_components(1).out.samprate;
-Out.IL=Out_components(1).out.IL;
-Out.xlimits=Out_components(1).out.xlimits;
-if size(Out_components(1).out.nrepsOFF)~=[Out.numfreqs Out.numamps]
-    error('nreps is not numfreqs x numamps')
+%we will handle outfiles differently depending on what kind of data they
+%are. We can use some fieldnames as a proxy for data type
+
+if isfield(Out_components(i).out, 'freqs') & ...
+        isfield(Out_components(i).out, 'amps') & ...
+        isfield(Out_components(i).out, 'durs')
+    experiment_type = 'tuningcurve';
+elseif isfield(Out_components(i).out, 'gapdurs') & ...
+        isfield(Out_components(i).out, 'PeakON')
+    experiment_type = 'GPIASbehavior';
+else
+    error('did not find the expected fields in outfile')
 end
+fprintf('\nthis appears to be a %s experiment', experiment_type)
 
-Out.nreps=Out_components(1).out.nreps;
-Out.nrepsON=Out_components(1).out.nrepsON;
-Out.nrepsOFF=Out_components(1).out.nrepsOFF;
-for i=2:P.numoutfiles
-    Out.nreps = Out.nreps + Out_components(i).out.nreps;
-    Out.nrepsON = Out.nrepsON + Out_components(i).out.nrepsON;
-    Out.nrepsOFF = Out.nrepsOFF + Out_components(i).out.nrepsOFF;
-end
-
-%pre-allocate
-sz=size(Out_components(i).out.M1OFF);
-sz(end-1)=max(Out.nrepsOFF(:));
-Out.M1OFF=nan(sz);
-Out.M1OFFLaser=nan(sz);
-Out.M1OFFStim=nan(sz);
-
-for i=1:P.numoutfiles
-    nr=max(Out_components(i).out.nrepsOFF(:));
-    start=1+(i-1)*nr;
-    stop=nr*i;
-    Out.M1OFF(:,:,:,start:stop,:)=Out_components(i).out.M1OFF;
-    Out.M1OFFLaser(:,:,:,start:stop,:)=Out_components(i).out.M1OFFLaser;
-    Out.M1OFFStim(:,:,:,start:stop,:)=Out_components(i).out.M1OFFStim;
-end
-Out.mM1OFF(:,:,1:Out.numdurs,:)=mean(Out.M1OFF, 4);
-Out.mM1OFFLaser(:,:,1:Out.numdurs,:)=mean(Out.M1OFFLaser, 4);
-Out.mM1OFFStim(:,:,1:Out.numdurs,:)=mean(Out.M1OFFStim, 4);
-
-sz=size(Out_components(i).out.M1ON);
-sz(end-1)=max(Out.nrepsON(:));
-Out.M1ON=nan(sz);
-Out.M1ONLaser=nan(sz);
-Out.M1ONStim=nan(sz);
-
-for i=1:P.numoutfiles
-    nr=max(Out_components(i).out.nrepsON(:));
-    start=1+(i-1)*nr;
-    stop=nr*i;
-    fprintf('\n%d-%d', start, stop)
-    Out.M1ON(:,:,:,start:stop,:)=Out_components(i).out.M1ON;
-    Out.M1ONLaser(:,:,:,start:stop,:)=Out_components(i).out.M1ONLaser;
-    Out.M1ONStim(:,:,:,start:stop,:)=Out_components(i).out.M1ONStim;
-end
-Out.mM1ON(:,:,1:Out.numdurs,:)=mean(Out.M1ON, 4);
-Out.mM1ONLaser(:,:,1:Out.numdurs,:)=mean(Out.M1ONLaser, 4);
-Out.mM1ONStim(:,:,1:Out.numdurs,:)=mean(Out.M1ONStim, 4);
-
+switch experiment_type
+    case 'tuningcurve'
+        for i=1:P.numoutfiles
+            Freqs(i,:)=Out_components(i).out.freqs;
+            Amps(i,:)=Out_components(i).out.amps;
+            Durs(i,:)=Out_components(i).out.durs;
+        end
+        % situation 1: all outfiles have the same params
+        if size(unique(Freqs, 'rows'), 1)~=1
+            error('frequencies of outfiles don''t match')
+        end
+        if size(unique(Amps, 'rows'), 1)~=1
+            error('amps of outfiles don''t match')
+        end
+        
+        %now that we've verified that all parameters are the same, we can just use one of them
+        Out.freqs=Out_components(1).out.freqs;
+        Out.numfreqs=Out_components(1).out.numfreqs;
+        Out.amps=Out_components(1).out.amps;
+        Out.numamps=Out_components(1).out.numamps;
+        Out.durs=Out_components(1).out.durs;
+        Out.numdurs=Out_components(1).out.numdurs;
+        
+        Out.samprate=Out_components(1).out.samprate;
+        Out.IL=Out_components(1).out.IL;
+        Out.xlimits=Out_components(1).out.xlimits;
+        if size(Out_components(1).out.nrepsOFF)~=[Out.numfreqs Out.numamps]
+            error('nreps is not numfreqs x numamps')
+        end
+        
+        Out.nreps=Out_components(1).out.nreps;
+        Out.nrepsON=Out_components(1).out.nrepsON;
+        Out.nrepsOFF=Out_components(1).out.nrepsOFF;
+        for i=2:P.numoutfiles
+            Out.nreps = Out.nreps + Out_components(i).out.nreps;
+            Out.nrepsON = Out.nrepsON + Out_components(i).out.nrepsON;
+            Out.nrepsOFF = Out.nrepsOFF + Out_components(i).out.nrepsOFF;
+        end
+        
+        %pre-allocate
+        sz=size(Out_components(i).out.M1OFF);
+        sz(end-1)=max(Out.nrepsOFF(:));
+        Out.M1OFF=nan(sz);
+        Out.M1OFFLaser=nan(sz);
+        Out.M1OFFStim=nan(sz);
+        
+        for i=1:P.numoutfiles
+            nr=max(Out_components(i).out.nrepsOFF(:));
+            start=1+(i-1)*nr;
+            stop=nr*i;
+            Out.M1OFF(:,:,:,start:stop,:)=Out_components(i).out.M1OFF;
+            Out.M1OFFLaser(:,:,:,start:stop,:)=Out_components(i).out.M1OFFLaser;
+            Out.M1OFFStim(:,:,:,start:stop,:)=Out_components(i).out.M1OFFStim;
+        end
+        Out.mM1OFF(:,:,1:Out.numdurs,:)=mean(Out.M1OFF, 4);
+        Out.mM1OFFLaser(:,:,1:Out.numdurs,:)=mean(Out.M1OFFLaser, 4);
+        Out.mM1OFFStim(:,:,1:Out.numdurs,:)=mean(Out.M1OFFStim, 4);
+        
+        sz=size(Out_components(i).out.M1ON);
+        sz(end-1)=max(Out.nrepsON(:));
+        Out.M1ON=nan(sz);
+        Out.M1ONLaser=nan(sz);
+        Out.M1ONStim=nan(sz);
+        
+        for i=1:P.numoutfiles
+            nr=max(Out_components(i).out.nrepsON(:));
+            start=1+(i-1)*nr;
+            stop=nr*i;
+            fprintf('\n%d-%d', start, stop)
+            Out.M1ON(:,:,:,start:stop,:)=Out_components(i).out.M1ON;
+            Out.M1ONLaser(:,:,:,start:stop,:)=Out_components(i).out.M1ONLaser;
+            Out.M1ONStim(:,:,:,start:stop,:)=Out_components(i).out.M1ONStim;
+        end
+        Out.mM1ON(:,:,1:Out.numdurs,:)=mean(Out.M1ON, 4);
+        Out.mM1ONLaser(:,:,1:Out.numdurs,:)=mean(Out.M1ONLaser, 4);
+        Out.mM1ONStim(:,:,1:Out.numdurs,:)=mean(Out.M1ONStim, 4);
+        combinedoutfilename='out_combined.mat';
+        
+    case 'GPIASbehavior'
+        for i=1:P.numoutfiles
+            Gapdurs(i,:)=Out_components(i).out.gapdurs;
+        end
+        if size(unique(Gapdurs, 'rows'), 1)~=1
+            error('gapdurs of outfiles don''t match')
+        end
+        
+        %now that we've verified that all parameters are the same, we can just use one of them
+        Out.gapdurs=Out_components(1).out.gapdurs;
+        Out.numgapdurs=Out_components(1).out.numgapdurs;
+        Out.pulseamps=Out_components(1).out.pulseamps;
+        Out.numpulseamps=Out_components(1).out.numpulseamps;
+        Out.gapdelay=Out_components(1).out.gapdelay;
+        Out.soa=Out_components(1).out.soa;
+        Out.isi=Out_components(1).out.isi;
+        Out.soaflag=Out_components(1).out.soaflag;
+        Out.mouseID=Out_components(1).out.mouseID;
+        Out.outfilename=Out_components(1).out.outfilename;
+        Out.samprate=Out_components(1).out.samprate;
+        Out.IL=Out_components(1).out.IL;
+        Out.xlimits=Out_components(1).out.xlimits;
+        if size(Out_components(1).out.nrepsOFF)~=[Out.numgapdurs 1]
+            error('nreps is not numgapdurs x 1')
+        end
+        
+        Out.nrepsON=Out_components(1).out.nrepsON;
+        Out.nrepsOFF=Out_components(1).out.nrepsOFF;
+        for i=2:P.numoutfiles
+            Out.nrepsON = Out.nrepsON + Out_components(i).out.nrepsON;
+            Out.nrepsOFF = Out.nrepsOFF + Out_components(i).out.nrepsOFF;
+        end
+        
+        %pre-allocate
+        sz=size(Out_components(i).out.M1OFF);
+        sz(end-1)=max(Out.nrepsOFF(:));
+        Out.M1OFF=nan(sz);
+        Out.M1OFFLaser=nan(sz);
+        Out.M1OFFstim=nan(sz);
+        Out.PeakOFF=nan(size(Out_components(i).out.PeakOFF));
+        for i=1:P.numoutfiles
+            nr=max(Out_components(i).out.nrepsOFF(:));
+            start=1+(i-1)*nr;
+            stop=nr*i;
+            Out.M1OFF(:,:,start:stop,:)=Out_components(i).out.M1OFF;
+            Out.M1OFFstim(:,:,start:stop,:)=Out_components(i).out.M1OFFstim;
+            Out.PeakOFF(:,:,start:stop)=Out_components(i).out.PeakOFF;
+            Out.all_percentGPIAS_OFF(i,:)=Out_components(i).out.percentGPIAS_OFF;
+            Out.all_pOFF(i,:)=Out_components(i).out.pOFF;
+        end
+        Out.mM1OFF(:,1:Out.numpulseamps,:)=mean(Out.M1OFF, 3);
+        Out.mM1OFFstim(:,1:Out.numpulseamps,:)=mean(Out.M1OFFstim, 3);
+        Out.mPeakOFF=mean(Out.PeakOFF, 3);
+        Out.semPeakOFF=std(Out.PeakOFF, 0, 3)/sqrt(length(Out.PeakOFF(:,3)));
+        Out.percentGPIAS_OFF=mean(Out.all_percentGPIAS_OFF, 1);
+        Out.pOFF=mean(Out.all_pOFF, 1); %pretty sure it's not kosher to average p-values, we should re-generate them if we will use them
+        
+        sz=size(Out_components(i).out.M1ON);
+        sz(end-1)=max(Out.nrepsON(:));
+        Out.M1ON=nan(sz);
+        Out.M1ONLaser=nan(sz);
+        Out.M1ONstim=nan(sz);
+        Out.PeakON=nan(size(Out_components(i).out.PeakON));
+        
+        for i=1:P.numoutfiles
+            nr=max(Out_components(i).out.nrepsON(:));
+            start=1+(i-1)*nr;
+            stop=nr*i;
+            fprintf('\n%d-%d', start, stop)
+            Out.M1ON(:,:,:,start:stop,:)=Out_components(i).out.M1ON;
+            Out.M1ONstim(:,:,:,start:stop,:)=Out_components(i).out.M1ONstim;
+            Out.PeakON(:,:,start:stop)=Out_components(i).out.PeakON;
+            if ~isempty(Out_components(i).out.percentGPIAS_ON)
+                Out.all_percentGPIAS_ON(i,:)=Out_components(i).out.percentGPIAS_ON;
+                Out.all_pON(i,:)=Out_components(i).out.pON;
+            else
+                Out.all_percentGPIAS_ON=[];
+                Out.all_pON=[];
+            end
+        end
+        Out.mM1ON(:,:,:)=mean(Out.M1ON, 3);
+        Out.mM1ONstim(:,:,:)=mean(Out.M1ONstim, 3);
+        Out.mPeakON=mean(Out.PeakON, 3);
+        if ~isempty(Out.PeakON)
+            Out.semPeakON=std(Out.PeakON, 0, 3)/sqrt(length(Out.PeakON(:,3)));
+        else
+            Out.semPeakON=nan;
+            Out.mPeakON=[];
+        end
+        Out.percentGPIAS_ON=mean(Out.all_percentGPIAS_ON, 1);
+        Out.pON=mean(Out.all_pON, 1); %pretty sure it's not kosher to average p-values, we should re-generate them if we will use them
+        
+        combinedoutfilename='outGPIAS_Behavior_combined.mat';
+        
+end %switch experiment type
 
 
 cd(targetdir)
-combinedoutfilename='out_combined.mat';
 waitbar(.9, wb, 'saving combined outfile...')
 out=Out;
 save(combinedoutfilename, 'out')

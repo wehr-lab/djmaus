@@ -129,9 +129,9 @@ switch experiment_type
             Out.M1OFFLaser(:,:,:,start:stop,:)=Out_components(i).out.M1OFFLaser;
             Out.M1OFFStim(:,:,:,start:stop,:)=Out_components(i).out.M1OFFStim;
         end
-        Out.mM1OFF(:,:,1:Out.numdurs,:)=mean(Out.M1OFF, 4);
-        Out.mM1OFFLaser(:,:,1:Out.numdurs,:)=mean(Out.M1OFFLaser, 4);
-        Out.mM1OFFStim(:,:,1:Out.numdurs,:)=mean(Out.M1OFFStim, 4);
+        Out.mM1OFF(:,:,1:Out.numdurs,:)= nanmean(Out.M1OFF, 4);
+        Out.mM1OFFLaser(:,:,1:Out.numdurs,:)=nanmean(Out.M1OFFLaser, 4);
+        Out.mM1OFFStim(:,:,1:Out.numdurs,:)=nanmean(Out.M1OFFStim, 4);
         
         sz=size(Out_components(i).out.M1ON);
         sz(end-1)=max(Out.nrepsON(:));
@@ -148,9 +148,9 @@ switch experiment_type
             Out.M1ONLaser(:,:,:,start:stop,:)=Out_components(i).out.M1ONLaser;
             Out.M1ONStim(:,:,:,start:stop,:)=Out_components(i).out.M1ONStim;
         end
-        Out.mM1ON(:,:,1:Out.numdurs,:)=mean(Out.M1ON, 4);
-        Out.mM1ONLaser(:,:,1:Out.numdurs,:)=mean(Out.M1ONLaser, 4);
-        Out.mM1ONStim(:,:,1:Out.numdurs,:)=mean(Out.M1ONStim, 4);
+        Out.mM1ON(:,:,1:Out.numdurs,:)=nanmean(Out.M1ON, 4);
+        Out.mM1ONLaser(:,:,1:Out.numdurs,:)=nanmean(Out.M1ONLaser, 4);
+        Out.mM1ONStim(:,:,1:Out.numdurs,:)=nanmean(Out.M1ONStim, 4);
         combinedoutfilename='out_combined.mat';
         
     case 'GPIASbehavior'
@@ -203,12 +203,12 @@ switch experiment_type
             Out.all_percentGPIAS_OFF(i,:)=Out_components(i).out.percentGPIAS_OFF;
             Out.all_pOFF(i,:)=Out_components(i).out.pOFF;
         end
-        Out.mM1OFF(:,1:Out.numpulseamps,:)=mean(Out.M1OFF, 3);
-        Out.mM1OFFstim(:,1:Out.numpulseamps,:)=mean(Out.M1OFFstim, 3);
-        Out.mPeakOFF=mean(Out.PeakOFF, 3);
-        Out.semPeakOFF=std(Out.PeakOFF, 0, 3)/sqrt(length(Out.PeakOFF(:,3)));
-        Out.percentGPIAS_OFF=mean(Out.all_percentGPIAS_OFF, 1);
-        Out.pOFF=mean(Out.all_pOFF, 1); %pretty sure it's not kosher to average p-values, we should re-generate them if we will use them
+        Out.mM1OFF(:,1:Out.numpulseamps,:)=nanmean(Out.M1OFF, 3);
+        Out.mM1OFFstim(:,1:Out.numpulseamps,:)=nanmean(Out.M1OFFstim, 3);
+        Out.mPeakOFF=nanmean(Out.PeakOFF, 3);
+        Out.semPeakOFF=nanstd(Out.PeakOFF, 0, 3)/sqrt(length(Out.PeakOFF(:,3)));
+        Out.percentGPIAS_OFF=nanmean(Out.all_percentGPIAS_OFF, 1);
+        Out.pOFF=nanmean(Out.all_pOFF, 1); %pretty sure it's not kosher to average p-values, we should re-generate them if we will use them
         
         sz=size(Out_components(i).out.M1ON);
         sz(end-1)=max(Out.nrepsON(:));
@@ -233,17 +233,17 @@ switch experiment_type
                 Out.all_pON=[];
             end
         end
-        Out.mM1ON(:,:,:)=mean(Out.M1ON, 3);
-        Out.mM1ONstim(:,:,:)=mean(Out.M1ONstim, 3);
-        Out.mPeakON=mean(Out.PeakON, 3);
+        Out.mM1ON(:,:,:)=nanmean(Out.M1ON, 3);
+        Out.mM1ONstim(:,:,:)=nanmean(Out.M1ONstim, 3);
+        Out.mPeakON=nanmean(Out.PeakON, 3);
         if ~isempty(Out.PeakON)
-            Out.semPeakON=std(Out.PeakON, 0, 3)/sqrt(length(Out.PeakON(:,3)));
+            Out.semPeakON=nanstd(Out.PeakON, 0, 3)/sqrt(length(Out.PeakON(:,3)));
         else
             Out.semPeakON=nan;
             Out.mPeakON=[];
         end
-        Out.percentGPIAS_ON=mean(Out.all_percentGPIAS_ON, 1);
-        Out.pON=mean(Out.all_pON, 1); %pretty sure it's not kosher to average p-values, we should re-generate them if we will use them
+        Out.percentGPIAS_ON=nanmean(Out.all_percentGPIAS_ON, 1);
+        Out.pON=nanmean(Out.all_pON, 1); %pretty sure it's not kosher to average p-values, we should re-generate them if we will use them
         
         combinedoutfilename='outGPIAS_Behavior_combined.mat';
         

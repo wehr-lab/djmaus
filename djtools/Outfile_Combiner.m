@@ -44,6 +44,7 @@ end
 
 function CreateNewOutfile
 global P
+fprintf('\nloading and combining outfiles...');
 wb=waitbar(0,'loading and combining outfiles...');
 sortedoutfilelist=sort (P.outfilelist);
 sorteddirlist=sort (P.dirlist);
@@ -55,6 +56,7 @@ Out.generated_by=mfilename;
 Out.generated_on=datestr(now);
 
 for i=1:P.numoutfiles
+    fprintf('.')
     cd( sorteddirlist{i});
     Out_components(i)=load(sortedoutfilelist{i});
     waitbar(i/(1+P.numoutfiles), wb);

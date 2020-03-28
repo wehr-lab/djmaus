@@ -252,9 +252,12 @@ end %switch experiment type
 
 cd(targetdir)
 waitbar(.9, wb, 'saving combined outfile...')
+fprintf('\nsaving combined outfile...')
 out=Out;
 save(combinedoutfilename, 'out')
 close(wb)
+fprintf('\nsaved %s in directory %s', combinedoutfilename, targetdir)
+
 
 
 %include a field in the outfile saying which outfiles are in it

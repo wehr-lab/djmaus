@@ -8,6 +8,7 @@ function ProcessTC_LFP(varargin)
 %saves output in an outfile
 %
 %notes: whitenoise plotted as freq=-1 kHz, silent sound as -2 kHz
+%       data are in microvolts
 
 djPrefs;
 global pref

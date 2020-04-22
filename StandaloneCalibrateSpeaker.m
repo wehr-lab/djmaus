@@ -230,9 +230,13 @@ for lp = 1:num_loops
         set(ax2, 'xticklabel', round(10*xt/1000)/10)
         
         %set Analog In1 and Analog Out1 to -10dBV in the lynx mixer
-        if GetXonarDevice & isempty(GetAsioLynxDevice)
+        [~,hostname]=system('hostname');
+        if GetXonarDevice & isempty(GetAsioLynxDevice) & strncmp(hostname, 'WehrRig2a', 9)
+            fudgefactorTone=+6.12;
+            fudgefactorWN=+8.35;
+        elseif GetXonarDevice & isempty(GetAsioLynxDevice) & strncmp(hostname, 'WehrRig11', 9)
             fudgefactorTone=-1.07;
-            fudgefactorWN=0.79;
+            fudgefactorWN=+0.79;
         elseif GetAsioLynxDevice  & isempty(GetXonarDevice)
             fudgefactorTone=7.5;
             fudgefactorWN=9.3;
@@ -416,13 +420,17 @@ function Reset_Callback(hObject, eventdata, handles)
 Reset(handles)
 
 function Reset(handles)
-userdata=get(handles.figure1, 'userdata');
-userdata.atten=[];
-userdata.DB=[];
-set(handles.figure1, 'userdata', userdata);
-% InitParams(handles)
-cla(handles.axes1)
-cla(handles.axes2)
+answer = questdlg('This will erase all calibration data and start over from scratch. Proceed with Reset?', 'Are you sure?', 'Cancel');
+switch answer
+    case 'Yes'
+        userdata=get(handles.figure1, 'userdata');
+        userdata.atten=[];
+        userdata.DB=[];
+        set(handles.figure1, 'userdata', userdata);
+        % InitParams(handles)
+        cla(handles.axes1)
+        cla(handles.axes2)
+end
 
 function minfreq_Callback(hObject, eventdata, handles)
 % hObject    handle to minfreq (see GCBO)

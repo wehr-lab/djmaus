@@ -38,26 +38,26 @@ sampleRate=all_channels_info.header.sampleRate; %in Hz
 
 %check if this is an appropriate stimulus protocol
 if ~strcmp(GetPlottingFunction(datadir), 'PlotGPIAS_PSTH')
-pl    error('This does not appear to be a GPIAS stimulus protcol');
+    error('This does not appear to be a GPIAS stimulus protcol');
 end
 
-%accelerometer channels are 33, 34, 35 in OpenEphys, but are stored as 32,
-%33, and 34
+%accelerometer channels are 33, 34, 35
 node='';
 NodeIds=getNodes(pwd);
 for i=1:length(NodeIds)
-    filename=sprintf('%s_AUX1.continuous', NodeIds{i});
+    filename=sprintf('%s_AUX2.continuous', NodeIds{i});
     if exist(filename,'file')
         node=NodeIds{i};
     end
 end
+
 filename1=sprintf('%s_AUX1.continuous', node);
 filename2=sprintf('%s_AUX2.continuous', node);
 filename3=sprintf('%s_AUX3.continuous', node);
 
-if exist(filename1, 'file')~=2 %couldn't find it
-    error(sprintf('could not find AUX file %s in datadir %s', filename1, datadir))
-end
+% if exist(filename1, 'file')~=2 %couldn't find it
+%     error(sprintf('could not find AUX file %s in datadir %s', filename1, datadir))
+% end
 if exist(filename2, 'file')~=2 %couldn't find it
     error(sprintf('could not find AUX file %s in datadir %s', filename2, datadir))
 end
@@ -65,21 +65,22 @@ if exist(filename3, 'file')~=2 %couldn't find it
     error(sprintf('could not find AUX file %s in datadir %s', filename3, datadir))
 end
 fprintf('\n')
-[scaledtrace1, datatimestamps, datainfo] =load_open_ephys_data(filename1);
-[scaledtrace2, datatimestamps, datainfo] =load_open_ephys_data(filename2);
-[scaledtrace3, datatimestamps, datainfo] =load_open_ephys_data(filename3);
+% [scaledtrace1, datatimestamps, datainfo] =load_open_ephys_data(filename1);
+% [scaledtrace2, datatimestamps, datainfo] =load_open_ephys_data(filename2);
+% [scaledtrace3, datatimestamps, datainfo] =load_open_ephys_data(filename3);
+filename4=sprintf('%s_ADC4.continuous', node);
+
+[scaledtrace2, datatimestamps, datainfo] =load_open_ephys_data(filename4);
 
 %combine X,Y,Z accelerometer channels by RMS
 %scaledtrace=sqrt(scaledtrace1.^2 + scaledtrace2.^2 + scaledtrace3.^2 );
-%scaledtrace=sqrt(scaledtrace3.^2 + scaledtrace2.^2);
-scaledtrace=sqrt(scaledtrace1.^2);
+% replaced with below 1/17/18 (Kip)
+scaledtrace2=scaledtrace2-mean(scaledtrace2);
+scaledtrace=sqrt(scaledtrace2.^2 );
 
 SCTfname=getSCTfile(datadir);
 stimfile=getStimfile(datadir); %mw 08.30.2107 old: sprintf('%s_ADC2.continuous', node);
-laserfile=getLaserfile(datadir); %mw 08.30.2107 old: sprintf('%s_ADC2.continuous', node);
 [stim, stimtimestamps, stiminfo] =load_open_ephys_data(stimfile);
- [lasertrace, lasertimestamps, laserinfo] =load_open_ephys_data(laserfile);
-% [scttrace, scttimestamps, sctinfo] =load_open_ephys_data(SCTfname);
 
 %uncomment this to run some sanity checks
 %SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
@@ -188,12 +189,11 @@ end
 
 M1ON=[];M1OFF=[];
 M1ONstim=[];M1OFFstim=[];
-M1ONlaser=[];M1OFFlaser=[];
 nrepsON=zeros(numgapdurs, numpulseamps);
 nrepsOFF=zeros(numgapdurs, numpulseamps);
 
 xlimits=[-200 200]; %xlimits for storing traces
-startle_window=[0 75]; %hard coded integration region for startle response
+startle_window=[0 150]; %hard coded integration region for startle response
 
 fprintf('\nprocessing with xlimits [%d - %d]', xlimits(1), xlimits(2))
 fprintf('\nprocessing with startle integration window [%d - %d]', startle_window(1), startle_window(2))
@@ -233,12 +233,10 @@ for i=1:length(Events)
                     nrepsON(gdindex,paindex)=nrepsON(gdindex,paindex)+1;
                     M1ON(gdindex,paindex, nrepsON(gdindex,paindex),:)=scaledtrace(region);
                     M1ONstim(gdindex, paindex, nrepsON(gdindex, paindex),:)=stim(region);
-                    M1ONlaser(gdindex, paindex, nrepsON(gdindex, paindex),:)=lasertrace(region);
                 else
                     nrepsOFF(gdindex,paindex)=nrepsOFF(gdindex,paindex)+1;
                     M1OFF(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=scaledtrace(region);
                     M1OFFstim(gdindex, paindex, nrepsOFF(gdindex, paindex),:)=stim(region);
-                    M1OFFlaser(gdindex, paindex, nrepsOFF(gdindex, paindex),:)=lasertrace(region);
                     
                     %                     figure(8),clf;hold on
                     %                     t=region;t=t/samprate;
@@ -257,67 +255,6 @@ end
 
 fprintf('\nmin num ON reps: %d\nmax num ON reps: %d', min(nrepsON(:)), max(nrepsON(:)))
 fprintf('\nmin num OFF reps: %d\nmax num OFF reps: %d',min(nrepsOFF(:)), max(nrepsOFF(:)))
-
-%sanity check - are the stimuli where we think they are?
-figure
-hold on
-offset=1.5*range(M1OFFstim(:));
-offset2=0;
-t=1:size(M1OFFstim, 4);t=1000*t/samprate; %in ms
-t=t+xlimits(1);
-for gdindex=1:numgapdurs
-    for paindex =1:numpulseamps
-        for r=1:nrepsOFF(gdindex,paindex)
-            stim=squeeze(M1OFFstim(gdindex,paindex,r,:));
-            offset2=offset2+offset;
-            plot(t, stim+offset2, 'm')
-            %                 pause(1)
-        end
-    end
-end
-if ~isempty(M1ONstim)
-    for gdindex=1:numgapdurs
-    for paindex =1:numpulseamps
-        for r=1:nrepsOFF(gdindex,paindex)
-            stim=squeeze(M1ONstim(gdindex,paindex,r,:));
-            offset2=offset2+offset;
-            plot(t, stim+offset2, 'r')
-            %                 pause(1)
-        end
-    end
-    end
-end
-title('stimulus monitor (aligned to startle pulse)')
-
-figure
-hold on
-offset=1.5*range(M1OFFlaser(:));
-offset2=0;
-t=1:size(M1OFFlaser, 4);t=1000*t/samprate; %in ms
-t=t+xlimits(1);
-for gdindex=1:numgapdurs
-    for paindex =1:numpulseamps
-        for r=1:nrepsOFF(gdindex,paindex)
-            laser=squeeze(M1OFFlaser(gdindex,paindex,r,:));
-            offset2=offset2+offset;
-            plot(t, laser+offset2, 'c')
-            %                 pause(1)
-        end
-    end
-end
-if ~isempty(M1ONlaser)
-    for gdindex=1:numgapdurs
-    for paindex =1:numpulseamps
-        for r=1:nrepsOFF(gdindex,paindex)
-            laser=squeeze(M1ONlaser(gdindex,paindex,r,:));
-            offset2=offset2+offset;
-            plot(t, laser+offset2, 'c')
-            %                 pause(1)
-        end
-    end
-    end
-end
-title('laser trace (aligned to startle pulse)')
 
 PeakON=[];
 PeakOFF=[];

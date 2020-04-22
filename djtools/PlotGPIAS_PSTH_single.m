@@ -2,8 +2,8 @@ function PlotGPIAS_PSTH_single(varargin)
 
 %plots a single file of clustered spiking GPIAS data from djmaus
 %
-% usage: PlotGPIAS_PSTH(datapath, t_filename, [xlimits],[ylimits], [binwidth])
-% (xlimits, ylimits, binwidth are optional)
+% usage: PlotGPIAS_PSTH(datapath, t_filename, [xlimits],[ylimits], [binwidth], ['force-reprocess'])
+% (xlimits, ylimits, binwidth,  'force-reprocess' are optional)
 %
 %Processes data if outfile is not found;
 
@@ -34,7 +34,14 @@ try
 catch
     binwidth=5;
 end
+try
+    if strcmp(varargin{6}, 'force-reprocess')
+        force_reprocess=1;
+    end
+end
 
+
+    
 if force_reprocess
     fprintf('\nForce re-process\n')
     ProcessGPIAS_PSTH_single(datadir,  t_filename, xlimits, ylimits, binwidth);
@@ -219,6 +226,9 @@ if ~isempty(M1OFF)
     h=title(sprintf('%s: \ntetrode%d cell %d, nreps: %d-%d, OFF',datadir,channel,out.cluster,min(nrepsOFF(:)),max(nrepsOFF(:))));
     set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
     
+    %print to pdf
+    print('-dpdf', sprintf('tet%d-cell%d',channel,out.cluster))
+
     %label amps and freqs
 %     p=0;
 %     for paindex=1:numpulseamps

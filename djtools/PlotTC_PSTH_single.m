@@ -33,17 +33,23 @@ catch
     binwidth=5;
 end
 
+%Nick addition 8/31/18 - accomodates kilosort input
+if ischar(t_filename)
+    [p,f,ext]=fileparts(t_filename);
+    split=strsplit(f, '_');
+    ch=strsplit(split{1}, 'ch');
+    channel=str2num(ch{2});
+    clust=str2num(split{end});
+else %reads kilosort input, which is [clust, channel, cellnum]
+    channel=t_filename(1,2);
+    clust=t_filename(1,1);
+end
+%end of Nick addition 8/31/18.
 
 if force_reprocess
     fprintf('\nForce re-process\n')
     ProcessTC_PSTH_single(datadir,  t_filename, xlimits, ylimits);
 end
-
-[p,f,ext]=fileparts(t_filename);
-split=strsplit(f, '_');
-ch=strsplit(split{1}, 'ch');
-channel=str2num(ch{2});
-clust=str2num(split{end});
 
 outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
 fprintf('\nchannel %d, cluster %d', channel, clust)

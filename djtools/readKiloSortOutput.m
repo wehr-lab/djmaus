@@ -1,4 +1,6 @@
-function [spiketimes, cell_ID]=readKiloSortOutput(cellnum, sampleRate) %output spiketimes and Kilosort ID number
+
+function [spiketimes, cell_ID]=readKiloSortOutput(clust, sampleRate) %output spiketimes and Kilosort ID number
+
 %reads Kilosort output, finds cell's spiking time
 % plot's statistics about this cell
 %
@@ -11,7 +13,11 @@ function [spiketimes, cell_ID]=readKiloSortOutput(cellnum, sampleRate) %output s
 % load all cells clustered by Kilosort
 
 load('dirs.mat') %find all directories that were clustered in one session of kilosort. all clusters are saved in the first directory
+try
 masterdir=dirs{1};
+catch
+ masterdir = pwd;
+end
 currentdir=pwd; %remember which directory you are in now
 currentdir_indx=find(strcmp(currentdir, dirs)==1); %which dir are we trying to plot?
 if currentdir_indx==0
@@ -20,7 +26,9 @@ end
 cd(masterdir) %go to the first directory to load clustered data, we can call this master directory
 sp = loadKSdir(pwd); %load all cells, all spikes
 
-cell_ID=sp.cids(cellnum); %get Kilosort id
+
+cell_ID=clust; %get Kilosort id
+cellnum=find(sp.cids==clust);
 cg=sp.cgs(cellnum); %whats the group
 if cg==0
     qual='noise';
@@ -36,6 +44,7 @@ fprintf('\nthis cell was saved as %s cluster', qual);
 
 %find spiketimes
 spiketimes=sp.st(sp.clu==cell_ID); % in seconds, start at 0
+
 try
     load('RecLengths.mat')
     L=recLengths/sampleRate;

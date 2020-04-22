@@ -29,11 +29,11 @@ try
     xlimits=varargin{3};
 end
 if isempty(xlimits)
-    %     xlimits=[-100 200];
+         xlimits=[-100 200];
     s=GetStimParams(datadir);
     durs=s.durs;
     dur=max(durs);
-    xlimits=[-.5*dur 1.5*dur]; %default x limits for axis
+   % xlimits=[-.5*dur 1.5*dur]; %default x limits for axis
 end
 try
     ylimits=varargin{4};
@@ -41,12 +41,20 @@ catch
     ylimits=[];
 end
 
-filename=varargin{2};
-[p,f,ext]=fileparts(filename);
-split=strsplit(f, '_');
-ch=strsplit(split{1}, 'ch');
-channel=str2num(ch{2});
-clust=str2num(split{end});
+%Nick addition 8/31/18 - accomodates kilosort input
+t_filename = varargin{2};
+if ischar(t_filename)
+    [p,f,ext]=fileparts(t_filename);
+    split=strsplit(f, '_');
+    ch=strsplit(split{1}, 'ch');
+    channel=str2num(ch{2});
+    clust=str2num(split{end});
+else %reads kilosort input, which is [clust, channel, cellnum]
+    channel=t_filename(1,2);
+    clust=t_filename(1,1);
+    cellnum=t_filename(1,3); %This number is necessary for 
+end
+%end of Nick addition 8/31/18.
 
 fprintf('\nchannel %d, cluster %d', channel, clust)
 fprintf('\nprocessing with xlimits [%d-%d]', xlimits(1), xlimits(2))
@@ -691,8 +699,9 @@ catch
     out.stimlog='notebook file missing';
     out.user='unknown';
 end
+
 out.KiloSort_ID=KS_ID+1;
-out.t_filename=filename;
+out.t_filename=t_filename;
 outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
 save (outfilename, 'out')
 

@@ -6,6 +6,12 @@ function ProcessGPIAS_PSTH_single(varargin)
 % (xlimits, ylimits are optional)
 % xlimits default to [-1.5*max(gapdurs) 2*soa]
 % saves to outfile
+clustering='Mclust'; %'Kilo'
+% we're now using a separate suite of functions for plotting/processing
+% data sorted with kilosort. Please use one of these functions instead:    
+%KS_PlotGPIAS_PSTH_single.m     
+%KS_PlotGPIAS_PSTH.m            
+%KS_ProcessGPIAS_PSTH_single.m  
 
 if nargin==0
     fprintf('\nno input');
@@ -91,10 +97,16 @@ end
 
 %read MClust .t file or Kilosort
 
-if exist('params.py','file') || exist('dirs.mat','file') 
+if  strcmp(clustering, 'Kilo')
+    error(['we''re now using a separate suite of functions for plotting/processing ', ...
+' data sorted with kilosort. Please use one of these functions instead:    ', ...
+'KS_PlotGPIAS_PSTH_single.m     ', ...
+'KS_PlotGPIAS_PSTH.m            ', ...
+'KS_ProcessGPIAS_PSTH_single.m  ']);
+
     fprintf('\nreading KiloSort output cell %d', clust)
     [spiketimes, cell_ID]=readKiloSortOutput(clust, sampleRate);
-else
+elseif strcmp(clustering, 'Mclust')
     fprintf('\nreading MClust output file %s', filename)
     spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
     %correct for OE start time, so that time starts at 0
@@ -530,6 +542,10 @@ out.xlimits=xlimits;
 out.samprate=samprate;
 out.datadir=datadir;
 out.spiketimes=spiketimes;
+
+out.clustering_method=clustering;
+out.generated_by=mfilename;
+out.generated_on=datestr(now);
 
 out.LaserRecorded=LaserRecorded; %whether the laser signal was hooked up and recorded as a continuous channel
 out.StimRecorded=StimRecorded; %%whether the sound stimulus signal was hooked up and recorded as a continuous channel

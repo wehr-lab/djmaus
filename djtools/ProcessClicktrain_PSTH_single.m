@@ -27,12 +27,20 @@ catch
     ylimits=[];
 end
 
-filename=varargin{2};
-[p,f,ext]=fileparts(filename);
-split=strsplit(f, '_');
-ch=strsplit(split{1}, 'ch');
-channel=str2num(ch{2});
-clust=str2num(split{end});
+%Nick addition 8/31/18 - accomodates kilosort input
+filename = varargin{2};
+if ischar(filename)
+    [p,f,ext]=fileparts(filename);
+    split=strsplit(f, '_');
+    ch=strsplit(split{1}, 'ch');
+    channel=str2num(ch{2});
+    clust=str2num(split{end});
+else %reads kilosort input, which is [clust, channel, cellnum]
+    channel=filename(1,2);
+    clust=filename(1,1);
+    cellnum=filename(1,3); %This number is necessary for 
+end
+%end of Nick addition 8/31/18.
 
 fprintf('\nchannel %d, cluster %d', channel, clust)
 
@@ -90,13 +98,22 @@ if ~strcmp(GetPlottingFunction(datadir), 'PlotClicktrain_PSTH')
     error('There are no clicktrain trials in this stimulus protcol')
 end
 
-%read MClust .t file
-fprintf('\nreading MClust output file %s', filename)
-spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
-%correct for OE start time, so that time starts at 0
-spiketimes=spiketimes-StartAcquisitionSec;
+%read MClust .t file 
+
+%you can add djmaus user to check who is using and
+%which clustering method is prefered
+if (exist('params.py','file')==1) || exist('dirs.mat','file')
+    fprintf('\nreading KiloSort output cell %d', clust)
+    spiketimes=readKiloSortOutput(cellnum, sampleRate);
+else
+    fprintf('\nreading MClust output file %s', filename)
+    spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
+    %correct for OE start time, so that time starts at 0
+    spiketimes=spiketimes-StartAcquisitionSec;
+    fprintf('\nsuccessfully loaded MClust spike data')
+end
 totalnumspikes=length(spiketimes);
-fprintf('\nsuccessfully loaded MClust spike data')
+
 Nclusters=1;
 
 %uncomment this to run some sanity checks
@@ -277,6 +294,30 @@ for i=1:length(Events)
                 if StimRecorded
                     MtOFFStim(iciindex, nrepsOFF(iciindex),:)=Stimtrace(region);
                 end
+                
+                %%% Individual stimulus stats in chronological order -Nick 8/23/18 %%%
+                onset=ici*(0:nclicks(iciindex)-1);
+                phase=[];
+                for s= MtOFF(iciindex, nrepsOFF(iciindex)).spiketimes
+                    if s>0 & s<onset(end)+ici
+                        p=s-onset;
+                        q=p(p>0);
+                        u=q(end);
+                        phase=[phase 2*pi*u/ici];
+                    end
+                end
+                n=length(phase);
+                r=sqrt(sum(cos(phase)).^2 + sum(sin(phase)).^2)/n;
+                %note: if there is only one spike, Vs=1 artifactually
+                %therefore I (Mike) am excluding cases where there is only one spike
+                if n==1 r=nan; end
+                stimstats(i).CT = iciindex; %ici indices in chronological order
+                stimstats(i).VS = r;  %Vector strength
+                stimstats(i).RZ = n*(r^2);  %Rayleigh Z statistic RZ=n*(VS)^2, Zar p.616
+                stimstats(i).PV = exp(-n*(r^2)); %p-value of Rayleigh Z statistic
+                stimstats(i).SC = n; %spikecount (between stimulus onset and offset)
+                %%% End of Nick's addition %%%
+                
             end
         end
     end
@@ -610,6 +651,7 @@ else
     out.mMtspontOFF=mMtspontOFF;
     out.sMtspontOFF=sMtspontOFF;
     out.semMtspontOFF=semMtspontOFF;
+    out.stimstats=stimstats; %Added by Nick 8/23/18
 end
 out.nrepsON=nrepsON;
 out.nrepsOFF=nrepsOFF;

@@ -39,7 +39,7 @@ PostStartleWindowms=[0 100]; % in ms relative to onset of startle-pulse
 % ISIWindowms=[0 60]; % in ms relative to onset of pre-pulse    %added by APW 3_31_14
 
 for N=1:num
-    force_reprocess=0;
+    force_reprocess=1;
     if force_reprocess
         fprintf('\nForce re-process\n')
         ProcessGPIAS_Behavior_HeadFixed(datadir{N})

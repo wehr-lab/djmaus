@@ -41,12 +41,20 @@ catch
     ylimits=[];
 end
 
-filename=varargin{2};
-[p,f,ext]=fileparts(filename);
-split=strsplit(f, '_');
-ch=strsplit(split{1}, 'ch');
-channel=str2num(ch{2});
-clust=str2num(split{end});
+%Nick addition 8/31/18 - accomodates kilosort input
+t_filename = varargin{2};
+if ischar(t_filename)
+    [p,f,ext]=fileparts(t_filename);
+    split=strsplit(f, '_');
+    ch=strsplit(split{1}, 'ch');
+    channel=str2num(ch{2});
+    clust=str2num(split{end});
+else %reads kilosort input, which is [clust, channel, cellnum]
+    channel=t_filename(1,2);
+    clust=t_filename(1,1);
+    cellnum=t_filename(1,3); %This number is necessary for 
+end
+%end of Nick addition 8/31/18.
 
 fprintf('\nchannel %d, cluster %d', channel, clust)
 fprintf('\nprocessing with xlimits [%d-%d]', xlimits(1), xlimits(2))
@@ -116,6 +124,11 @@ end
 if exist('params.py','file') || channel==-1 
     fprintf('\nreading KiloSort output cell %d', clust)
     [spiketimes, KS_ID]=readKiloSortOutput(clust, sampleRate);
+%you can add djmaus user to check who is using and
+%which clustering method is prefered
+% if (exist('params.py','file')==1) || exist('dirs.mat','file')
+%     fprintf('\nreading KiloSort output cell %d', clust)
+%     spiketimes=readKiloSortOutput(cellnum, sampleRate);
 else
     fprintf('\nreading MClust output file %s', filename)
     spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
@@ -125,7 +138,7 @@ else
     KS_ID=-2;
 end
 totalnumspikes=length(spiketimes);
-fprintf('\nsuccessfully loaded MClust spike data')
+
 Nclusters=1;
 
 %uncomment this to run some sanity checks
@@ -667,8 +680,9 @@ catch
     out.stimlog='notebook file missing';
     out.user='unknown';
 end
+
 out.KiloSort_ID=KS_ID+1;
-out.t_filename=filename;
+out.t_filename=t_filename;
 outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
 save (outfilename, 'out')
 

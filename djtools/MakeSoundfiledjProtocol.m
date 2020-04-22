@@ -70,6 +70,7 @@ if ischar(filename_ext) %only one filename
     StimPerRepeat=1;
     fprintf('\n%d sound', StimPerRepeat)
     numsoundfiles=1;
+    filename_ext={filename_ext};
 elseif iscell(filename_ext)
     StimPerRepeat=length(filename_ext);
     fprintf('\n%d sounds', StimPerRepeat)
@@ -116,9 +117,10 @@ filename=sprintf('soundfile-%s%s%ddB-%s-%s-%s-isi%dms-%dreps',...
     descriptname, include_whitenoisestr, amplitude, durstring,...
     interleave_laserstr,include_silent_soundstr, isi, nrepeats);
 
+djPrefs
 global pref
-if isempty(pref) djPrefs;end
-cd('E:\Stimuli')
+if isempty(pref) djPrefs; end
+cd(pref.stimuli)
 warning off MATLAB:MKDIR:DirectoryExists
 mkdir('Soundfile Protocols')
 cd ('Soundfile Protocols')

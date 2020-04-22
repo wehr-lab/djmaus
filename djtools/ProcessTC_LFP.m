@@ -239,6 +239,9 @@ try
     Stimtimestamps=Stimtimestamps-Stimtimestamps(1);
   %  Stimtrace=Stimtrace./max(abs(Stimtrace));
     fprintf('\nsuccessfully loaded stim trace')
+catch
+    [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data('105_ADC3.continuous');
+    fprintf('\ncouldnt find a stimtrace, loaded a differnt trace for plotting')
 end
 
 
@@ -398,7 +401,11 @@ for i=1:length(Events)
         start=round(pos+xlimits(1)*1e-3*samprate);
         stop=round(pos+xlimits(2)*1e-3*samprate)-1;
         region=start:stop;
-        if isempty(find(region<1)) %(disallow negative or zero start times)
+        %region1=datatimestamps>start/samprate & datatimestamps<stop/samprate;
+        %if length(scaledtrace(region1))~=length(region)
+            
+        %region=region1;
+        %if isempty(find(region<1)) %(disallow negative or zero start times)
             %             if stop>lostat
             %                 fprintf('\ndiscarding trace (after lostat)')
             %             elseif start<gotat
@@ -429,8 +436,8 @@ for i=1:length(Events)
             aindex= find(amps==amp);
             dindex= find(durs==dur);
             nreps(findex, aindex, dindex)=nreps(findex, aindex, dindex)+1;
-            M1(findex,aindex,dindex, nreps(findex, aindex, dindex),:)=scaledtrace(region);
-            M1stim(findex,aindex,dindex, nreps(findex, aindex, dindex),:)=Stimtrace(region);
+           M1(findex,aindex,dindex, nreps(findex, aindex, dindex),:)=scaledtrace(region);
+           M1stim(findex,aindex,dindex, nreps(findex, aindex, dindex),:)=Stimtrace(region);
             if laser
                 nrepsON(findex, aindex, dindex)=nrepsON(findex, aindex, dindex)+1;
                 M1ON(findex,aindex,dindex, nrepsON(findex, aindex, dindex),:)=scaledtrace(region);
@@ -444,8 +451,9 @@ for i=1:length(Events)
             end
         end
     end
-end
+%end
 
+%region=length(M1OFF);
 traces_to_keep=[];
 if ~isempty(traces_to_keep)
     fprintf('\n using only traces %d, discarding others', traces_to_keep);
@@ -543,7 +551,7 @@ out.channel=channel;
 %should probably save header info and stuff like that
 
 
-outfilename=sprintf('outLFP_ch%d',channel);
+outfilename=sprintf('outLFP_ch%d.mat',channel);
 save(outfilename, 'out')
 fprintf('\n saved to %s', outfilename)
 

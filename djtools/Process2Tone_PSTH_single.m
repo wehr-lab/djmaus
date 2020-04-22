@@ -105,6 +105,8 @@ switch (GetPlottingFunction(datadir))
         %that's fine
     case 'Plot2Tone_PSTH'
         %also fine, for now
+    case 'Plot2tone_PSTH'
+        %
     case 'Plot2Tone_PSTH'
         %OK
     otherwise
@@ -134,13 +136,38 @@ j=0;
 allfreqs=[];
 allamps=[];
 for i=1:length(Events)
-    if strcmp(Events(i).type, '2tone') | strcmp(Events(i).type, 'silentsound')
+    if strcmp(Events(i).type, '2tone')  | strcmp(Events(i).type, 'whitenoise')
         j=j+1;
         alldurs(j)=Events(i).duration;
         allamps(j)=Events(i).amplitude;
         allfreqs(j)=Events(i).frequency;
         allprobefreqs(j)=Events(i).probefreq;
+        if isfield(Events(i).probeamp)
+            allprobeamps(j)=Events(i).probeamp;
+        else 
+            allprobeamps(j)=Events(i).amplitude;
+        end
+        if isfield(Events(i).probedur)
+            allprobedurs(j)=Events(i).probe_duration;
+        else
+            allprobedurs(j)=Events(i).duration;
+        end
         allSOAs(j)=Events(i).SOA;
+        if isfield(Events(i).LaserVar) && Events(i).LaserVar==1
+            allVarLaserstart(j)=Events(i).VarLaserstart;
+            allVarLaserpulsewidth(j)=Events(i).VarLaserpulsewidth;
+            allVarLasernumpulses(j)=Events(i).VarLasernumpulses;
+            allVarLaserisi(j)=Events(i).VarLaserisi;
+        end
+    elseif strcmp(Events(i).type, 'silentsound')
+        j=j+1;
+        alldurs(j)=Events(i).duration;
+        if isfield(Events(i).LaserVar) && Events(i).LaserVar==1
+            allVarLaserstart(j)=Events(i).VarLaserstart;
+            allVarLaserpulsewidth(j)=Events(i).VarLaserpulsewidth;
+            allVarLasernumpulses(j)=Events(i).VarLasernumpulses;
+            allVarLaserisi(j)=Events(i).VarLaserisi;
+        end
     end
 end
 freqs=unique(allfreqs);
@@ -148,11 +175,15 @@ amps=unique(allamps);
 durs=unique(alldurs);
 SOAs=unique(allSOAs);
 probefreqs=unique(allprobefreqs);
+probeamps=unique(allprobeamps);
+probedurs=unique(allprobedurs);
 numfreqs=length(freqs);
 numprobefreqs=length(probefreqs);
 numamps=length(amps);
 numdurs=length(durs);
 numSOAs=length(SOAs);
+numprobeamps=length(probeamps);
+numprobedurs=length(probedurs);
 
 %check for laser in Eventsdjtools/ProcessTC_PSTH_single.m
 for i=1:length(Events)

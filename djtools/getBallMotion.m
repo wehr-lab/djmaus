@@ -104,7 +104,14 @@ moves_trace=movmedian(m, 20);
 load('ball_motion_test.mat'); %load test points from ball (add more for accuraccy if needed)
 [r,m,b] =regression(X,Y);
 moves_trace=b+m*moves_trace; %convert it to cm/sec
-save('moves_trace.mat','moves_trace');
+ts_err=length(motion_on_ms)-length(moves_trace);
+
+%not all pulses are 10 ms, the sampling of ball motion is not even
+%resample the trace at 10 ms to make sure it aligned with neural data
+%(sometimes pi GPIO pins had delays and jitter resulting in speed spikes,
+%this smoothies out the spikes)
+[moves_trace1, ty]=resample(moves_trace, motion_on_ms(1:end-ts_err), .1, 'spline'); 
+save('moves_trace1.mat','moves_trace1');
 % end
 
 %center at 0

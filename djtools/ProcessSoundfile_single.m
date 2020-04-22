@@ -88,8 +88,15 @@ Eventsfilename='all_channels.events';
 sampleRate=all_channels_info.header.sampleRate; %in Hz
 
 %get Events and soundcard trigger timestamps
+try 
+    load('Events.mat')
+    load('StartAcquisitionSec.mat')
+catch
 [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
 %there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
+save('Events.mat', 'Events')
+save('StartAcquisitionSec.mat', 'StartAcquisitionSec')
+end
 
 try
     fprintf('\nNumber of logged stimuli in notebook: %d', length(stimlog));
@@ -105,11 +112,18 @@ switch (GetPlottingFunction(datadir))
         error('This does not appear to be a soundfile stimulus protcol ')
 end
 
-%read MClust .t file
-fprintf('\nreading MClust output file %s', filename)
-spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
-%correct for OE start time, so that time starts at 0
-spiketimes=spiketimes-StartAcquisitionSec;
+
+if exist('params.py','file') || channel==-1 
+    fprintf('\nreading KiloSort output cell %d', clust)
+    [spiketimes, KS_ID]=readKiloSortOutput(clust, sampleRate);
+else
+    fprintf('\nreading MClust output file %s', filename)
+    spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
+    %correct for OE start time, so that time starts at 0
+    spiketimes=spiketimes-StartAcquisitionSec;
+    fprintf('\nsuccessfully loaded MClust spike data')
+    KS_ID=-2;
+end
 totalnumspikes=length(spiketimes);
 fprintf('\nsuccessfully loaded MClust spike data')
 Nclusters=1;
@@ -132,19 +146,25 @@ for i=1:length(Events)
         j=j+1;
         alldurs(j)=round(Events(i).duration); %rounding to nearest ms for simplicity
         %(some stimuli have erroneous fractional durations)
+        try
         allamps(j)=Events(i).amplitude;
+        catch
+        allamps(j)= 0; %when amp is not specified in making protocol, it plays the aplitued at which the sound it recorded. 
+        end
         allsourcefiles{j}=Events(i).sourcefile;
     elseif strcmp(Events(i).type, 'silentsound')
+        j=j+1;
         allfreqs(j)=-1;
         allamps(j)=-1000;
         alldurs(j)=Events(i).duration;
+        allsourcefiles{j}='silentsound';
     end
 end
-
 
 sourcefiles=unique(allsourcefiles);
 amps=unique(allamps);
 durs=unique(alldurs);
+durs=max(durs);
 numsourcefiles=length(sourcefiles);
 numamps=length(amps);
 numdurs=length(durs);
@@ -282,6 +302,9 @@ for i=1:length(Events)
                 case {'soundfile'}
                     sourcefile=Events(i).sourcefile;
                     amp=Events(i).amplitude;
+                    if isempty(amp)
+                        amp=0;
+                    end
                 case 'whitenoise'
                     freq=-1;
                     amp=Events(i).amplitude;
@@ -330,6 +353,7 @@ for i=1:length(Events)
                 sourcefileidx= find(strcmp(sourcefiles,sourcefile));
                 aindex= find(amps==amp);
                 dindex= find(durs==dur);
+                dindex= 1;
                 nreps(sourcefileidx, aindex, dindex)=nreps(sourcefileidx, aindex, dindex)+1;
                 
                 
@@ -643,6 +667,7 @@ catch
     out.stimlog='notebook file missing';
     out.user='unknown';
 end
+out.KiloSort_ID=KS_ID+1;
 out.t_filename=filename;
 outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
 save (outfilename, 'out')

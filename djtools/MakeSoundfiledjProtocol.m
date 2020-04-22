@@ -118,7 +118,7 @@ filename=sprintf('soundfile-%s%s%ddB-%s-%s-%s-isi%dms-%dreps',...
 
 global pref
 if isempty(pref) djPrefs;end
-cd(pref.stimuli)
+cd('E:\Stimuli')
 warning off MATLAB:MKDIR:DirectoryExists
 mkdir('Soundfile Protocols')
 cd ('Soundfile Protocols')
@@ -260,7 +260,7 @@ stimuli=shuffledstimuli;
 
 
 
-cd(pref.stimuli)
+cd('E:\Stimuli')
 cd ('Soundfile Protocols')
 
 path=pwd;

@@ -22,6 +22,7 @@ sound_index=0;
 
 cont_files=dir('*.continuous');
 [~, timestamps, ~] =load_open_ephys_data(cont_files(1).name); %grab any continuous file in the recording
+StartAcquisitionSec=timestamps(1); %added 5.21.18 ira (messages timestamp is different from countinuous files, use first timestamp of a continuous file as start aquisition)
 StartAcquisitionSamples=timestamps(1)*30e3;
 
 for i=1:length(messages)
@@ -87,7 +88,7 @@ for i=1:length(messages)
         end
     end
 end
- figure; plot(diff(all_SCTs), 'ko')
+%figure; plot(diff(all_SCTs), 'ko') % to see outliers in SCTs
 if length(Events) ~=  length(all_SCTs)
     warning('GetEventsAndSCT_Timestamps: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
     [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog);

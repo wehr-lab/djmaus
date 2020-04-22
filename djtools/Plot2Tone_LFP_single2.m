@@ -1,4 +1,4 @@
-function Plot2Tone_PSTH_single2(varargin)
+function Plot2Tone_LFP_single2(varargin)
 
 %plots a single file of clustered spiking 2 tone data from djmaus
 %
@@ -10,13 +10,17 @@ function Plot2Tone_PSTH_single2(varargin)
 rasters=1;
 force_reprocess=0;
 
-if nargin==0
-    fprintf('\nno input');
-    return;
-end
 datadir=varargin{1};
-t_filename=varargin{2};
 
+try
+    channel=varargin{2};
+catch
+    prompt=('please enter channel number: ');
+    channel=input(prompt);
+end
+if strcmp('char',class(channel))
+    channel=str2num(channel);
+end
 try
     xlimits=varargin{3};
 catch
@@ -27,45 +31,33 @@ try
 catch
     ylimits=[];
 end
-try
-    binwidth=varargin{5};
-catch
-    binwidth=5;
-end
+
+high_pass_cutoff=400;
+low_pass_cutoff=300;
+[a,b]=butter(1, high_pass_cutoff/(30e3/2), 'high');
 
 
 if force_reprocess
     fprintf('\nForce re-process\n')
-    Process2Tone_PSTH_single2(datadir,  t_filename, xlimits, ylimits);
+    Process2Tone_LFP_single2(datadir,  channel, xlimits, ylimits);
 end
-
-[p,f,ext]=fileparts(t_filename);
-split=strsplit(f, '_');
-ch=strsplit(split{1}, 'ch');
-channel=str2num(ch{2});
-clust=str2num(split{end});
-
-outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
-fprintf('\nchannel %d, cluster %d', channel, clust)
-fprintf('\n%s', t_filename)
-fprintf('\n%s', outfilename)
-
 cd(datadir)
-
-if exist(outfilename,'file')
+outfilename=sprintf('outLFP_ch%d.mat',channel);
+d=dir(outfilename);
+if ~isempty(d)
     load(outfilename)
-    fprintf('\nloaded outfile.')
 else
-    Process2Tone_PSTH_single2(datadir,  t_filename, xlimits, ylimits);
+    Process2Tone_LFP_single2(datadir,  channel, xlimits, ylimits);
     load(outfilename);
 end
+
 SOAs=out.SOAs; % SOAs and LaserISIs are the same
 %if xlimits are requested but don't match those in outfile, force preprocess
 % xlimits=[-50 max(SOAs)+150];
 if ~isempty(xlimits)
     if out.xlimits(1)>xlimits(1) | out.xlimits(2)<xlimits(2) %xlimits in outfile are too narrow, so reprocess
         fprintf('\nPlot called with xlimits [%d %d] but xlimits in outfile are [%d %d], re-processing...', xlimits(1), xlimits(2), out.xlimits(1), out.xlimits(2))
-        Process2Tone_PSTH_single2(datadir,  t_filename, xlimits, ylimits);
+        Process2Tone_LFP_single2(datadir,  channel, xlimits, ylimits);
         load(outfilename);
     end
 end
@@ -84,10 +76,6 @@ numSOAs=out.numSOAs;
 samprate=out.samprate; %in Hz
 M1=out.M1;
 mM1=out.mM1;
-M1spikecounts=out.M1spikecounts;
-mM1spikecount=out.mM1spikecount;
-sM1spikecount=out.sM1spikecount;
-semM1spikecount=out.semM1spikecount;
 
 numLaserNumPulses=out.numLaserNumPulses;
 numLaserISIs=out.numLaserISIs;
@@ -103,35 +91,28 @@ M1Laser=out.M1Laser;
 mM1Laser=out.mM1Laser;
 M1Stim=out.M1Stim;
 mM1Stim=out.mM1Stim;
-
+if isempty(xlimits);
+    xlimits=out.xlimits;
+end
+fprintf('\nusing xlimits [%d-%d]', xlimits(1), xlimits(2))
 fs=10; %fontsize
-load('dirs.mat')
-load([dirs{1},'\clusterQualityMetrics.mat'])
 % %find optimal axis limits
 if isempty(ylimits)
-    ymax=0;
+    ylimits=[0 0];
     for findex=1:numfreqs
         for pfindex=1:numprobefreqs
             for SOAindex=1:numSOAs
-                st=mM1(findex, pfindex, SOAindex).spiketimes;
-                X=xlimits(1):binwidth:xlimits(2); %specify bin centers
-                [N, x]=hist(st, X);
-                N=N./nreps(findex, pfindex, SOAindex); %normalize to spike rate (averaged across trials)
-                N=1000*N./binwidth; %normalize to spike rate in Hz
-                ymax= max(ymax,max(N));
+                trace1=squeeze(mM1(findex, pfindex, SOAindex,:));
+                trace1=trace1-mean(trace1(1:100));
+                if min([trace1])<ylimits(1); ylimits(1)=min([trace1]);end
+                if max([trace1])>ylimits(2); ylimits(2)=max([trace1]);end
                 
             end
         end
     end
-    
-    ylimits=[-.3 ymax];
 end
 
-numy=numfreqs*numprobefreqs;
-
-
-    
-
+ylimits=round(ylimits*100)/100;
 
 %plot the mean tuning curve OFF
 figure('position',[650 100 600 600])
@@ -144,6 +125,7 @@ p=0;
 % Plot OFF WN and ON silent sound laser pulses on the same plot, 2 tone
 % only
 subplot1(numSOAs-1,1, 'Max', [.95 .9])
+ylimits2=ylimits;
 for findex=[numfreqs:-1:1]
     pfindex=1;
     p=0;
@@ -151,40 +133,21 @@ for findex=[numfreqs:-1:1]
         p=p+1;
         subplot1(p)
         hold on
-        spiketimes=mM1(findex, pfindex, SOAindex).spiketimes; %pfindex should be 2, or -1 (WN)
-        X=xlimits(1):binwidth:xlimits(2); %specify bin centers
-        [N, x]=hist(spiketimes, X);
-        N=N./nreps(findex, pfindex, SOAindex); %normalize to spike rate (averaged across trials)
-        N=1000*N./binwidth; %normalize to spike rate in Hz
-        offset=0;
-        yl=ylimits;
-        inc=(yl(2))/max(max(max(nreps)));
-        if rasters==1
-            for n=1:nreps(findex, pfindex, SOAindex)
-                spiketimes2=M1(findex, pfindex, SOAindex, n).spiketimes;
-                offset=offset+inc;
-                if findex==1
-                    h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k'); %findex 1 = WN
-                else
-                    h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.g'); %findex 2= laser
-                end
-            end
-        end
-        if findex==1
-            bar(x,N,1,'facecolor','none','edgecolor','k');
-        else
-            bar(x,N,1,'facecolor','g','edgecolor','g');
-        end
-        %vpos=mean(ylimits);
-        vpos=ylimits(2)-2*inc;
+        trace1=squeeze(mM1(findex, pfindex, SOAindex,:));
+        [b,a]=butter(1, low_pass_cutoff/(samprate/2), 'low');
+        trace1=filtfilt(b,a,trace1);
+        trace1=trace1-mean(trace1(1:10));
         
-%         if freqs(findex)==-1
-%             text(0, vpos, 'WN', 'color', 'k')
-%         else
-%             text(0, vpos, sprintf('%.1f kHz', freqs(findex)/1000), 'color', 'k')
-%         end
-            
-       text(0, vpos*2, sprintf('%d ms', SOAs(SOAindex)))
+        t=1:length(trace1);
+        t=1000*t/out.samprate; %convert to ms
+        t=t+out.xlimits(1); %correct for xlim in original processing call
+        if findex==1
+            plot(t, trace1, 'k');
+        else
+            plot(t, trace1, 'g');
+        end
+        vpos=ylimits(1);
+        text(0, vpos*2, sprintf('%d ms', SOAs(SOAindex)))
        
         offsetS=ylimits(1)-.1*diff(ylimits);
         if StimRecorded
@@ -211,8 +174,6 @@ for findex=[numfreqs:-1:1]
         end
         line([0 0+durs(dindex)], [-.2 -.2], 'color', 'm', 'linewidth', 4)
         line(xlimits, [0 0], 'color', 'k')
-        ylimits2(2)=ylimits(2)+offset;
-        ylimits2(2)=2*ylimits(2);
         ylim(ylimits2)
         
         xlim(xlimits)
@@ -220,14 +181,14 @@ for findex=[numfreqs:-1:1]
         %set(gca, 'xticklabel', '')
         %set(gca, 'yticklabel', '')
         if p==1
-            h=title(sprintf('%s: \ntetrode%d cell%d %dms, nreps: %d-%d, OFF KSID=%d, uQ=%.3f',datadir,channel,out.cluster,SOAs(SOAindex),min(min(min(nreps))),max(max(max(nreps))), out.KiloSort_ID, uQ(cids==out.KiloSort_ID)));
+            h=title(sprintf('%s: \nchannel%d %dms, nreps: %d-%d',datadir,channel,SOAs(SOAindex),min(min(min(nreps))),max(max(max(nreps)))));
             set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
             
         end
         if p==1
         ylabel('FR Hz')
         end
-        xl = xlim; yl = ylim;
+%         xl = xlim; yl = ylim;
 %         h=text(0, range(yl),sprintf('%d ms',SOAs(SOAindex)), 'color', 'r');
 %         set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal','position',[0 range(yl)*.8 0])
     end
@@ -235,39 +196,28 @@ end
 
 %plot single pulse or single WN only
 figure;
+ylimits2=ylimits;
 for findex=[numfreqs:-1:1] %plot laser first
     pfindex=2; %single stimulus
     SOAindex=1; % 0 SOA
     
     hold on
-    spiketimes=mM1(findex, pfindex, SOAindex).spiketimes; %pfindex should be 2, or -1 (WN)
-    X=xlimits(1):binwidth:xlimits(2); %specify bin centers
-    [N, x]=hist(spiketimes, X);
-    N=N./nreps(findex, pfindex, SOAindex); %normalize to spike rate (averaged across trials)
-    N=1000*N./binwidth; %normalize to spike rate in Hz
-    offset=0;
-    yl=ylimits;
-    inc=(yl(2))/max(max(max(nreps)));
-    if rasters==1
-        for n=1:nreps(findex, pfindex, SOAindex)
-            spiketimes2=M1(findex, pfindex, SOAindex, n).spiketimes;
-            offset=offset+inc;
-            if findex==1
-                h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k'); %findex 1 = WN
-            else
-                h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.g'); %findex 2= laser
-            end
-        end
-    end
-    if findex==1
-        bar(x,N,1,'facecolor','none','edgecolor','k');
-    else
-        bar(x,N,1,'facecolor','g','edgecolor','g');
-    end
-    %vpos=mean(ylimits);
-    vpos=ylimits(2)-2*inc;
+    trace1=squeeze(mM1(findex, pfindex, SOAindex,:));
+    [b,a]=butter(1, low_pass_cutoff/(samprate/2), 'low');
+    trace1=filtfilt(b,a,trace1);
+    trace1=trace1-mean(trace1(1:10));
     
+    t=1:length(trace1);
+    t=1000*t/out.samprate; %convert to ms
+    t=t+out.xlimits(1); %correct for xlim in original processing call
+    if findex==1
+    plot(t, trace1, 'k');
+    else
+        plot(t, trace1, 'g');
+    end
+        
     offsetS=ylimits(1)-.1*diff(ylimits);
+    
     if StimRecorded
         Stimtrace=squeeze(mM1Stim(findex, pfindex, SOAindex, :));
         Stimtrace=Stimtrace -mean(Stimtrace(1:100));
@@ -292,14 +242,10 @@ for findex=[numfreqs:-1:1] %plot laser first
     end
     line([0 0+durs(dindex)], [-.2 -.2], 'color', 'm', 'linewidth', 4)
     line(xlimits, [0 0], 'color', 'k')
-    ylimits2(2)=ylimits(2)+offset;
-    ylimits2(2)=2*ylimits(2);
     ylim(ylimits2)
     
     xlim(xlimits)
     set(gca, 'fontsize', fs)
-    %set(gca, 'xticklabel', '')
-    %set(gca, 'yticklabel', '')
         h=title('WN burst and laser pulse alone');
         set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
     ylabel('FR Hz')

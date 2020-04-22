@@ -38,10 +38,12 @@ fprintf('\nthis cell was saved as %s cluster', qual);
 spiketimes=sp.st(sp.clu==cell_ID); % in seconds, start at 0
 try
     load('RecLengths.mat')
+    L=recLengths/sampleRate;
 catch
     % load rez, which contains number of samples of each recording 1=1, 2=1+2,
     % 3=1+2+3, etc
     load('rez.mat')
+    
     L=(rez.ops.recLength)/sampleRate;
     save('RecLengths.mat','L')
 end

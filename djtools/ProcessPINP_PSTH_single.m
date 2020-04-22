@@ -88,16 +88,27 @@ Eventsfilename='all_channels.events';
 sampleRate=all_channels_info.header.sampleRate; %in Hz
 
 %get Events and soundcard trigger timestamps
-[Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
-%there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
-save('StartAcquisitionSec.mat','StartAcquisitionSec')
+if exist('Events.mat')
+    load('Events.mat')
+    if exist('StartAcquisitionSec.mat')
+        load('StartAcquisitionSec.mat')
+    else
+        [~, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
+        save('StartAcquisitionSec.mat','StartAcquisitionSec')
+    end
+else
+    [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
+    %there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
+    save('StartAcquisitionSec.mat','StartAcquisitionSec')
+    save('Events.mat', 'Events')
+end
 try
     fprintf('\nNumber of logged stimuli in notebook: %d', length(stimlog));
 catch
     fprintf('\nCould not find stimlog, no logged stimuli in notebook!!');
 end
 
-if exist('params.py','file') || channel==-1 
+if exist('params.py','file') || channel==-1
     fprintf('\nreading KiloSort output cell %d', clust)
     [spiketimes, KS_ID]=readKiloSortOutput(clust, sampleRate);
 else
@@ -106,7 +117,7 @@ else
     %correct for OE start time, so that time starts at 0
     spiketimes=spiketimes-StartAcquisitionSec;
     fprintf('\nsuccessfully loaded MClust spike data')
-    KS_ID=-1;
+    %KS_ID=-2;
 end
 totalnumspikes=length(spiketimes);
 
@@ -130,7 +141,7 @@ allsilentsounddurs=[];
 if exist('Events.mat')
     load('Events.mat')
 else
-save('Events.mat','Events')
+    save('Events.mat','Events')
 end
 for i=1:length(Events)
     if  strcmp(Events(i).type, 'silentsound')
@@ -359,24 +370,24 @@ for pwindex=1:numpulsewidths
 end
 
 %laser train
-    mMTrain=[];
-    for tnpindex=1:numtrainnumpulses
-        for tpwindex=1:numtrainpulsewidths
-            for tiindex=1:numtrainisis
-                spiketimesTrain=[];
-                for rep=1:nrepsTrain(tnpindex,tpwindex,tiindex)
-                    spiketimesTrain=[spiketimesTrain MTrain(tnpindex,tpwindex,tiindex, rep).spiketimes];
-                end
-                mMTrain(tnpindex,tpwindex,tiindex).spiketimes=spiketimesTrain;
-                if LaserRecorded
-                    mMTrainLasertrace(tnpindex,tpwindex,tiindex,:)=mean(MTrainLasertrace(tnpindex,tpwindex,tiindex, 1:nrepsTrain(tnpindex,tpwindex,tiindex),:), 4);
-                end
-                if StimRecorded
-                    mMTrainStimtrace(tnpindex,tpwindex,tiindex,:)=mean(MTrainStimtrace(tnpindex,tpwindex,tiindex, 1:nrepsTrain(tnpindex,tpwindex,tiindex),:), 4);
-                end
+mMTrain=[];
+for tnpindex=1:numtrainnumpulses
+    for tpwindex=1:numtrainpulsewidths
+        for tiindex=1:numtrainisis
+            spiketimesTrain=[];
+            for rep=1:nrepsTrain(tnpindex,tpwindex,tiindex)
+                spiketimesTrain=[spiketimesTrain MTrain(tnpindex,tpwindex,tiindex, rep).spiketimes];
+            end
+            mMTrain(tnpindex,tpwindex,tiindex).spiketimes=spiketimesTrain;
+            if LaserRecorded
+                mMTrainLasertrace(tnpindex,tpwindex,tiindex,:)=mean(MTrainLasertrace(tnpindex,tpwindex,tiindex, 1:nrepsTrain(tnpindex,tpwindex,tiindex),:), 4);
+            end
+            if StimRecorded
+                mMTrainStimtrace(tnpindex,tpwindex,tiindex,:)=mean(MTrainStimtrace(tnpindex,tpwindex,tiindex, 1:nrepsTrain(tnpindex,tpwindex,tiindex),:), 4);
             end
         end
     end
+end
 
 
 %save to outfile
@@ -434,7 +445,7 @@ out.StimRecorded=StimRecorded; %%whether the sound stimulus signal was hooked up
 out.laserstarts=laserstarts;
 out.numlaserstarts=numlaserstarts;
 
-out. KiloSort_ID=KS_ID;
+out.KiloSort_ID=KS_ID+1;
 
 try
     out.nb=nb;

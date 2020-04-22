@@ -135,7 +135,7 @@ if isempty(ylimits)
     ylimits=[-.3 ymax];
 end
 
-aindex=2; %hard-coding to avoid aindex1 (which is silent sound amplitude=-1000)
+aindex=1; %hard-coding to avoid aindex1 (which is silent sound amplitude=-1000)
 dindex=1;
 
 %plot the mean tuning curve OFF
@@ -168,7 +168,7 @@ for sourcefileindex=1:numsourcefiles
     if StimRecorded
         Stimtrace=squeeze(mM1OFFStim(sourcefileindex, aindex, dindex, :));
         Stimtrace=Stimtrace -mean(Stimtrace(1:100));
-        Stimtrace=1.25*diff(ylimits)*Stimtrace;
+        Stimtrace=.25*diff(ylimits)*Stimtrace;
         t=1:length(Stimtrace);
         t=1000*t/out.samprate; %convert to ms
         t=t+out.xlimits(1); %correct for xlim in original processing call
@@ -191,6 +191,7 @@ for sourcefileindex=1:numsourcefiles
     %                 line(xlimits, [0 0], 'color', 'k')
     ylimits2(2)=ylimits(2)+offset;
     ylimits2(2)=2*ylimits(2);
+    ylimits2(2) = max([ ylimits2(2) 1]);
     %             ylim([-2 1.1*(yl(2)+offset)])
     ylim(ylimits2)
     
@@ -269,6 +270,7 @@ if IL
         
         ylimits2(2)=ylimits(2)+offset;
         ylimits2(2)=2*ylimits(2);
+        ylimits2(2)=max([ylimits2(2) 1]);
         ylim(ylimits2)
         %                 ylim([-2 1.1*(yl(2)+offset)])
         

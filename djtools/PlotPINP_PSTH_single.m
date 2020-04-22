@@ -9,7 +9,7 @@ function PlotPINP_PSTH_single(varargin)
 %Processes data if outfile is not found;
 
 rasters=1;
-force_reprocess=1;
+force_reprocess=0;
 
 if nargin==0
     fprintf('\nno input');
@@ -35,7 +35,7 @@ catch
 end
 
 
-if force_reprocess
+if force_reprocess;
     fprintf('\nForce re-process\n')
     ProcessPINP_PSTH_single(datadir,  t_filename, xlimits, ylimits);
 end

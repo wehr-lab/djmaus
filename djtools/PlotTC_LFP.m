@@ -35,7 +35,7 @@ high_pass_cutoff=400;
 [a,b]=butter(1, high_pass_cutoff/(30e3/2), 'high');
 fprintf('\nusing xlimits [%d-%d]', xlimits(1), xlimits(2))
 
-force_reprocess=1;
+force_reprocess=0;
 if force_reprocess
     fprintf('\nForce Re-process')
     ProcessTC_LFP(datadir,  channel, xlimits, ylimits);
@@ -51,7 +51,7 @@ else
     load(outfilename);
 end
 
-
+low_pass_cutoff=300;
 
 M1stim=out.M1stim;
 freqs=out.freqs;
@@ -113,8 +113,8 @@ if IL
                 %             trace2=(squeeze(meanOFFbl(findex, aindex, dindex, :)));
                 trace1=squeeze(squeeze(out.mM1ON(findex, aindex, dindex, :)));
                 trace2=(squeeze(out.mM1OFF(findex, aindex, dindex, :)));
+                [b,a]=butter(1, low_pass_cutoff/(samprate/2), 'low');
                 
-                trace1=trace1 -mean(trace1(1:10));
                 trace2=trace2-mean(trace2(1:10));
                 %             trace1=filtfilt(b,a,trace1);
                 %             trace2=filtfilt(b,a,trace2);
@@ -132,7 +132,7 @@ if IL
             end
         end
         subplot1(1)
-        h=title(sprintf('%s: %dms, nreps: %d-%d, ON&OFF',datadir,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
+        h=title(sprintf('%s: %dms, nreps: %d-%d, ON&OFF, ch%d',datadir,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF))), channel));
         set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
         
         %label amps and freqs
@@ -162,7 +162,7 @@ if IL
         end
     end
 end
-
+samprate=30e3;
 %plot the mean tuning curve OFF
 for dindex=1:numdurs
     figure
@@ -174,6 +174,8 @@ for dindex=1:numdurs
             subplot1(p)
             trace1=squeeze(mM1OFF(findex, aindex, dindex, :));
             %             trace1=filtfilt(b,a,trace1);
+            [b,a]=butter(1, low_pass_cutoff/(samprate/2), 'low');
+            trace1=filtfilt(b,a,trace1);
             trace1=trace1 -mean(trace1(1:100));
             
             Lasertrace=squeeze(mM1OFFLaser(findex, aindex, dindex, :));
@@ -191,27 +193,35 @@ for dindex=1:numdurs
             hold on; plot(t, trace1, 'k');
             offset=ylimits(1)+.1*diff(ylimits);
             plot(t, Stimtrace+offset, 'm', t, Lasertrace+offset, 'c')
+            try
             ylim(ylimits)
+            end
             xlim(xlimits)
             xlabel off
             ylabel off
             axis off
-        end
-    end
-    subplot1(1)
-    h=title(sprintf('OFF %s: %dms, nreps: %d-%d',datadir,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
-    set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
-    
-    %label amps and freqs
-    p=0;
-    for aindex=numamps:-1:1
-        for findex=1:numfreqs
-            p=p+1;
+            
+            
+            
+            %label amps and freqs
+            
             subplot1(p)
             if findex==1
                 text(xlimits(1)-diff(xlimits)/2, mean(ylimits), int2str(amps(aindex)))
                 endmM1ONLaser=out.mM1ONLaser;
-                
+                if mod(findex,2) %odd freq
+                    vpos=ylimits(1)-mean(ylimits);
+                else
+                    vpos=ylimits(1)-mean(ylimits);
+                end
+                if freqs(findex)==-2000
+                    text(xlimits(1), vpos, 'SS')
+                elseif freqs(findex)==-1000
+                    text(xlimits(1), vpos, 'WN')
+                elseif freqs(findex)>0
+                    text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
+                end
+            else
                 if aindex==1
                     if mod(findex,2) %odd freq
                         vpos=ylimits(1)-mean(ylimits);
@@ -226,14 +236,13 @@ for dindex=1:numdurs
                         text(xlimits(1), vpos, 'SS')
                     end
                 end
-                %             if findex==numfreqs && aindex==numamps
-                %                 axis on
-                %                 ylab=[ceil(ylimits(1)*10)/10 floor(ylimits(2)*10)/10];
-                %                 set(gca,'ytick',ylab,'yticklabel',ylab,'YAxisLocation','right')
-                %             end
+                
             end
         end
     end
+    subplot1(1)
+    h=title(sprintf('OFF %s: %dms, nreps: %d-%d, ch%d',datadir,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF))), channel));
+    set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
 end
 
 %% plot on
@@ -279,7 +288,7 @@ if IL
             end
         end
         subplot1(1)
-        h=title(sprintf('ON %s: %dms, nreps: %d-%d',datadir,durs(dindex),min(min(min(nrepsON))),max(max(max(nrepsON)))));
+        h=title(sprintf('ON %s: %dms, nreps: %d-%d, ch%d',datadir,durs(dindex),min(min(min(nrepsON))),max(max(max(nrepsON))), channel));
         set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
         
         %label amps and freqs

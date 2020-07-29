@@ -117,9 +117,19 @@ if isempty(channel)     %default to all tetrodes
 else %user specified a channel
     if isempty(clust) % default to all clusters
         d=dir(sprintf('ch%d*.t', channel));
-        for i=1:length(d)
-            fn=d(i).name;
-            PlotTC_PSTH_single(datadir, fn, xlimits, ylimits)
+        if isempty(d) || channel == -1
+            load('dirs.mat')
+            sp = loadKSdir(dirs{1});
+            cell_indx=find(sp.cgs==2);
+            for c = 1:length(cell_indx)
+                t_filename = sprintf('ch-1_simpleclust_%d.t', cell_indx(c));
+                 PlotTC_PSTH_single(datadir, t_filename, xlimits, ylimits)
+            end
+        else
+            for i=1:length(d)
+                fn=d(i).name;
+                PlotTC_PSTH_single(datadir, fn, xlimits, ylimits)
+            end
         end
     else %user specified a channel and a cluster
         if clust<10

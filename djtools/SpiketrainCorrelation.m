@@ -32,3 +32,4 @@ text(lags(1), min(xc), [filename1, '     ',  filename2], 'interpreter', 'none')
 
 fprintf('\n\n%s, %s', filename1,  filename2)%
 fprintf('\nr=%.4f, MClust: %d spikes, Kilosort: %d spikes', r, length(out.out.spiketimes), length(KSout.out.spiketimes))
+

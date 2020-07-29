@@ -94,6 +94,42 @@ if length(nodes)>1
     fprintf('\n using node %s', node)
 end
 
+
+%messages is a list of all network event, which includes the stimuli
+%messages sent by djmaus, SCTchannelas well as the "ChangeDirectory" and
+%"GetRecordingPath" messages sent by djmaus, as well as 2 initial system
+%messages. I strip out the stimulus (sound) event and put them in "Events."
+%Events is a list of sound event, which were sent by djmaus with the
+%'TrialType' flag.
+
+%sanity check, continued
+% fid=fopen('temp.txt', 'a');
+% for i=1:length(Events)
+%     fprintf(fid, '%f, %s, freq %f\n', ...
+%         Events(i).message_timestamp_sec, Events(i).type, Events(i).frequency);
+% end
+% fclose(fid);
+
+
+%try to load laser and stimulus monitor
+Lasertrace=0*scaledtrace;
+stimtrace=0*scaledtrace;
+try
+    [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data(getLaserfile('.'));
+    %Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+    Lasertimestamps=Lasertimestamps-Lasertimestamps(1);
+   % Lasertrace=Lasertrace./max(abs(Lasertrace));
+    fprintf('\nsuccessfully loaded laser trace')
+end
+try
+    [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(getStimfile('.'));
+    %Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+    Stimtimestamps=Stimtimestamps-Stimtimestamps(1);
+  %  Stimtrace=Stimtrace./max(abs(Stimtrace));
+    fprintf('\nsuccessfully loaded stim trace')
+catch
+    [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data('105_ADC3.continuous');
+    fprintf('\ncouldnt find a stimtrace, loaded a differnt trace for plotting')
 filename=sprintf('%s_CH%d.continuous', node, channel);
 if exist(filename, 'file')~=2 %couldn't find it
     error(sprintf('could not find data file %s in datadir %s', filename, datadir))
@@ -245,6 +281,7 @@ for i=1:length(Events)
         start=round(pos+xlimits(1)*1e-3*samprate);
         stop=round(pos+xlimits(2)*1e-3*samprate)-1;
         region=start:stop;
+
         if isempty(find(region<1)) %(disallow negative or zero start times)
             switch Events(i).type
                 case {'tone', '2tone'}
@@ -270,8 +307,8 @@ for i=1:length(Events)
             aindex= find(amps==amp);
             dindex= find(durs==dur);
             nreps(findex, aindex, dindex)=nreps(findex, aindex, dindex)+1;
-            M1(findex,aindex,dindex, nreps(findex, aindex, dindex),:)=scaledtrace(region);
-            M1stim(findex,aindex,dindex, nreps(findex, aindex, dindex),:)=Stimtrace(region);
+           M1(findex,aindex,dindex, nreps(findex, aindex, dindex),:)=scaledtrace(region);
+           M1stim(findex,aindex,dindex, nreps(findex, aindex, dindex),:)=Stimtrace(region);
             if laser
                 nrepsON(findex, aindex, dindex)=nrepsON(findex, aindex, dindex)+1;
                 M1ON(findex,aindex,dindex, nrepsON(findex, aindex, dindex),:)=scaledtrace(region);
@@ -285,8 +322,9 @@ for i=1:length(Events)
             end
         end
     end
-end
+%end
 
+%region=length(M1OFF);
 traces_to_keep=[];
 if ~isempty(traces_to_keep)
     fprintf('\n using only traces %d, discarding others', traces_to_keep);
@@ -384,6 +422,9 @@ out.channel=channel;
 %should probably save header info and stuff like that
 
 
+
+outfilename=sprintf('outLFP_ch%d.mat',channel);
+save(outfilename, 'out')
 outfilename=sprintf('outLFP_ch%d',channel);
 save(outfilename, 'out', '-v7.3' )
 fprintf('\n saved to %s', outfilename)

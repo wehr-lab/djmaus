@@ -1,15 +1,30 @@
-function continuous_to_binary_16ch()
+function continuous_to_binary(varargin)
+
+if nargin==0
+    datadir=pwd;
+    cd(datadir)
+    file=dir('*_CH*.continuous');
+elseif nargin==1
+    datadir=varargin{1};
+    cd(datadir)
+    file=dir('*_CH*.continuous');
+end
+[filename_ext, datadir] = uigetfile('*.continuous', 'please choose source files','MultiSelect','on');
+
+% for i=1:length(file)
+% filename_ext{i}=file(i).name;
+% end
+
 % Convert .continuous from open ephys to a binary file that klusta can use
 
-% Get files
-[filename_ext, path] = uigetfile('*.continuous', 'please choose source files','MultiSelect','on');
 if ischar(filename_ext) % In the case of a single file...
     filename_ext = {filename_ext};
 end
 
 %Prepend path to files
-files = cellfun(@(x) fullfile(path,x),filename_ext,'UniformOutput',false);
 
+%files = cellfun(@(x) fullfile(path,x),filename_ext,'UniformOutput',false);
+files = filename_ext;
  
 %%%%%%%%%%%%%%
 % Make binary file from raw waveform data

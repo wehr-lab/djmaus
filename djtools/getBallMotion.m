@@ -128,12 +128,24 @@ end
 % resample the trace at 10 ms to make sure it aligned with neural data
 % (sometimes pi GPIO pins had delays and jitter resulting in speed spikes,
 % this smoothies out the spikes)
+try
+    [scaledtrace, ~, ~] =load_open_ephys_data(sprintf('114_CH%d.continuous', 11));
+catch
+    [scaledtrace, ~, ~] =load_open_ephys_data(sprintf('114_CH%d.continuous', 11));
+end
+    
+recording_length=length(scaledtrace)/30e3;
+trace_length=round(length(scaledtrace)/30e3*100);
 
-[moves_trace1, ~] = resample(moves_trace, motion_on_ms(1:end - ts_error), .1, 'spline');
+t = round(motion_on(1:length(moves_trace))*1000); % irregular timestamps
+
+%interpolate new running_trace now regularly at pulseWidth(10 ms)
+[moves_trace1, t2] = resample(moves_trace,t,pulseWidth/100);
+%t2 - regular timestamps
 
 % plot the result
 figure;
-plot(moves_trace)
+plot(moves1_trace)
 ylabel('cm/s')
 
 %%

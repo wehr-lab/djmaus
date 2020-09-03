@@ -8,7 +8,7 @@ function PlotSoundfile_single(varargin)
 %Processes data if outfile is not found;
 
 rasters=1;
-force_reprocess=0;
+force_reprocess=1;
 
 if nargin==0
     fprintf('\nno input');
@@ -198,7 +198,9 @@ for sourcefileindex=1:numsourcefiles
     ylimits2(2)=ylimits(2)+offset;
     ylimits2(2)=2*ylimits(2);
     %             ylim([-2 1.1*(yl(2)+offset)])
-    ylim(ylimits2)
+    try
+        ylim(ylimits2)
+    end
     
     xlim(xlimits)
     set(gca, 'fontsize', fs)
@@ -275,8 +277,10 @@ if IL
         
         ylimits2(2)=ylimits(2)+offset;
         ylimits2(2)=2*ylimits(2);
-        ylim(ylimits2)
-        %                 ylim([-2 1.1*(yl(2)+offset)])
+try
+    ylim(ylimits2)
+end
+%                 ylim([-2 1.1*(yl(2)+offset)])
         
         if 0*LaserRecorded
             for rep=1:nrepsON(sourcefileindex, aindex, dindex)

@@ -24,7 +24,8 @@ d=dir(outfilename);
 if ~isempty(d)
     load(outfilename)
 else
-    ProcessGPIAS_Behavior(datadir)
+    
+     ProcessGPIAS_Behavior(datadir)
     load(outfilename);
 end
 

@@ -89,7 +89,7 @@ for i=1:length(messages)
         end
     end
 end
- figure; plot(diff(all_SCTs), 'ko')
+%  figure; plot(diff(all_SCTs), 'ko')
 if length(Events) ~=  length(all_SCTs)
      warning('GetEventsAndSCT_Timestamps: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
    % THERE_IS_A_PROBLEM

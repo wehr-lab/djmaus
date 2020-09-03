@@ -38,6 +38,8 @@ elseif cg==2
     qual='good';
 elseif cg==3
     qual='unassigned';
+else
+    qual='could not determine';
 end
 
 fprintf('\nthis cell was saved as %s cluster', qual);

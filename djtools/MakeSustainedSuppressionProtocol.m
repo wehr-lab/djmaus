@@ -40,14 +40,14 @@ for rep=1:nrepeats
     stimuli(nn).param.VarLaserstart=0;
     stimuli(nn).param.VarLaserpulsewidth= pw;
     stimuli(nn).param.VarLasernumpulses=numpulses;
-    stimuli(nn).param.VarLaserisi=pw; %
+    stimuli(nn).param.VarLaserisi=2*pw; %technically it's soa
     stimuli(nn).param.next=next;
     stimuli(nn).param.ramp=0;
     stimuli(nn).param.duration=duration*1000;
     stimuli(nn).stimulus_description=GetParamStr(stimuli(nn));
     stimuli(nn).protocol_name=name;
     stimuli(nn).protocol_description=description;
-    stimuli(nn).PlottingFunction='PlotPINP_PSTH';
+    stimuli(nn).PlottingFunction='PlotSustainedSuppression';
     stimuli(nn).version='djmaus';
 end
 

@@ -1,0 +1,38 @@
+
+
+function [cgs, uQ, cR, isiV] = computeAllMeasuresKS(resultsDirectory)
+
+
+%taken from https://github.com/cortex-lab/sortingQuality
+
+%computes quality measures for KiloSort clusters
+%output: cgs- groups 2- good, 1- mua, 0- noise
+%uQ- quality (not sure the exact measure but higher means better, could be isolation distance)
+%cR- dont know (maybe contamination rate?)
+%isiV- isi violations, (percentage?)
+%use: [cgs, uQ, cR, isiV] = computeAllMeasures(pwd) 
+%after Kilosort clustering
+
+%Note: make sure to clone sortQuality and add it to your matlab path
+%go to GitHub page for more details
+
+
+clusterPath = fullfile(resultsDirectory, 'cluster_groups.csv');
+spikeClustersPath = fullfile(resultsDirectory,'spike_clusters.npy');
+spikeTemplatesPath = fullfile(resultsDirectory,'spike_templates.npy');
+
+if exist(clusterPath, 'file')
+    [cids, cgs] = readClusterGroupsCSV(clusterPath);
+elseif exist(spikeClustersPath, 'file')
+    clu = readNPY(spikeClustersPath);
+    cgs = 3*ones(size(unique(clu))); % all unsorted
+else
+    clu = readNPY(spikeTemplatesPath);
+    cgs = 3*ones(size(unique(clu))); % all unsorted
+end
+
+[cids, uQ, cR] = sqKilosort.maskedClusterQuality(resultsDirectory);
+
+isiV = sqKilosort.isiViolations(resultsDirectory);
+
+plotAllMeasures(cgs, uQ, cR, isiV)

@@ -78,8 +78,15 @@ Eventsfilename='all_channels.events';
 sampleRate=all_channels_info.header.sampleRate; %in Hz
 
 %get Events and soundcard trigger timestamps
-[Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
-%there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
+if ~exist('Events.mat')
+    [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
+    %there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
+    save('Events.mat', 'Events')
+    save('StartAcquisitionSec.mat', 'StartAcquisitionSec')
+else
+    load('Events.mat')
+    load('StartAcquisitionSec.mat')
+end
 
 try
     fprintf('\nNumber of logged stimuli in notebook: %d', length(stimlog));
@@ -98,7 +105,7 @@ if  strcmp(clustering, 'Kilo')
 'KS_ProcessGPIAS_PSTH_single.m  ']);
 
     fprintf('\nreading KiloSort output cell %d', clust)
-    spiketimes=readKiloSortOutput(clust, sampleRate);
+    [spiketimes, cell_ID]=readKiloSortOutput(clust, sampleRate);
 elseif strcmp(clustering, 'Mclust')
     fprintf('\nreading MClust output file %s', filename)
     spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
@@ -595,6 +602,7 @@ catch
     out.stimlog='notebook file missing';
     out.user='unknown';
 end
+out.KiloSort_ID=cell_ID;
 outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
 save (outfilename, 'out')
 fprintf('\nsaved %s', outfilename)

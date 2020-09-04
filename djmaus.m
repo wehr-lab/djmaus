@@ -565,7 +565,7 @@ else
     fclose(fid);
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function LoadProtocol
+function LoadProtocol(varargin)
 %adding capability to push files programatically
 %call dj('load', 'fullfilename')
 %where fullfilename includes the absolute path (e.g. 'D:\lab\exper2.2\protocols\Tuning Curve protocols\tuning-curve-tones-20f_1000-20000Hz-1a_80-80dB-1d_400ms-isi500ms.mat'
@@ -1529,8 +1529,12 @@ warning('off', 'MATLAB:hg:uicontrol:StringMustBeNonEmpty');
 %old way was to have a list in djprefs
 %new way is to just read the database mw 12.05.2018
 %if isfield(pref, 'allmouseIDs') SP.allmouseIDs=pref.allmouseIDs; else SP.allmouseIDs='';end
-DB_IDs=whos('-file', 'mouseDB.mat');
-SP.allmouseIDs{1}='';
+try
+    DB_IDs=whos('-file', 'mouseDB.mat');
+catch
+    DB_IDs=[];
+end
+    SP.allmouseIDs{1}='';
 for i=1:length(DB_IDs)
     idname=DB_IDs(i).name;
     idname=strrep(idname, 'mouseID_', '');

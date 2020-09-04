@@ -1,4 +1,4 @@
-function Process2Tone_PSTH_single2(varargin)
+function Process2Tone_LFP_single2(varargin)
 % tailored to plot Yashar's stimuli, comparing tones vs laser pulses
 %processes a single .t file of clustered spiking 2 tone curve data from djmaus
 %
@@ -17,41 +17,46 @@ function Process2Tone_PSTH_single2(varargin)
 % automatically processes data for all cells clustered for that tetrode
 % saves to outfile
 dbstop if error
+djPrefs;
+global pref
 
 if nargin==0
-    fprintf('\nno input');
-    return;
+    fprintf('\nno input\n')
+    return
+else
+    datadir=varargin{1};
 end
-datadir=varargin{1};
-
-xlimits=[];
-try
+if nargin==1
+    xlimits=[-300 1100]; %x limits for axis
+    ylimits=[-.1 .2];
+    prompt=('Please enter channel number: ');
+    channel=input(prompt) ;
+elseif nargin==2
+    channel=varargin{2};
+    xlimits=[-300 1100]; %x limits for axis
+    ylimits=[-.1 .2];
+elseif nargin==3
+    channel=varargin{2};
     xlimits=varargin{3};
-end
-if isempty(xlimits)
-    %     xlimits=[-100 200];
-    s=GetStimParams(datadir);
-    durs=s.durs;
-    dur=max(durs);
-    SOAs=s.SOAs;
-    SOA=max(SOAs);
-    xlimits=[-.5*dur SOA+1.5*dur]; %default x limits for axis
-end
-try
+    ylimits=[-.1 .2];
+elseif nargin==4
+    channel=varargin{2};
+    xlimits=varargin{3};
     ylimits=varargin{4};
-catch
-    ylimits=[];
+else
+    error('wrong number of arguments');
 end
+if ischar(channel); channel=str2num(channel);end
 
-filename=varargin{2};
-[p,f,ext]=fileparts(filename);
-split=strsplit(f, '_');
-ch=strsplit(split{1}, 'ch');
-channel=str2num(ch{2});
-clust=str2num(split{end});
-
-fprintf('\nchannel %d, cluster %d', channel, clust)
-fprintf('\nprocessing with xlimits [%d-%d]', xlimits(1), xlimits(2))
+cd(pref.datapath)
+cd(datadir)
+filename=getContinuousFilename('.', channel);
+if exist(filename, 'file')~=2 %couldn't find it
+    filename=sprintf('114_CH%d.continuous', channel);
+end
+if exist(filename, 'file')~=2 %couldn't find it
+    error(sprintf('could not find data file %s in datadir %s', filename, datadir))
+end
 
 djPrefs;
 global pref
@@ -109,30 +114,13 @@ catch
     fprintf('\nCould not find stimlog, no logged stimuli in notebook!!');
 end
 
-%check if this is an appropriate stimulus protocol
-switch (GetPlottingFunction(datadir))
-    case 'Plot2Tone_PSTH2'
-    case 'Plot2Tone_PSTH_single2'
-    case 'Plot2tone_PSTH'
-    otherwise
-        warning('GetPlottingFunction does not check out.')
-        error('This stimulus protcol does not appear to have any tones or whitenoise.')
-end
+[scaledtrace, datatimestamps, datainfo] =load_open_ephys_data(filename);
+datatimestamps=datatimestamps-StartAcquisitionSec;
+%should record a copy of stim
+stim=0*scaledtrace;
 
-%read MClust .t file
-fprintf('\nreading MClust output file %s', filename)
-if exist('params.py','file') || channel==-1
-    fprintf('\nreading KiloSort output cell %d', clust)
-    [spiketimes, KS_ID]=readKiloSortOutput(clust, sampleRate);
-else
-    fprintf('\nreading MClust output file %s', filename)
-    spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
-    %correct for OE start time, so that time starts at 0
-    spiketimes=spiketimes-StartAcquisitionSec;
-    fprintf('\nsuccessfully loaded MClust spike data')
-end
-Nclusters=1;
-totalnumspikes=length(spiketimes);
+
+
 %uncomment this to run some sanity checks
 %SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
 
@@ -288,25 +276,17 @@ for i=1:length(Events)
     if strcmp(Events(i).type, '2tone') | ...
             strcmp(Events(i).type, 'silentsound') | strcmp(Events(i).type, 'whitenoise')%%%I should pull out silent sound processing into separate stanza
         if  isfield(Events(i), 'soundcard_trigger_timestamp_sec')
-            pos=Events(i).soundcard_trigger_timestamp_sec;
+            pos=Events(i).soundcard_trigger_timestamp_sec*samprate;
         else
             error('???')
-            pos=Events(i).soundcard_trigger_timestamp_sec; %pos is in seconds
+            pos=Events(i).soundcard_trigger_timestamp_sec*samprate; %pos is in samples
         end
         laser=LaserTrials(i);
-        start=(pos+xlimits(1)*1e-3); %in seconds
-        stop=(pos+xlimits(2)*1e-3);
-        region=round(start*samprate)+1:round(stop*samprate);
+        start=round(pos+xlimits(1)*1e-3*samprate);
+        stop=round(pos+xlimits(2)*1e-3*samprate)-1;
+        region=start:stop;
         if start>0 %(disallow negative or zero start times)
-            
-            
-            st=spiketimes; %are in seconds
-            spiketimes1=st(st>start & st<stop); % spiketimes in region
-            spikecount=length(spiketimes1); % No. of spikes fired in response to this rep of this stim.
-            inRange=inRange+ spikecount; %accumulate total spikecount in region
-            spiketimes1=(spiketimes1-pos)*1000;%covert to ms after tone onset
-            spont_spikecount=length(find(st<start & st>(start-(stop-start)))); % No. spikes in a region of same length preceding response window
-            
+          
             if strcmp(Events(i).type, '2tone') || strcmp(Events(i).type, 'whitenoise')
                 freq=-1;
                 probefreq=Events(i).probefreq;
@@ -323,9 +303,8 @@ for i=1:length(Events)
                 
                 
                 nreps(findex, pfindex, SOAindex)=nreps(findex, pfindex, SOAindex)+1;
-                M1(findex, pfindex, SOAindex, nreps(findex, pfindex, SOAindex)).spiketimes=spiketimes1;
-                M1spikecounts(findex, pfindex, SOAindex,nreps(findex, pfindex, SOAindex))=spikecount;
-                M1spont(findex, pfindex, SOAindex, nreps(findex, pfindex, SOAindex))=spont_spikecount;
+                M1(findex, pfindex, SOAindex, nreps(findex, pfindex, SOAindex),:)=scaledtrace(region);;
+               
                 if LaserRecorded
                     M1Laser(findex, pfindex, SOAindex, nreps(findex, pfindex, SOAindex),:)=Lasertrace(region);
                 end
@@ -357,9 +336,7 @@ for i=1:length(Events)
                 liindex=  find(LaserISIs == LaserISI);
                 
                 nreps(findex, lnpindex, liindex)=nreps(findex, lnpindex, liindex)+1;
-                M1(findex,lnpindex, liindex, nreps(findex, lnpindex, liindex)).spiketimes=spiketimes1; % Spike times
-                M1spikecounts(findex, lnpindex, liindex,nreps(findex, lnpindex, liindex))=spikecount; % No. of spikes
-                M1spont(findex, lnpindex, liindex, nreps(findex, lnpindex, liindex))=spont_spikecount; % No. of spikes in spont window, for each presentation.
+                M1(findex,lnpindex, liindex, nreps(findex, lnpindex, liindex),:)=scaledtrace(region);
                 M_LaserStart(findex, lnpindex, liindex, nreps(findex, lnpindex, liindex))=LaserStart;
                 M_LaserWidth(findex, lnpindex, liindex, nreps(findex, lnpindex, liindex))= LaserWidth;
                 M_LaserNumPulses(findex, lnpindex, liindex, nreps(findex, lnpindex, liindex))= LaserNumPulse;
@@ -377,12 +354,7 @@ for i=1:length(Events)
         end
     end
 end
-
-
-
 fprintf('\nmin reps: %d\nmax reps: %d',min(nreps(:)), max(nreps(:)))
-fprintf('\ntotal num spikes: %d', length(spiketimes))
-fprintf('\nIn range: %d', inRange)
 
 mM1=[];
 
@@ -390,11 +362,7 @@ mM1=[];
 for SOAindex=1:numSOAs; % or numLaserISIs
     for findex=1:numfreqs %-1 or 0
         for pfindex=1:numprobefreqs % or numLaserPulses, for 2tone 1 means one WN burst, for laser 1 mean one laser pulse
-            spiketimes=[];
-            for rep=1:nreps(findex, pfindex, SOAindex)
-                spiketimes=[spiketimes M1(findex, pfindex, SOAindex, rep).spiketimes];
-            end
-            mM1(findex, pfindex, SOAindex).spiketimes=spiketimes;
+            mM1(findex, pfindex, SOAindex,:)=mean(M1(findex, pfindex, SOAindex, 1:nreps(findex, pfindex, SOAindex),:),4);
         end
     end
     
@@ -432,54 +400,15 @@ end
 
 
 
-if isempty(mM1) %no laser pulses in this file
-    mM1spikecount=[];
-    sM1spikecount=[];
-    semM1spikecount=[];
-    M1spikecounts=[];
-    mM1spont=[];
-    sM1spont=[];
-    semM1spont=[];
-else
-    if exist('M1spikecounts')
-        mM1spikecount=mean(M1spikecounts,4); % Mean spike count
-        sM1spikecount=std(M1spikecounts,[],4); % Std of the above
-        semM1spikecount=sM1spikecount./sqrt(max(nreps(:))); % Sem of the above
-        % Spont
-        mM1spont=mean(M1spont,4);
-        sM1spont=std(M1spont,[],4);
-        semM1spont=sM1spont./sqrt(max(nreps(:)));
-    else
-        mM1spikecount=[];
-        sM1spikecount=[];
-        semM1spikecount=[];
-        M1spikecounts=[];
-        mM1spont=[];
-        sM1spont=[];
-        semM1spont=[];
-    end
-end
-
 %save to outfiles
 
 out.IL=IL;
-out.Nclusters=Nclusters;
-out.tetrode=channel;
 out.channel=channel;
-out.cluster=clust; %there are some redundant names here
-out.cell=clust;
 
 %spikes
 out.M1=M1;
 out.mM1=mM1;
-out.M1spikecounts=M1spikecounts;
-out.mM1spikecount=mM1spikecount;
-out.sM1spikecount=sM1spikecount;
-out.semM1spikecount=semM1spikecount;
 
-out.mM1spont=mM1spont;
-out.sM1spont=sM1spont;
-out.semM1spont=semM1spont;
 
 out.amps=amps;
 out.freqs=freqs;
@@ -499,7 +428,6 @@ out.nreps=nreps;
 out.xlimits=xlimits;
 out.samprate=samprate;
 out.datadir=datadir;
-out.spiketimes=spiketimes;
 
 out.LaserStarts=LaserStarts;
 out.LaserWidths=LaserWidths;
@@ -549,8 +477,7 @@ catch
     out.stimlog='notebook file missing';
     out.user='unknown';
 end
-out.t_filename=filename;
-out.KiloSort_ID=KS_ID+1;
-outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
-save (outfilename, 'out', '-v7.3')
+outfilename=sprintf('outLFP_ch%d.mat',channel);
+save(outfilename, 'out')
+fprintf('\n saved to %s', outfilename)
 

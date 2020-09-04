@@ -239,13 +239,17 @@ for windex=1:numw
             end
             ylimits2(2)=ylimits(2)+offset;
             %ylimits2(2)=2*ylimits(2);
-            ylim(ylimits2)
+            try
+                ylimits(2) = max([ylimits(2) 1]);
+                ylim(ylimits2)
+            end
             xlim(xlimits)
+            %xlim([-50 100])
             set(gca, 'fontsize', fs)
             %set(gca, 'xticklabel', '')
             %set(gca, 'yticklabel', '')
             if p==1
-                h=title(sprintf('%s: \ntetrode%d cell%d %dms, nreps: %d-%d, OFF',datadir,channel,out.cluster,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
+                h=title(sprintf('%s: \ntetrode%d cell%d %dms, nreps: %d-%d, OFF KS=%d',datadir,channel,out.cluster,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF))), out.KiloSort_ID));
                 set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
             end
             xl = xlim; yl = ylim;
@@ -271,7 +275,7 @@ for windex=1:numw
                 else
                     vpos=mean(ylimits);
                 end
-                %text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
+                %text(0, vpos, sprintf('%.1f', freqs(findex)/1000))
                 xlabel(sprintf('%.1f', freqs(findex)/1000))
             end
             
@@ -299,8 +303,10 @@ for windex=1:numw
                 text(xlimits(1), vpos, 'SS')
                 ylimits2(2)=ylimits(2)+offset;
                 %ylimits2(2)=2*ylimits(2);
+                ylimits(2) = max([ylimits(2) 1]);
                 ylim(ylimits2)
                 xlim(xlimits)
+                %xlim([-50 100])
                 set(gca, 'fontsize', fs)
                 
                 offsetS=ylimits(1)+.05*diff(ylimits);
@@ -393,7 +399,10 @@ if IL
                 
                 
                 %ylimits2(2)=2*ylimits(2);
-                ylim(ylimits2)
+                try
+                    ylimits(2) = max([ylimits(2) 1]);
+                    ylim(ylimits2)
+                end
                 
                 if LaserRecorded
                     for rep=1:nrepsON(findex, aindex, dindex)
@@ -411,30 +420,34 @@ if IL
                 end
                 
                 xlim(xlimits)
+                %xlim([-50 100])
                 set(gca, 'fontsize', fs)
                 % set(gca, 'xticklabel', '')
                 % set(gca, 'yticklabel', '')
                 
                 subplot1(1)
-                h=title(sprintf('%s: \ntetrode%d cell%d %dms, nreps: %d-%d, ON',datadir,channel,out.cluster,durs(dindex),min(min(min(nrepsON))),max(max(max(nrepsON)))));
+                h=title(sprintf('%s: \ntetrode%d cell%d %dms, nreps: %d-%d, ON KS=%d',datadir,channel,out.cluster,durs(dindex),min(min(min(nrepsON))),max(max(max(nrepsON))),out.KiloSort_ID));
                 set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
                 
                 %label amps and freqs
-                
+                subplot1(p)
                 if findex==1
                     if numamps>=numdurs
-                        text(xlimits(1)-diff(xlimits)/2, mean(ylimits), int2str(amps(yindex)))
+                        %text(xlimits(1)-diff(xlimits)/2, mean(ylimits), int2str(amps(yindex)))
+                        ylabel(sprintf('%ddB',amps(yindex)))
                     else
                         text(xlimits(1)+diff(xlimits)/20, mean(ylimits), int2str(durs(yindex)))
                     end
                 end
                 if aindex==1
                     if mod(findex,2) %odd freq
-                        vpos=ylimits(1)-mean(ylimits);
+                        vpos=mean(ylimits);
+                        %                        vpos=ylimits(1)-mean(ylimits);
                     else
-                        vpos=ylimits(1)-mean(ylimits);
+                        vpos=mean(ylimits);
                     end
-                    text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
+                    %text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
+                    xlabel(sprintf('%.1f', freqs(findex)/1000))
                 end
                 
                 
@@ -461,7 +474,10 @@ if IL
                     text(xlimits(1), vpos, 'SS')
                     ylimits2(2)=ylimits(2)+offset;
                     %ylimits2(2)=2*ylimits(2);
-                    ylim(ylimits2)
+                    try
+                        ylimits(2) = max([ylimits(2) 1]);
+                        ylim(ylimits2)
+                    end
                     xlim(xlimits)
                     set(gca, 'fontsize', fs)
                     offsetS=ylimits(1)+.05*diff(ylimits);

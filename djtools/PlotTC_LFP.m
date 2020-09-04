@@ -45,6 +45,10 @@ lo_pass_cutoff=10;
 [b,a]=butter(2, [lo_pass_cutoff hi_pass_cutoff]/(30e3/2));
 fprintf('\nband-pass filtering [%d-%d]', lo_pass_cutoff, hi_pass_cutoff)
 fprintf('\n')
+high_pass_cutoff = 400;
+low_pass_cutoff = 10;
+[a,b]=butter(1, high_pass_cutoff/(30e3/2), 'high');
+fprintf('\nusing xlimits [%d-%d]', xlimits(1), xlimits(2))
 
 force_reprocess=0;
 if force_reprocess
@@ -65,6 +69,7 @@ else
     load(outfilename);
 end
 
+M1stim=out.M1stim;
 
 freqs=out.freqs;
 amps=out.amps;
@@ -122,8 +127,8 @@ if IL
                 subplot1(p)
                 trace1=squeeze(squeeze(out.mM1ON(findex, aindex, dindex, :)));
                 trace2=(squeeze(out.mM1OFF(findex, aindex, dindex, :)));
+                [b,a]=butter(1, low_pass_cutoff/(samprate/2), 'low');
                 
-                trace1=trace1 -mean(trace1(1:10));
                 trace2=trace2-mean(trace2(1:10));
                 trace1=filtfilt(b,a,trace1);
                 trace2=filtfilt(b,a,trace2);
@@ -141,7 +146,7 @@ if IL
             end
         end
         subplot1(1)
-        h=title(sprintf('%s: %dms, nreps: %d-%d, ON&OFF',datadir,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
+        h=title(sprintf('%s: %dms, nreps: %d-%d, ON&OFF, ch%d',datadir,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF))), channel));
         set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
         
         %label amps and freqs
@@ -172,6 +177,7 @@ if IL
     end
 end
 
+samprate=30e3;
 reps_to_use=[];
 
 %plot the mean tuning curve OFF
@@ -184,10 +190,10 @@ for dindex=1:numdurs
             p=p+1;
             subplot1(p)
             trace1=squeeze(mM1OFF(findex, aindex, dindex, :));
+            [b,a]=butter(1, low_pass_cutoff/(samprate/2), 'low');
             %             reps_to_use=1000;
             %             trace1=squeeze(mean(M1OFF(findex, aindex, dindex, 1:reps_to_use,:), 4));
-            
-            trace1=filtfilt(b,a,trace1);
+             trace1=filtfilt(b,a,trace1);
             trace1=trace1 -mean(trace1(1:100));
             
             Lasertrace=squeeze(mM1OFFLaser(findex, aindex, dindex, :));
@@ -205,11 +211,20 @@ for dindex=1:numdurs
             hold on; plot(t, trace1, 'k');
             offset=ylimits(1)+.1*diff(ylimits);
             plot(t, Stimtrace+offset, 'm', t, Lasertrace+offset, 'c')
+            try
             ylim(ylimits)
+            end
             xlim(xlimits)
             xlabel off
             ylabel off
-            %             axis off
+            
+            %label amps and freqs
+            
+            subplot1(p)
+            if findex==1
+                text(xlimits(1)-diff(xlimits)/2, mean(ylimits), int2str(amps(aindex)))
+                endmM1ONLaser=out.mM1ONLaser;
+                axis off
         end
     end
     subplot1(1)
@@ -234,13 +249,36 @@ for dindex=1:numdurs
                 else
                     vpos=ylimits(1)-mean(ylimits);
                 end
-                if freqs(findex)>0
-                    text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
+                if freqs(findex)==-2000
+                    text(xlimits(1), vpos, 'SS')
                 elseif freqs(findex)==-1000
                     text(xlimits(1), vpos, 'WN')
-                elseif freqs(findex)==-2000
-                    text(xlimits(1), vpos, 'SS')
+                elseif freqs(findex)>0
+                    text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
                 end
+            else
+                if aindex==1
+                    if mod(findex,2) %odd freq
+                        vpos=ylimits(1)-mean(ylimits);
+                    else
+                        vpos=ylimits(1)-mean(ylimits);
+                    end
+                    if freqs(findex)>0
+                        text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
+                    elseif freqs(findex)==-1000
+                        text(xlimits(1), vpos, 'WN')
+                    elseif freqs(findex)==-2000
+                        text(xlimits(1), vpos, 'SS')
+                    end
+                end
+                
+%                 if freqs(findex)>0
+%                     text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
+%                 elseif freqs(findex)==-1000
+%                     text(xlimits(1), vpos, 'WN')
+%                 elseif freqs(findex)==-2000
+%                     text(xlimits(1), vpos, 'SS')
+%                 end
             end
             %             if findex==numfreqs && aindex==numamps
             %                 axis on
@@ -249,6 +287,9 @@ for dindex=1:numdurs
             %             end
         end
     end
+    subplot1(1)
+    h=title(sprintf('OFF %s: %dms, nreps: %d-%d, ch%d',datadir,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF))), channel));
+    set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
 end
 
 
@@ -295,7 +336,7 @@ if IL
             end
         end
         subplot1(1)
-        h=title(sprintf('ON %s: %dms, nreps: %d-%d',datadir,durs(dindex),min(min(min(nrepsON))),max(max(max(nrepsON)))));
+        h=title(sprintf('ON %s: %dms, nreps: %d-%d, ch%d',datadir,durs(dindex),min(min(min(nrepsON))),max(max(max(nrepsON))), channel));
         set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
         
         %label amps and freqs

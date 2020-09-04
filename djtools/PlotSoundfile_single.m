@@ -200,6 +200,8 @@ for sourcefileindex=1:numsourcefiles
     %             ylim([-2 1.1*(yl(2)+offset)])
     try
         ylim(ylimits2)
+    catch
+        ylim auto
     end
     
     xlim(xlimits)
@@ -279,6 +281,8 @@ if IL
         ylimits2(2)=2*ylimits(2);
 try
     ylim(ylimits2)
+catch 
+    ylim auto
 end
 %                 ylim([-2 1.1*(yl(2)+offset)])
         

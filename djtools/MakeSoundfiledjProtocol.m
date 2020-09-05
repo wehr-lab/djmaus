@@ -45,6 +45,10 @@ if isequal(filename_ext,0) || isequal(wavpath,0)
 end
 [descriptname] = inputdlg('Please name the protocol');
 descriptname = char(descriptname);
+if isempty(descriptname)
+    disp('User pressed cancel')
+    return
+end
 
 
 cd(wavpath)
@@ -138,7 +142,7 @@ for nreps=1:nrepeats
         n=n+1;
         
         [s, Fs]=audioread(fn);
-        s=s(1:durations(i)*Fs); %truncate to requested durations or default to full length
+        s=s(1:round(durations(i)*Fs)); %truncate to requested durations or default to full length
         s=resample(s, pref.SoundFs , Fs); %resample to soundcard samprate
         
         %normalize and set to requested SPL;

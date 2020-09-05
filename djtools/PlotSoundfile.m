@@ -61,7 +61,16 @@ if isempty(channel)     %default to all tetrodes
     if exist('dirs.mat','file')
         load('dirs.mat')
         masterdir=dirs{1};
+        try
         cd(masterdir);
+        catch
+            remain = masterdir;
+            while (remain ~= "")
+                [token,remain] = strtok(remain, '\');
+            end
+                cd ..
+                cd(token)
+        end
         sp = loadKSdir(pwd);
         %The rest of this addition is to find the channel your cell is on.
         %It looks through the templates associated with the cell, finds the

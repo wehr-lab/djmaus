@@ -15,7 +15,7 @@ function [filename,path]=MakeSoundfiledjProtocol(amplitude, dur, include_whiteno
 % INPUTS:
 % amplitude: in dB SPL. All sounds will be normalized to peak level across all sounds,
 %   then scaled to this amplitude
-% duration (in seconds): how much of the soundfile to use
+% duration (in ms): how much of the soundfile to use
 %   (use [] to default to total duration of the soundfile)
 % include_whitenoise: 0 or 1 to include white noise bursts (at amplitude)
 % interleave_laser: 0 or 1 to duplicate all stimuli and interleave laser
@@ -32,7 +32,7 @@ function [filename,path]=MakeSoundfiledjProtocol(amplitude, dur, include_whiteno
 % ------------------------------------------------------------------------
 %
 % example call: 
-% amp= 80; dur=[]; include_whitenoise= 1; interleave_laser= 0; include_silent_sound= 1; isi= 800; nrepeats= 20;
+% amp= 80; dur=[]; include_whitenoise= 0; interleave_laser= 0; include_silent_sound= 0; isi= 800; nrepeats= 20;
 %MakeSoundfiledjProtocol(amp, dur, include_whitenoise, interleave_laser, include_silent_sound, isi, nrepeats)
 
 
@@ -262,7 +262,7 @@ stimuli=shuffledstimuli;
 
 
 
-cd('E:\Stimuli')
+cd(pref.stimuli)
 cd ('Soundfile Protocols')
 
 path=pwd;

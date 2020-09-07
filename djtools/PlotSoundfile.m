@@ -57,8 +57,14 @@ end
 
 cd(datadir)
 if isempty(channel)     %default to all tetrodes
-        %Nick addition 8/31/18 - defaults to kilosort output if present. Otherwise defaults to .t files.
-    if exist('dirs.mat','file')
+    %first check for outfiles and use those if possible
+    d=dir('outPSTH*.mat');
+    if ~isempty(d)
+        for i=1:length(d)
+            PlotSoundfile_single(datadir, d(i).name, xlimits, ylimits, binwidth)
+        end
+    elseif exist('dirs.mat','file') %Nick addition 8/31/18 - defaults to kilosort output if present. Otherwise defaults to .t files.
+
         load('dirs.mat')
         masterdir=dirs{1};
         try

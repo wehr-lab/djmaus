@@ -1,5 +1,5 @@
 function [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog)
-
+global pref
 % Here are some general notes on the format of Events and messages
 %
 %all_channels_data is the channel the Events are associated with
@@ -59,7 +59,7 @@ for i=1:length(messages)
         Events(sound_index).message_timestamp_sec=timestamp/sampleRate - StartAcquisitionSec;
         all_SCTs=[];
         for k=1:length(all_channels_timestamps)
-            if all_channels_info.eventType(k)==3 & all_channels_info.eventId(k)==1 & all_channels_data(k)==2
+            if all_channels_info.eventType(k)==3 & all_channels_info.eventId(k)==1 & all_channels_data(k)==pref.SCT_digital_line_in
                 corrected_SCT=all_channels_timestamps(k)-StartAcquisitionSec;
                 all_SCTs=[all_SCTs corrected_SCT];
             end
@@ -93,9 +93,13 @@ end
 if length(Events) ~=  length(all_SCTs)
      warning('GetEventsAndSCT_Timestamps: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
    % THERE_IS_A_PROBLEM
+<<<<<<< Updated upstream
    fprintf('\n%d Events but %d SCTs, calling ResolveEventMismatch...',length(Events),length(all_SCTs)) 
 
      [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog);
+=======
+      [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog);
+>>>>>>> Stashed changes
 end
 
 if exist('check1', 'var') & exist('check2', 'var')

@@ -237,10 +237,10 @@ CampulseOn=pref.CampulseOn;
 PPAhandle=SP.PPAhandle; %grab PPAhandle object from param
 SoundFs=SP.SoundFs; %sampling rate
 numChan=SP.numChan; %number of output channels we initialized the soundcard with
-cameratriglength=round(SoundFs/1000); %1 ms trigger
+cameratriglength=round(SoundFs/1000)*2; %2 ms trigger
 samples=zeros(numChan, 2*cameratriglength);
 camera_pulse=zeros(1, 2*cameratriglength);
-camera_pulse(1:cameratriglength)=ones(size(1:cameratriglength));
+camera_pulse(1:cameratriglength)=ones(size(1:cameratriglength))*.2;
 samples(CampulseOn,:)=camera_pulse;
 
 try
@@ -255,8 +255,7 @@ end
 
 function SendCameraPulse_off
 global SP pref
-%sends a TTL pulse on soundcard channel 6, intended to start/stop a pi
-%camera
+%sends a TTL pulse on soundcard channel 6, intended to start/stop a pi camera
 
 SP.seamless=0;
 CampulseOff=pref.CampulseOff;
@@ -266,7 +265,7 @@ numChan=SP.numChan; %number of output channels we initialized the soundcard with
 cameratriglength=round(SoundFs/1000); %1 ms trigger
 samples=zeros(numChan, 2*cameratriglength);
 camera_pulse=zeros(1, 2*cameratriglength);
-camera_pulse(1:cameratriglength)=ones(size(1:cameratriglength));
+camera_pulse(1:cameratriglength)=ones(size(1:cameratriglength))*.2;
 samples(CampulseOff,:)=camera_pulse;
 
 try
@@ -347,6 +346,8 @@ elseif GetXonarDevice & isempty(GetAsioLynxDevice)
     trigsamples(1:triglength)=ones(size(1:triglength));
 elseif ismac
     trigsamples(1:triglength)=ones(size(1:triglength));
+elseif GetRealtekDevice
+    trigsamples(1:triglength)=.1*ones(size(1:triglength)); %for lynx soundcard
 else
     error('cannot determine soundcard type')
 end

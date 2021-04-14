@@ -56,6 +56,7 @@ switch action
         clear djTimer
         PPAdj('close')
         zeroMQwrapper('CloseThread',SP.zhandle);
+        pause(0.2)
         delete(SP.fig)
         clear global SP
         fprintf('\nbye\n')
@@ -655,7 +656,6 @@ else
         SP.NRepeats=0;
         set(SP.Runh, 'enable', 'on','backgroundcolor',[0 0.9 0])
         
-        
     else
         djMessage('Not a valid protocol file');
     end
@@ -687,6 +687,10 @@ end
 PPAdj('playsound')
 UpdateStimlog(stimulus);
 djMessage(stimulus.stimulus_description, 'append');
+status = PsychPortAudio('GetStatus', SP.PPAhandle);
+% if ~status.Active & status.XRuns
+     fprintf('status: %d Xruns: %d\n',status.Active,status.XRuns)
+% end
 
 % figure(100)
 % plot(samples)
@@ -963,7 +967,7 @@ try
     fprintf('\ncreated notebook file in %s', nb.activedir)
 catch
     lasterr
-    close(wb1)
+    %close(wb1)
     errordlg('Go get Mike', '', 'modal');
     keyboard
     

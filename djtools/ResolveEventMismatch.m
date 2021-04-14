@@ -1,7 +1,6 @@
 function [ Events, all_SCTs, stimlog ] = ResolveEventMismatch(Events, all_SCTs, stimlog  )
 %try to resolve the situation when the number of sound events (from network
 %messages) does not match Number of hardware triggers (soundcardtrig TTLs
-
 nstimlog=length(stimlog);
 nEvents=length(Events);
 nSCTs=length(all_SCTs);
@@ -130,6 +129,10 @@ elseif nstimlog==nEvents & nSCTs < nEvents
     %open-ephys had stopped itself but djmaus was still running. Not sure
     %how this could happen, but investigation confirms everything is fine up until the last soundcard trigger
     
+    if nSCTs==0
+        error('no soundcard triggers detected. This is a fatal error')
+    end
+    
     %adding special case
     [p,n,e]=fileparts(pwd);
     switch n
@@ -196,6 +199,7 @@ if 0
     
     %look for StartAcquisitionSec = xxx in command window and execute to set StartAcquisitionSec
     SCTfname=getSCTfile(pwd);
+    fprintf('sound card triggers are in file %s', SCTfname)
     if isempty(SCTfname)
         warning('could not find soundcard trigger file')
     else

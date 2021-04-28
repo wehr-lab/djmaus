@@ -58,8 +58,8 @@ end
 cd(datadir)
 if isempty(channel)     %default to all tetrodes
     %Nick addition 8/31/18 - defaults to kilosort output if present. Otherwise defaults to .t files.
-    if exist('dirs.mat','file')
-        load('dirs.mat')
+    if exist([datadir '\dirs.mat'],'file')
+        load([datadir '\dirs.mat'])
         masterdir=dirs{1};
         cd(masterdir);
         sp = loadKSdir(pwd);

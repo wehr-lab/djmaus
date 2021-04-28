@@ -8,7 +8,7 @@ function PlotTC_PSTH_single(varargin)
 %Processes data if outfile is not found;
 
 rasters=1;
-force_reprocess=0;
+force_reprocess=1;
 
 if nargin==0
     fprintf('\nno input');
@@ -107,12 +107,21 @@ end
 M1ONStim=out.M1ONStim;
 M1ONLaser=out.M1ONLaser; % a crash here means this is an obsolete outfile. Set force_reprocess=1 up at the top of this mfile. (Don't forget to reset it to 0 when you're done)
 mM1ONStim=out.mM1ONStim;
-mM1ONLaser=out.mM1ONLaser;
-M1OFFStim=out.M1OFFStim;
-M1OFFLaser=out.M1OFFLaser;
-mM1OFFStim=out.mM1OFFStim;
-mM1OFFLaser=out.mM1OFFLaser;
-
+% kluge below Kip 4/21
+try
+    mM1ONLaser=out.mM1ONLaser;
+    M1OFFLaser=out.M1OFFLaser;
+    mM1OFFLaser=out.mM1OFFLaser;
+catch
+    LaserRecorded=0;
+end
+% kluge below Kip 4/21
+try
+    mM1OFFStim=out.mM1OFFStim;
+    M1OFFStim=out.M1OFFStim;
+catch
+    StimRecorded = 0;
+end
 
 %silent sound
 SilentSoundON=out.SilentSoundON;

@@ -305,7 +305,9 @@ end
             X=[xlimits(1), LaserStart, LaserStart, LaserStart+LaserWidth, LaserStart+LaserWidth, xlimits(2)];
             height=diff(ylimits)/5;
             Y=[0 0 height height 0 0];
-            line(X,Y, 'color', 'c', 'linewidth', 2)
+           try
+               line(X,Y, 'color', 'c', 'linewidth', 2)
+           end
         end
         %this should plot a cyan line at the unique Laser
         %params - not sure what will happen if not scalar

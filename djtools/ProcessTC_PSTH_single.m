@@ -29,7 +29,7 @@ try
     xlimits=varargin{3};
 end
 if isempty(xlimits)
-         xlimits=[-100 200];
+    xlimits=[-100 200];
     s=GetStimParams(datadir);
     durs=s.durs;
     dur=max(durs);
@@ -138,8 +138,8 @@ if exist('params.py','file') || channel==-1
     fprintf('\nreading KiloSort output cell %d', clust)
     [spiketimes, KS_ID]=readKiloSortOutput(clust, sampleRate);
 else
-    fprintf('\nreading MClust output file %s', filename)
-    spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
+    fprintf('\nreading MClust output file %s', t_filename)
+    spiketimes=read_MClust_output(t_filename)'/10000; %spiketimes now in seconds
     %correct for OE start time, so that time starts at 0
     spiketimes=spiketimes-StartAcquisitionSec;
     fprintf('\nsuccessfully loaded MClust spike data')
@@ -147,7 +147,7 @@ else
 end
 
 totalnumspikes=length(spiketimes);
-fprintf('\nsuccessfully loaded MClust spike data')
+fprintf('\nsuccessfully loaded spike data with %d spikes\n',totalnumspikes)
 Nclusters=1;
 
 %uncomment this to run some sanity checks
@@ -347,7 +347,7 @@ for i=1:length(Events)
             spiketimes1=st(st>start & st<stop); % spiketimes in region
             spikecount=length(spiketimes1); % No. of spikes fired in response to this rep of this stim.
             inRange=inRange+ spikecount; %accumulate total spikecount in region
-            spiketimes1=(spiketimes1-pos)*1000;%covert to ms after tone onset
+            spiketimes1=(spiketimes1-pos)*1000;%convert to ms after tone onset
             spont_spikecount=length(find(st<start & st>(start-(stop-start)))); % No. spikes in a region of same length preceding response window
             
             if strcmp(Events(i).type, 'silentsound')

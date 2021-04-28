@@ -110,7 +110,11 @@ end
 
 function UpdateListDisplay
 global P
-str=sprintf('!cat %s', P.TargetCellList');
+if ispc
+    str=sprintf('!type %s', P.TargetCellList');
+elseif ismac
+    str=sprintf('!cat %s', P.TargetCellList');
+end
 set(P.DirListDisplay, 'string', evalc(str));
 
 %resize windows to fit text
@@ -141,7 +145,7 @@ set(fig,'visible','off','numbertitle','off','name','cell list builder',...
 height=220; width=250; e=2; H=e;
 bigwidth=500;
 w=200; h=25;
-set(fig,'pos',[1000 800         bigwidth         height],'visible','on');
+set(fig,'pos',[300 300         bigwidth         height],'visible','on');
 
 
 %TargetCellList display

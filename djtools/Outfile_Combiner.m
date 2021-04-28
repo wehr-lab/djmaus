@@ -72,6 +72,10 @@ if isfield(Out_components(i).out, 'freqs') & ...
 elseif isfield(Out_components(i).out, 'gapdurs') & ...
         isfield(Out_components(i).out, 'PeakON')
     experiment_type = 'GPIASbehavior';
+elseif isfield(Out_components(i).out, 'amps') & ...
+        isfield(Out_components(i).out, 'durs') & ...
+        isfield(Out_components(i).out, 'sourcefiles')
+    experiment_type = 'SpeechContext';                  
 else
     error('did not find the expected fields in outfile')
 end
@@ -248,6 +252,115 @@ switch experiment_type
         Out.pON=nanmean(Out.all_pON, 1); %pretty sure it's not kosher to average p-values, we should re-generate them if we will use them
         
         combinedoutfilename='outGPIAS_Behavior_combined.mat';
+        
+    case 'SpeechContext'
+        for i=1:P.numoutfiles
+            amps(i,:)=Out_components(i).out.amps;
+            durs(i,:)=Out_components(i).out.durs;
+        end
+        % situation 1: all outfiles have the same params
+  %      if size(unique(Freqs, 'rows'), 1)~=1
+  %          error('frequencies of outfiles don''t match')
+  %      end
+        if size(unique(amps, 'rows'), 1)~=1
+            error('amps of outfiles don''t match')
+        end
+        
+        %now that we've verified that all parameters are the same, we can just use one of them
+        Out.amps=Out_components(1).out.amps;
+        Out.numamps=Out_components(1).out.numamps;
+        Out.durs=Out_components(1).out.durs;
+        Out.numdurs=Out_components(1).out.numdurs;
+        Out.Nclusters=Out_components(1).out.Nclusters;
+        Out.tetrode=Out_components(1).out.tetrode;
+        Out.channel=Out_components(1).out.channel;
+        Out.cluster=Out_components(1).out.cluster;
+        Out.cell=Out_components(1).out.cell;
+        Out.sourcefiles=Out_components(1).out.sourcefiles;
+        Out.numsourcefiles=Out_components(1).out.numsourcefiles;
+        Out.SilentSoundOFFStim=Out_components(1).out.SilentSoundOFFStim;
+        Out.SilentSoundOFFLaser=Out_components(1).out.SilentSoundOFFLaser;
+        Out.LaserRecorded=Out_components(1).out.LaserRecorded;
+        Out.StimRecorded=Out_components(1).out.StimRecorded;
+        
+        Out.nb.user=Out_components(1).out.nb.user;
+        Out.nb.mouseID=Out_components(1).out.nb.mouseID;
+        Out.nb.Depth=Out_components(1).out.nb.Depth;
+        Out.nb.mouseDOB=Out_components(1).out.nb.mouseDOB;
+        Out.nb.mouseSex=Out_components(1).out.nb.mouseSex;
+        Out.nb.mouseGenotype=Out_components(1).out.nb.mouseGenotype;
+        
+        
+        Out.samprate=Out_components(1).out.samprate;
+        Out.IL=Out_components(1).out.IL;
+        Out.xlimits=Out_components(1).out.xlimits;
+      %  if size(Out_components(1).out.nrepsOFF)~=[Out.numfreqs Out.numamps]
+      %      error('nreps is not numfreqs x numamps')
+      %  end
+        
+        Out.nreps=Out_components(1).out.nreps;
+        Out.nrepsON=Out_components(1).out.nrepsON;
+        Out.nrepsOFF=Out_components(1).out.nrepsOFF;
+        Out.nreps_ssON=Out_components(1).out.nreps_ssON;
+        Out.nreps_ssOFF=Out_components(1).out.nreps_ssOFF;
+        Out.datadir=Out_components(1).out.datadir;
+        Out.nb.notes = Out_components(1).out.nb.notes;
+        Out.nb.datapath = Out_components(1).out.nb.datapath;
+        Out.nb.activedir = Out_components(1).out.nb.activedir;
+        for i=2:P.numoutfiles
+            Out.nreps = Out.nreps + Out_components(i).out.nreps;
+            Out.nrepsON = Out.nrepsON + Out_components(i).out.nrepsON;
+            Out.nrepsOFF = Out.nrepsOFF + Out_components(i).out.nrepsOFF;
+        %    Out.stimlog = Out.stimlog + Out_components(i).out.stimlog;
+            Out.nreps_ssON = Out.nreps_ssON + Out_components(i).out.nreps_ssON;
+            Out.nreps_ssOFF = Out.nreps_ssOFF + Out_components(i).out.nreps_ssOFF;
+            Out.datadir = Out.datadir + Out_components(i).out.datadir;
+            Out.nb.notes = Out.nb.notes + Out_components(i).out.nb.notes;
+            Out.nb.datapath = Out.nb.datapath + Out_components(i).out.nb.datapath;
+            Out.nb.activedir = Out.nb.activedir + Out_components(i).out.nb.activedir;
+            
+        end
+        
+        %pre-allocate
+        sz=size(Out_components(i).out.M1OFF);
+        sz(end-1)=max(Out.nrepsOFF(:));
+        Out.M1OFF=nan(sz);
+        Out.M1OFFLaser=nan(sz);
+        Out.M1OFFStim=nan(sz);
+        
+%         for i=1:P.numoutfiles
+%             nr=max(Out_components(i).out.nrepsOFF(:));
+%             start=1+(i-1)*nr;
+%             stop=nr*i;
+%             Out.M1OFF(:,:,:,start:stop,:)=Out_components(i).out.M1OFF;
+%             Out.M1OFFLaser(:,:,:,start:stop,:)=Out_components(i).out.M1OFFLaser;
+%             Out.M1OFFStim(:,:,:,start:stop,:)=Out_components(i).out.M1OFFStim;
+%         end
+%         Out.mM1OFF(:,:,1:Out.numdurs,:)= nanmean(Out.M1OFF, 4);
+%         Out.mM1OFFLaser(:,:,1:Out.numdurs,:)=nanmean(Out.M1OFFLaser, 4);
+%         Out.mM1OFFStim(:,:,1:Out.numdurs,:)=nanmean(Out.M1OFFStim, 4);
+%         
+%         sz=size(Out_components(i).out.M1ON);
+%         sz(end-1)=max(Out.nrepsON(:));
+%         Out.M1ON=nan(sz);
+%         Out.M1ONLaser=nan(sz);
+%         Out.M1ONStim=nan(sz);
+%         
+%         for i=1:P.numoutfiles
+%             nr=max(Out_components(i).out.nrepsON(:));
+%             start=1+(i-1)*nr;
+%             stop=nr*i;
+%             fprintf('\n%d-%d', start, stop)
+%             Out.M1ON(:,:,:,start:stop,:)=Out_components(i).out.M1ON;
+%             Out.M1ONLaser(:,:,:,start:stop,:)=Out_components(i).out.M1ONLaser;
+%             Out.M1ONStim(:,:,:,start:stop,:)=Out_components(i).out.M1ONStim;
+%         end
+%         Out.mM1ON(:,:,1:Out.numdurs,:)=nanmean(Out.M1ON, 4);
+%         Out.mM1ONLaser(:,:,1:Out.numdurs,:)=nanmean(Out.M1ONLaser, 4);
+%         Out.mM1ONStim(:,:,1:Out.numdurs,:)=nanmean(Out.M1ONStim, 4);
+        
+        combinedoutfilename='out_combined_SpeechContext.mat';
+        
         
 end %switch experiment type
 

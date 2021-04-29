@@ -1,5 +1,6 @@
 function [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog)
 global pref
+if isempty(pref); djPrefs;end
 % Here are some general notes on the format of Events and messages
 %
 %all_channels_data is the channel the Events are associated with
@@ -94,9 +95,9 @@ if length(Events) ~=  length(all_SCTs)
      warning('GetEventsAndSCT_Timestamps: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
    % THERE_IS_A_PROBLEM
    fprintf('\n%d Events but %d SCTs, calling ResolveEventMismatch...',length(Events),length(all_SCTs)) 
-%fprintf('\ncommenting out ResolveEventMismatch this is a HACK and needs to be investigated!!!!') 
+fprintf('\ncommenting out ResolveEventMismatch this is a HACK and needs to be investigated!!!!') 
 
-     [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog);
+%     [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog);
 end
 
 if exist('check1', 'var') & exist('check2', 'var')

@@ -18,6 +18,8 @@ masterdir=dirs{1};
 catch
  masterdir = pwd;
 end
+if ismac masterdir=macifypath(masterdir);end
+
 currentdir=pwd; %remember which directory you are in now
 currentdir_indx=find(strcmp(currentdir, dirs)==1); %which dir are we trying to plot?
 if currentdir_indx==0

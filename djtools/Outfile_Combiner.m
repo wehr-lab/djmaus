@@ -259,9 +259,6 @@ switch experiment_type
             durs(i,:)=Out_components(i).out.durs;
         end
         % situation 1: all outfiles have the same params
-  %      if size(unique(Freqs, 'rows'), 1)~=1
-  %          error('frequencies of outfiles don''t match')
-  %      end
         if size(unique(amps, 'rows'), 1)~=1
             error('amps of outfiles don''t match')
         end
@@ -307,10 +304,12 @@ switch experiment_type
         Out.nb.notes = Out_components(1).out.nb.notes;
         Out.nb.datapath = Out_components(1).out.nb.datapath;
         Out.nb.activedir = Out_components(1).out.nb.activedir;
+        Out.stimlog=Out_components(1).out.stimlog;
         for i=2:P.numoutfiles
             Out.nreps = Out.nreps + Out_components(i).out.nreps;
             Out.nrepsON = Out.nrepsON + Out_components(i).out.nrepsON;
             Out.nrepsOFF = Out.nrepsOFF + Out_components(i).out.nrepsOFF;
+            keyboard
         %    Out.stimlog = Out.stimlog + Out_components(i).out.stimlog;
             Out.nreps_ssON = Out.nreps_ssON + Out_components(i).out.nreps_ssON;
             Out.nreps_ssOFF = Out.nreps_ssOFF + Out_components(i).out.nreps_ssOFF;

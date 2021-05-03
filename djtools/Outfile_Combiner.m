@@ -54,6 +54,7 @@ Out.dirlist=sorteddirlist;
 Out.targetdir=sorteddirlist{1};
 Out.generated_by=mfilename;
 Out.generated_on=datestr(now);
+Out.outfilelist=sortedoutfilelist;
 
 for i=1:P.numoutfiles
     fprintf('.')
@@ -75,7 +76,7 @@ elseif isfield(Out_components(i).out, 'gapdurs') & ...
 elseif isfield(Out_components(i).out, 'amps') & ...
         isfield(Out_components(i).out, 'durs') & ...
         isfield(Out_components(i).out, 'sourcefiles')
-    experiment_type = 'SpeechContext';                  
+    experiment_type = 'SpeechContext';
 else
     error('did not find the expected fields in outfile')
 end
@@ -264,6 +265,7 @@ switch experiment_type
         end
         
         %now that we've verified that all parameters are the same, we can just use one of them
+        Out.IL=Out_components(1).out.IL;
         Out.amps=Out_components(1).out.amps;
         Out.numamps=Out_components(1).out.numamps;
         Out.durs=Out_components(1).out.durs;
@@ -291,9 +293,9 @@ switch experiment_type
         Out.samprate=Out_components(1).out.samprate;
         Out.IL=Out_components(1).out.IL;
         Out.xlimits=Out_components(1).out.xlimits;
-      %  if size(Out_components(1).out.nrepsOFF)~=[Out.numfreqs Out.numamps]
-      %      error('nreps is not numfreqs x numamps')
-      %  end
+        %  if size(Out_components(1).out.nrepsOFF)~=[Out.numfreqs Out.numamps]
+        %      error('nreps is not numfreqs x numamps')
+        %  end
         
         Out.nreps=Out_components(1).out.nreps;
         Out.nrepsON=Out_components(1).out.nrepsON;
@@ -301,62 +303,103 @@ switch experiment_type
         Out.nreps_ssON=Out_components(1).out.nreps_ssON;
         Out.nreps_ssOFF=Out_components(1).out.nreps_ssOFF;
         Out.datadir=Out_components(1).out.datadir;
+        Out.datadirs{1}=Out_components(1).out.datadir;
         Out.nb.notes = Out_components(1).out.nb.notes;
         Out.nb.datapath = Out_components(1).out.nb.datapath;
+        Out.nb.datapaths{1} = Out_components(1).out.nb.datapath;
         Out.nb.activedir = Out_components(1).out.nb.activedir;
+        Out.nb.activedirs{1} = Out_components(1).out.nb.activedir;
         Out.stimlog=Out_components(1).out.stimlog;
+        Out.stimlogs{1}=Out_components(1).out.stimlog;
         for i=2:P.numoutfiles
             Out.nreps = Out.nreps + Out_components(i).out.nreps;
             Out.nrepsON = Out.nrepsON + Out_components(i).out.nrepsON;
             Out.nrepsOFF = Out.nrepsOFF + Out_components(i).out.nrepsOFF;
-            keyboard
-        %    Out.stimlog = Out.stimlog + Out_components(i).out.stimlog;
+            
             Out.nreps_ssON = Out.nreps_ssON + Out_components(i).out.nreps_ssON;
             Out.nreps_ssOFF = Out.nreps_ssOFF + Out_components(i).out.nreps_ssOFF;
-            Out.datadir = Out.datadir + Out_components(i).out.datadir;
+            Out.datadirs{i} =  Out_components(i).out.datadir;
             Out.nb.notes = Out.nb.notes + Out_components(i).out.nb.notes;
-            Out.nb.datapath = Out.nb.datapath + Out_components(i).out.nb.datapath;
-            Out.nb.activedir = Out.nb.activedir + Out_components(i).out.nb.activedir;
+            Out.nb.datapaths{i} =  Out_components(i).out.nb.datapath;
+            Out.nb.activedirs{i} = Out.nb.activedir + Out_components(i).out.nb.activedir;
+            Out.stimlogs{i} =  Out_components(i).out.stimlog;
             
         end
         
         %pre-allocate
-        sz=size(Out_components(i).out.M1OFF);
-        sz(end-1)=max(Out.nrepsOFF(:));
-        Out.M1OFF=nan(sz);
+        sz=size(Out_components(i).out.M1OFFLaser);
         Out.M1OFFLaser=nan(sz);
         Out.M1OFFStim=nan(sz);
         
-%         for i=1:P.numoutfiles
-%             nr=max(Out_components(i).out.nrepsOFF(:));
-%             start=1+(i-1)*nr;
-%             stop=nr*i;
-%             Out.M1OFF(:,:,:,start:stop,:)=Out_components(i).out.M1OFF;
-%             Out.M1OFFLaser(:,:,:,start:stop,:)=Out_components(i).out.M1OFFLaser;
-%             Out.M1OFFStim(:,:,:,start:stop,:)=Out_components(i).out.M1OFFStim;
-%         end
-%         Out.mM1OFF(:,:,1:Out.numdurs,:)= nanmean(Out.M1OFF, 4);
-%         Out.mM1OFFLaser(:,:,1:Out.numdurs,:)=nanmean(Out.M1OFFLaser, 4);
-%         Out.mM1OFFStim(:,:,1:Out.numdurs,:)=nanmean(Out.M1OFFStim, 4);
-%         
-%         sz=size(Out_components(i).out.M1ON);
-%         sz(end-1)=max(Out.nrepsON(:));
-%         Out.M1ON=nan(sz);
-%         Out.M1ONLaser=nan(sz);
-%         Out.M1ONStim=nan(sz);
-%         
-%         for i=1:P.numoutfiles
-%             nr=max(Out_components(i).out.nrepsON(:));
-%             start=1+(i-1)*nr;
-%             stop=nr*i;
-%             fprintf('\n%d-%d', start, stop)
-%             Out.M1ON(:,:,:,start:stop,:)=Out_components(i).out.M1ON;
-%             Out.M1ONLaser(:,:,:,start:stop,:)=Out_components(i).out.M1ONLaser;
-%             Out.M1ONStim(:,:,:,start:stop,:)=Out_components(i).out.M1ONStim;
-%         end
-%         Out.mM1ON(:,:,1:Out.numdurs,:)=nanmean(Out.M1ON, 4);
-%         Out.mM1ONLaser(:,:,1:Out.numdurs,:)=nanmean(Out.M1ONLaser, 4);
-%         Out.mM1ONStim(:,:,1:Out.numdurs,:)=nanmean(Out.M1ONStim, 4);
+        for i=1:P.numoutfiles
+            nr=max(Out_components(i).out.nrepsOFF(:));
+            start=1+(i-1)*nr;
+            stop=nr*i;
+            for aindex=[Out.numamps:-1:1]
+                for sourcefileindex=1:Out.numsourcefiles
+                    for dindex=1:Out.numdurs
+                        for r=[1:nr; start:stop] %indexing both original reps and block reps
+                            st=Out_components(i).out.M1OFF(sourcefileindex, aindex, dindex, r(1)).spiketimes;
+                            Out.M1OFF(sourcefileindex, aindex, dindex, r(2)).spiketimes=st;
+                        end
+                    end
+                end
+            end
+            Out.M1OFFLaser(:,:,:,start:stop,:)=Out_components(i).out.M1OFFLaser;
+            Out.M1OFFStim(:,:,:,start:stop,:)=Out_components(i).out.M1OFFStim;
+        end
+        Out.mM1OFFLaser(:,:,1:Out.numdurs,:)=nanmean(Out.M1OFFLaser, 4);
+        Out.mM1OFFStim(:,:,1:Out.numdurs,:)=nanmean(Out.M1OFFStim, 4);
+        
+        
+        %repeat for ON
+        sz=size(Out_components(i).out.M1ONLaser);
+        Out.M1ONLaser=nan(sz);
+        Out.M1ONStim=nan(sz);
+        
+        for i=1:P.numoutfiles
+            nr=max(Out_components(i).out.nrepsON(:));
+            start=1+(i-1)*nr;
+            stop=nr*i;
+            for aindex=[Out.numamps:-1:1]
+                for sourcefileindex=1:Out.numsourcefiles
+                    for dindex=1:Out.numdurs
+                        for r=[1:nr; start:stop] %indexing both original reps and block reps
+                            st=Out_components(i).out.M1ON(sourcefileindex, aindex, dindex, r(1)).spiketimes;
+                            Out.M1ON(sourcefileindex, aindex, dindex, r(2)).spiketimes=st;
+                        end
+                    end
+                end
+            end
+            Out.M1ONLaser(:,:,:,start:stop,:)=Out_components(i).out.M1ONLaser;
+            Out.M1ONStim(:,:,:,start:stop,:)=Out_components(i).out.M1ONStim;
+        end
+        if ~isempty(Out.M1ONLaser) %don't bother if there are no laser trials
+            Out.mM1ONLaser(:,:,1:Out.numdurs,:)=nanmean(Out.M1ONLaser, 4);
+            Out.mM1ONStim(:,:,1:Out.numdurs,:)=nanmean(Out.M1ONStim, 4);
+        end
+        
+        % Accumulate spiketimes across trials, for psth...
+        for dindex=1:Out.numdurs; % Hardcoded.
+            for aindex=[Out.numamps:-1:1]
+                for sourcefileidx=1:Out.numsourcefiles
+                    
+                    % on
+                    spiketimesON=[];
+                    for rep=1:Out.nrepsON(sourcefileidx, aindex, dindex)
+                        spiketimesON=[spiketimesON Out.M1ON(sourcefileidx, aindex, dindex, rep).spiketimes];
+                    end
+                    Out.mM1ON(sourcefileidx, aindex, dindex).spiketimes=spiketimesON;
+                    
+                    % off
+                    spiketimesOFF=[];
+                    for rep=1:Out.nrepsOFF(sourcefileidx, aindex, dindex)
+                        spiketimesOFF=[spiketimesOFF Out.M1OFF(sourcefileidx, aindex, dindex, rep).spiketimes];
+                    end
+                    Out.mM1OFF(sourcefileidx, aindex, dindex).spiketimes=spiketimesOFF;
+                end
+            end
+        end
         
         combinedoutfilename='out_combined_SpeechContext.mat';
         
@@ -368,10 +411,10 @@ cd(targetdir)
 waitbar(.9, wb, 'saving combined outfile...')
 fprintf('\nsaving combined outfile...')
 out=Out;
-save(combinedoutfilename, 'out')
+save(combinedoutfilename, 'out', '-v7.3')
 close(wb)
 fprintf('\nsaved %s in directory %s', combinedoutfilename, targetdir)
-
+fprintf('\n')
 
 
 %include a field in the outfile saying which outfiles are in it

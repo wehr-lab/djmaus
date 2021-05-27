@@ -319,7 +319,7 @@ switch experiment_type
             Out.nreps_ssON = Out.nreps_ssON + Out_components(i).out.nreps_ssON;
             Out.nreps_ssOFF = Out.nreps_ssOFF + Out_components(i).out.nreps_ssOFF;
             Out.datadirs{i} =  Out_components(i).out.datadir;
-            Out.nb.notes = Out.nb.notes + Out_components(i).out.nb.notes;
+%             Out.nb.notes = Out.nb.notes + Out_components(i).out.nb.notes;
             Out.nb.datapaths{i} =  Out_components(i).out.nb.datapath;
             Out.nb.activedirs{i} = Out.nb.activedir + Out_components(i).out.nb.activedir;
             Out.stimlogs{i} =  Out_components(i).out.stimlog;
@@ -345,11 +345,11 @@ switch experiment_type
                     end
                 end
             end
-            Out.M1OFFLaser(:,:,:,start:stop,:)=Out_components(i).out.M1OFFLaser;
-            Out.M1OFFStim(:,:,:,start:stop,:)=Out_components(i).out.M1OFFStim;
+              Out.M1OFFLaser(:,:,:,start:stop,:)=Out_components(i).out.M1OFFLaser;
+              Out.M1OFFStim(:,:,:,start:stop,:)=Out_components(i).out.M1OFFStim;
         end
-        Out.mM1OFFLaser(:,:,1:Out.numdurs,:)=nanmean(Out.M1OFFLaser, 4);
-        Out.mM1OFFStim(:,:,1:Out.numdurs,:)=nanmean(Out.M1OFFStim, 4);
+          Out.mM1OFFLaser(:,:,1:Out.numdurs,:)=nanmean(Out.M1OFFLaser, 4);
+          Out.mM1OFFStim(:,:,1:Out.numdurs,:)=nanmean(Out.M1OFFStim, 4);
         
         
         %repeat for ON

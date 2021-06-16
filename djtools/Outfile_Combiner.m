@@ -258,10 +258,14 @@ switch experiment_type
         for i=1:P.numoutfiles
             amps(i,:)=Out_components(i).out.amps;
             durs(i,:)=Out_components(i).out.durs;
+            cellnum(i,:)=Out_components(i).out.cell;
         end
         % situation 1: all outfiles have the same params
         if size(unique(amps, 'rows'), 1)~=1
             error('amps of outfiles don''t match')
+        end
+        if size(unique(cellnum, 'rows'), 1)~=1
+            error('cell ids of outfiles don''t match')
         end
         
         %now that we've verified that all parameters are the same, we can just use one of them
@@ -331,52 +335,60 @@ switch experiment_type
         Out.M1OFFLaser=nan(sz);
         Out.M1OFFStim=nan(sz);
         
+        r_cum=0;
         for i=1:P.numoutfiles
             nr=max(Out_components(i).out.nrepsOFF(:));
-            start=1+(i-1)*nr;
-            stop=nr*i;
-            for aindex=[Out.numamps:-1:1]
-                for sourcefileindex=1:Out.numsourcefiles
-                    for dindex=1:Out.numdurs
-                        for r=[1:nr; start:stop] %indexing both original reps and block reps
-                            st=Out_components(i).out.M1OFF(sourcefileindex, aindex, dindex, r(1)).spiketimes;
-                            Out.M1OFF(sourcefileindex, aindex, dindex, r(2)).spiketimes=st;
-                        end
+         
+                r_blockstart=r_cum; %start rep -1 for this block 
+                r_blocks(i,:)=[r_blockstart+1, r_blockstart+nr]; %start and stop reps for this block
+            for r=1:nr %indexing reps
+                r_cum=r_cum+1;
+                for aindex=[Out.numamps:-1:1]
+                    for sourcefileindex=1:Out.numsourcefiles
+                        for dindex=1:Out.numdurs
+                            st=Out_components(i).out.M1OFF(sourcefileindex, aindex, dindex, r).spiketimes;
+                            Out.M1OFF(sourcefileindex, aindex, dindex, r_cum).spiketimes=st;
+                             
+%                             fprintf('\ni%d a%d d%d s%d nr%d r%d r_cum%d r_blocks%d-%d', i, aindex, dindex, sourcefileindex, nr, r, r_cum, r_blocks(i,:))
+                                end
                     end
                 end
             end
-              Out.M1OFFLaser(:,:,:,start:stop,:)=Out_components(i).out.M1OFFLaser;
-              Out.M1OFFStim(:,:,:,start:stop,:)=Out_components(i).out.M1OFFStim;
+             Out.M1OFFLaser(:,:,:,r_blocks(i,1):r_blocks(i, 2),:)=Out_components(i).out.M1OFFLaser;
+             Out.M1OFFStim(:,:,:,r_blocks(i,1):r_blocks(i, 2),:)=Out_components(i).out.M1OFFStim;
         end
-          Out.mM1OFFLaser(:,:,1:Out.numdurs,:)=nanmean(Out.M1OFFLaser, 4);
-          Out.mM1OFFStim(:,:,1:Out.numdurs,:)=nanmean(Out.M1OFFStim, 4);
+        Out.mM1OFFLaser(:,:,1:Out.numdurs,:)=nanmean(Out.M1OFFLaser, 5);
+        Out.mM1OFFStim(:,:,1:Out.numdurs,:)=nanmean(Out.M1OFFStim, 5);
         
         
         %repeat for ON
         sz=size(Out_components(i).out.M1ONLaser);
         Out.M1ONLaser=nan(sz);
         Out.M1ONStim=nan(sz);
-        
+        r_cum=0;
         for i=1:P.numoutfiles
             nr=max(Out_components(i).out.nrepsON(:));
-            start=1+(i-1)*nr;
-            stop=nr*i;
-            for aindex=[Out.numamps:-1:1]
-                for sourcefileindex=1:Out.numsourcefiles
-                    for dindex=1:Out.numdurs
-                        for r=[1:nr; start:stop] %indexing both original reps and block reps
-                            st=Out_components(i).out.M1ON(sourcefileindex, aindex, dindex, r(1)).spiketimes;
-                            Out.M1ON(sourcefileindex, aindex, dindex, r(2)).spiketimes=st;
+        
+                r_blockstart=r_cum; %start rep -1 for this block 
+                r_blocks(i,:)=[r_blockstart+1, r_blockstart+nr]; %start and stop reps for this block
+            for r=1:nr %indexing reps
+                r_cum=r_cum+1;
+                for aindex=[Out.numamps:-1:1]
+                    for sourcefileindex=1:Out.numsourcefiles
+                        for dindex=1:Out.numdurs
+                            st=Out_components(i).out.M1ON(sourcefileindex, aindex, dindex, r).spiketimes;
+                            Out.M1ON(sourcefileindex, aindex, dindex, r_cum).spiketimes=st;
+
                         end
                     end
                 end
             end
-            Out.M1ONLaser(:,:,:,start:stop,:)=Out_components(i).out.M1ONLaser;
-            Out.M1ONStim(:,:,:,start:stop,:)=Out_components(i).out.M1ONStim;
+            Out.M1ONLaser(:,:,:,r_blocks(i,1):r_blocks(i, 2),:)=Out_components(i).out.M1ONLaser;
+            Out.M1ONStim(:,:,:,r_blocks(i,1):r_blocks(i, 2),:)=Out_components(i).out.M1ONStim;
         end
         if ~isempty(Out.M1ONLaser) %don't bother if there are no laser trials
-            Out.mM1ONLaser(:,:,1:Out.numdurs,:)=nanmean(Out.M1ONLaser, 4);
-            Out.mM1ONStim(:,:,1:Out.numdurs,:)=nanmean(Out.M1ONStim, 4);
+            Out.mM1ONLaser(:,:,1:Out.numdurs,:)=nanmean(Out.M1ONLaser, 5);
+            Out.mM1ONStim(:,:,1:Out.numdurs,:)=nanmean(Out.M1ONStim, 5);
         end
         
         % Accumulate spiketimes across trials, for psth...
@@ -401,7 +413,7 @@ switch experiment_type
             end
         end
         
-        combinedoutfilename='out_combined_SpeechContext.mat';
+        combinedoutfilename=sprintf('outPSTH_combined_ch%dc%d.mat', Out.tetrode, Out.cell);
         
         
 end %switch experiment type

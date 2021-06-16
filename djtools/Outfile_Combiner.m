@@ -13,6 +13,12 @@ function Outfile_Combiner(varargin)
 % current version only allows outfiles with identical
 % frequencies/amplitudes, but in the future we can revise it to combine
 % outfiles with different parameters.
+%
+%You can also run without the GUI by passing a filelist. This should be a
+%cell array of absolute filenames (including path) passed as the first
+%argument. In this case, you can (optionally) include the destination
+%directory for the combined outfile as the second argument (defaults to
+%current directory)
 
 
 global P
@@ -39,6 +45,23 @@ switch action
         CreateNewOutfile
     case 'BrowseAndAdd'
         BrowseAndAdd
+    otherwise
+        %assume varargin{1} is a cell array of filenames
+        P.outfilelist=varargin{1};
+        fprintf('\nusing passed list of outfiles:')
+        fprintf('\n%s', P.outfilelist)
+        P.numoutfiles=length(P.outfilelist);
+        for i=1:P.numoutfiles
+            P.dirlist{i}='/'; 
+        end
+        if nargin==2
+        %assume varargin{2} is the target directory
+        P.targetdir=varargin{2};
+        else
+            P.targetdir=pwd;
+        end
+        fprintf('\nusing %s as targetdir', P.targetdir)
+
 end
 
 
@@ -48,8 +71,11 @@ fprintf('\nloading and combining outfiles...');
 wb=waitbar(0,'loading and combining outfiles...');
 sortedoutfilelist=sort (P.outfilelist);
 sorteddirlist=sort (P.dirlist);
-targetdir=sorteddirlist{1};
-
+if isfield(P, 'targetdir')
+    targetdir=P.targetdir;
+else
+    targetdir=sorteddirlist{1};
+end
 Out.dirlist=sorteddirlist;
 Out.targetdir=sorteddirlist{1};
 Out.generated_by=mfilename;

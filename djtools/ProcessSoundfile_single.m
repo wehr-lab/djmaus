@@ -660,6 +660,9 @@ catch
     out.user='unknown';
 end
 %out.t_filename=filename;
+out.generated_by=mfilename;
+out.generated_on=datestr(now);
+
 outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
 save (outfilename, 'out','-v7.3')
 

@@ -362,7 +362,7 @@ switch experiment_type
         end
         
         %pre-allocate
-        if exist(Out_components(i).out.M1OFFLaser) == 1
+        if exist('Out_components(i).out.M1OFFLaser', 'var') == 1
             sz=size(Out_components(i).out.M1OFFLaser);
             Out.M1OFFLaser=nan(sz);
             Out.M1OFFStim=nan(sz);

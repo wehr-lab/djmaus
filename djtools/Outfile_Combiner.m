@@ -328,15 +328,15 @@ switch experiment_type
         Out.samprate=Out_components(1).out.samprate;
         Out.IL=Out_components(1).out.IL;
         Out.xlimits=Out_components(1).out.xlimits;
-         if size(Out_components(1).out.nrepsOFF)~=[Out.numfreqs Out.numamps]
-             error('nreps is not numfreqs x numamps')
-         end
-        
         Out.nreps=Out_components(1).out.nreps;
         Out.nrepsON=Out_components(1).out.nrepsON;
         Out.nrepsOFF=Out_components(1).out.nrepsOFF;
         Out.nreps_ssON=Out_components(1).out.nreps_ssON;
         Out.nreps_ssOFF=Out_components(1).out.nreps_ssOFF;
+        if size(Out_components(1).out.nrepsOFF, 2) ~= Out.numdurs || size(Out_components(1).out.nrepsOFF, 2) ~= Out.numamps
+            error('nreps is not numdurs x numamps')
+        end
+        
         Out.datadir=Out_components(1).out.datadir;
         Out.datadirs{1}=Out_components(1).out.datadir;
         Out.nb.notes = Out_components(1).out.nb.notes;
@@ -362,9 +362,13 @@ switch experiment_type
         end
         
         %pre-allocate
-        sz=size(Out_components(i).out.M1OFFLaser);
-        Out.M1OFFLaser=nan(sz);
-        Out.M1OFFStim=nan(sz);
+        if exist(Out_components(i).out.M1OFFLaser) == 1
+            sz=size(Out_components(i).out.M1OFFLaser);
+            Out.M1OFFLaser=nan(sz);
+            Out.M1OFFStim=nan(sz);
+        else
+        end
+        % Added conditional statement for preallocation because some outfiles do not have out.M1OFFLaser (?) - SFM 8/6/21
         
         r_cum=0;
         for i=1:P.numoutfiles

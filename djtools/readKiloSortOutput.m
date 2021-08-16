@@ -18,6 +18,8 @@ masterdir=dirs{1};
 catch
  masterdir = pwd;
 end
+if ismac masterdir=macifypath(masterdir);end
+
 currentdir=pwd; %remember which directory you are in now
 currentdir_indx=find(strcmp(currentdir, dirs)==1); %which dir are we trying to plot?
 if currentdir_indx==0
@@ -38,6 +40,8 @@ elseif cg==2
     qual='good';
 elseif cg==3
     qual='unassigned';
+else
+    qual='could not determine';
 end
 
 fprintf('\nthis cell was saved as %s cluster', qual);
@@ -47,10 +51,12 @@ spiketimes=sp.st(sp.clu==cell_ID); % in seconds, start at 0
 
 try
     load('RecLengths.mat')
+    L=recLengths/sampleRate;
 catch
     % load rez, which contains number of samples of each recording 1=1, 2=1+2,
     % 3=1+2+3, etc
     load('rez.mat')
+    
     L=(rez.ops.recLength)/sampleRate;
     save('RecLengths.mat','L')
 end

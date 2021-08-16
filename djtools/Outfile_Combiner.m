@@ -13,19 +13,28 @@ function Outfile_Combiner(varargin)
 % current version only allows outfiles with identical
 % frequencies/amplitudes, but in the future we can revise it to combine
 % outfiles with different parameters.
+%
+%You can also run without the GUI by passing a filelist. This should be a
+%cell array of absolute filenames (including path) passed as the first
+%argument. In this case, you can (optionally) include the destination
+%directory for the combined outfile as the second argument (defaults to
+%current directory)
 
 
 global P
 
 if nargin > 0
-    action = varargin{1};
+    if  iscell(varargin{1})
+        action='outfilelist'; %run without the GUI by passing a filelist
+    else
+        action=varargin{1};
+    end
 else
     action = get(gcbo,'tag');
 end
 if isempty(action)
     action='Init';
 end
-
 
 switch action
     case 'Init'
@@ -39,6 +48,25 @@ switch action
         CreateNewOutfile
     case 'BrowseAndAdd'
         BrowseAndAdd
+    case 'outfilelist'
+        %assume varargin{1} is a cell array of filenames
+        P.outfilelist=varargin{1};
+        fprintf('\nusing passed list of outfiles:')
+        fprintf('\n%s', P.outfilelist{:})
+        P.numoutfiles=length(P.outfilelist);
+        for i=1:P.numoutfiles
+            P.dirlist{i}='/'; 
+        end
+        if nargin==2
+            %assume varargin{2} is the target directory
+            P.targetdir=varargin{2};
+        else
+            P.targetdir=pwd;
+        end
+        fprintf('\nusing %s as targetdir', P.targetdir)
+        CreateNewOutfile
+    otherwise
+        error('unrecognized action')
 end
 
 
@@ -48,12 +76,16 @@ fprintf('\nloading and combining outfiles...');
 wb=waitbar(0,'loading and combining outfiles...');
 sortedoutfilelist=sort (P.outfilelist);
 sorteddirlist=sort (P.dirlist);
-targetdir=sorteddirlist{1};
-
+if isfield(P, 'targetdir')
+    targetdir=P.targetdir;
+else
+    targetdir=sorteddirlist{1};
+end
 Out.dirlist=sorteddirlist;
 Out.targetdir=sorteddirlist{1};
 Out.generated_by=mfilename;
 Out.generated_on=datestr(now);
+Out.outfilelist=sortedoutfilelist;
 
 for i=1:P.numoutfiles
     fprintf('.')
@@ -72,6 +104,10 @@ if isfield(Out_components(i).out, 'freqs') & ...
 elseif isfield(Out_components(i).out, 'gapdurs') & ...
         isfield(Out_components(i).out, 'PeakON')
     experiment_type = 'GPIASbehavior';
+elseif isfield(Out_components(i).out, 'amps') & ...
+        isfield(Out_components(i).out, 'durs') & ...
+        isfield(Out_components(i).out, 'sourcefiles')
+    experiment_type = 'SpeechContext';
 else
     error('did not find the expected fields in outfile')
 end
@@ -249,6 +285,172 @@ switch experiment_type
         
         combinedoutfilename='outGPIAS_Behavior_combined.mat';
         
+    case 'SpeechContext'
+        for i=1:P.numoutfiles
+            amps(i,:)=Out_components(i).out.amps;
+            durs(i,:)=Out_components(i).out.durs;
+            cellnum(i,:)=Out_components(i).out.cell;
+        end
+        % situation 1: all outfiles have the same params
+        if size(unique(amps, 'rows'), 1)~=1
+            error('amps of outfiles don''t match')
+        end
+        if size(unique(cellnum, 'rows'), 1)~=1
+            error('cell ids of outfiles don''t match')
+        end
+        
+        %now that we've verified that all parameters are the same, we can just use one of them
+        Out.IL=Out_components(1).out.IL;
+        Out.amps=Out_components(1).out.amps;
+        Out.numamps=Out_components(1).out.numamps;
+        Out.durs=Out_components(1).out.durs;
+        Out.numdurs=Out_components(1).out.numdurs;
+        Out.Nclusters=Out_components(1).out.Nclusters;
+        Out.tetrode=Out_components(1).out.tetrode;
+        Out.channel=Out_components(1).out.channel;
+        Out.cluster=Out_components(1).out.cluster;
+        Out.cell=Out_components(1).out.cell;
+        Out.sourcefiles=Out_components(1).out.sourcefiles;
+        Out.numsourcefiles=Out_components(1).out.numsourcefiles;
+        Out.SilentSoundOFFStim=Out_components(1).out.SilentSoundOFFStim;
+        Out.SilentSoundOFFLaser=Out_components(1).out.SilentSoundOFFLaser;
+        Out.LaserRecorded=Out_components(1).out.LaserRecorded;
+        Out.StimRecorded=Out_components(1).out.StimRecorded;
+        
+        Out.nb.user=Out_components(1).out.nb.user;
+        Out.nb.mouseID=Out_components(1).out.nb.mouseID;
+        Out.nb.Depth=Out_components(1).out.nb.Depth;
+        Out.nb.mouseDOB=Out_components(1).out.nb.mouseDOB;
+        Out.nb.mouseSex=Out_components(1).out.nb.mouseSex;
+        Out.nb.mouseGenotype=Out_components(1).out.nb.mouseGenotype;
+        
+        
+        Out.samprate=Out_components(1).out.samprate;
+        Out.IL=Out_components(1).out.IL;
+        Out.xlimits=Out_components(1).out.xlimits;
+        Out.nreps=Out_components(1).out.nreps;
+        Out.nrepsON=Out_components(1).out.nrepsON;
+        Out.nrepsOFF=Out_components(1).out.nrepsOFF;
+        Out.nreps_ssON=Out_components(1).out.nreps_ssON;
+        Out.nreps_ssOFF=Out_components(1).out.nreps_ssOFF;
+        if size(Out_components(1).out.nrepsOFF, 2) ~= Out.numdurs || size(Out_components(1).out.nrepsOFF, 2) ~= Out.numamps
+            error('nreps is not numdurs x numamps')
+        end
+        
+        Out.datadir=Out_components(1).out.datadir;
+        Out.datadirs{1}=Out_components(1).out.datadir;
+        Out.nb.notes = Out_components(1).out.nb.notes;
+        Out.nb.datapath = Out_components(1).out.nb.datapath;
+        Out.nb.datapaths{1} = Out_components(1).out.nb.datapath;
+        Out.nb.activedir = Out_components(1).out.nb.activedir;
+        Out.nb.activedirs{1} = Out_components(1).out.nb.activedir;
+        Out.stimlog=Out_components(1).out.stimlog;
+        Out.stimlogs{1}=Out_components(1).out.stimlog;
+        for i=2:P.numoutfiles
+            Out.nreps = Out.nreps + Out_components(i).out.nreps;
+            Out.nrepsON = Out.nrepsON + Out_components(i).out.nrepsON;
+            Out.nrepsOFF = Out.nrepsOFF + Out_components(i).out.nrepsOFF;
+            
+            Out.nreps_ssON = Out.nreps_ssON + Out_components(i).out.nreps_ssON;
+            Out.nreps_ssOFF = Out.nreps_ssOFF + Out_components(i).out.nreps_ssOFF;
+            Out.datadirs{i} =  Out_components(i).out.datadir;
+%             Out.nb.notes = Out.nb.notes + Out_components(i).out.nb.notes;
+            Out.nb.datapaths{i} =  Out_components(i).out.nb.datapath;
+            Out.nb.activedirs{i} = Out.nb.activedir + Out_components(i).out.nb.activedir;
+            Out.stimlogs{i} =  Out_components(i).out.stimlog;
+            
+        end
+        
+        %pre-allocate
+        if exist('Out_components(i).out.M1OFFLaser', 'var') == 1
+            sz=size(Out_components(i).out.M1OFFLaser);
+            Out.M1OFFLaser=nan(sz);
+            Out.M1OFFStim=nan(sz);
+        else
+        end
+        % Added conditional statement for preallocation because some outfiles do not have out.M1OFFLaser (?) - SFM 8/6/21
+        
+        r_cum=0;
+        for i=1:P.numoutfiles
+            nr=max(Out_components(i).out.nrepsOFF(:));
+         
+                r_blockstart=r_cum; %start rep -1 for this block 
+                r_blocks(i,:)=[r_blockstart+1, r_blockstart+nr]; %start and stop reps for this block
+            for r=1:nr %indexing reps
+                r_cum=r_cum+1;
+                for aindex=[Out.numamps:-1:1]
+                    for sourcefileindex=1:Out.numsourcefiles
+                        for dindex=1:Out.numdurs
+                            st=Out_components(i).out.M1OFF(sourcefileindex, aindex, dindex, r).spiketimes;
+                            Out.M1OFF(sourcefileindex, aindex, dindex, r_cum).spiketimes=st;
+                             
+%                             fprintf('\ni%d a%d d%d s%d nr%d r%d r_cum%d r_blocks%d-%d', i, aindex, dindex, sourcefileindex, nr, r, r_cum, r_blocks(i,:))
+                        end
+                    end
+                end
+            end
+             Out.M1OFFLaser(:,:,:,r_blocks(i,1):r_blocks(i, 2),:)=Out_components(i).out.M1OFFLaser;
+             Out.M1OFFStim(:,:,:,r_blocks(i,1):r_blocks(i, 2),:)=Out_components(i).out.M1OFFStim;
+        end
+        Out.mM1OFFLaser(:,:,1:Out.numdurs,:)=nanmean(Out.M1OFFLaser, 5);
+        Out.mM1OFFStim(:,:,1:Out.numdurs,:)=nanmean(Out.M1OFFStim, 5);
+        
+        
+        %repeat for ON
+        sz=size(Out_components(i).out.M1ONLaser);
+        Out.M1ONLaser=nan(sz);
+        Out.M1ONStim=nan(sz);
+        r_cum=0;
+        for i=1:P.numoutfiles
+            nr=max(Out_components(i).out.nrepsON(:));
+        
+                r_blockstart=r_cum; %start rep -1 for this block 
+                r_blocks(i,:)=[r_blockstart+1, r_blockstart+nr]; %start and stop reps for this block
+            for r=1:nr %indexing reps
+                r_cum=r_cum+1;
+                for aindex=[Out.numamps:-1:1]
+                    for sourcefileindex=1:Out.numsourcefiles
+                        for dindex=1:Out.numdurs
+                            st=Out_components(i).out.M1ON(sourcefileindex, aindex, dindex, r).spiketimes;
+                            Out.M1ON(sourcefileindex, aindex, dindex, r_cum).spiketimes=st;
+
+                        end
+                    end
+                end
+            end
+            Out.M1ONLaser(:,:,:,r_blocks(i,1):r_blocks(i, 2),:)=Out_components(i).out.M1ONLaser;
+            Out.M1ONStim(:,:,:,r_blocks(i,1):r_blocks(i, 2),:)=Out_components(i).out.M1ONStim;
+        end
+        if ~isempty(Out.M1ONLaser) %don't bother if there are no laser trials
+            Out.mM1ONLaser(:,:,1:Out.numdurs,:)=nanmean(Out.M1ONLaser, 5);
+            Out.mM1ONStim(:,:,1:Out.numdurs,:)=nanmean(Out.M1ONStim, 5);
+        end
+        
+        % Accumulate spiketimes across trials, for psth...
+        for dindex=1:Out.numdurs; % Hardcoded.
+            for aindex=[Out.numamps:-1:1]
+                for sourcefileidx=1:Out.numsourcefiles
+                    
+                    % on
+                    spiketimesON=[];
+                    for rep=1:Out.nrepsON(sourcefileidx, aindex, dindex)
+                        spiketimesON=[spiketimesON Out.M1ON(sourcefileidx, aindex, dindex, rep).spiketimes];
+                    end
+                    Out.mM1ON(sourcefileidx, aindex, dindex).spiketimes=spiketimesON;
+                    
+                    % off
+                    spiketimesOFF=[];
+                    for rep=1:Out.nrepsOFF(sourcefileidx, aindex, dindex)
+                        spiketimesOFF=[spiketimesOFF Out.M1OFF(sourcefileidx, aindex, dindex, rep).spiketimes];
+                    end
+                    Out.mM1OFF(sourcefileidx, aindex, dindex).spiketimes=spiketimesOFF;
+                end
+            end
+        end
+        
+        combinedoutfilename=sprintf('outPSTH_combined_ch%dc%d.mat', Out.tetrode, Out.cell);
+        
+        
 end %switch experiment type
 
 
@@ -256,10 +458,10 @@ cd(targetdir)
 waitbar(.9, wb, 'saving combined outfile...')
 fprintf('\nsaving combined outfile...')
 out=Out;
-save(combinedoutfilename, 'out')
+save(combinedoutfilename, 'out', '-v7.3')
 close(wb)
 fprintf('\nsaved %s in directory %s', combinedoutfilename, targetdir)
-
+fprintf('\n')
 
 
 %include a field in the outfile saying which outfiles are in it

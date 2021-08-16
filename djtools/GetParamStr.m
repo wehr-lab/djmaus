@@ -15,6 +15,11 @@ end
 
 paramstr=strrep(paramstr, 'VarLaser', 'VL');
 if length(paramstr)>255
+    switch stimulus.type
+        case 'soundfile'
+                warning('param string truncated at 255 characters')
+        otherwise
     error('param string is too long. Ask Mike for help')
+    end
 end
 

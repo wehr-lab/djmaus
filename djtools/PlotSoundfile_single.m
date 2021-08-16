@@ -33,26 +33,31 @@ catch
     binwidth=5;
 end
 
-%Nick addition 8/31/18 - accomodates kilosort input
-if ischar(t_filename)
-    [p,f,ext]=fileparts(t_filename);
-    split=strsplit(f, '_');
-    ch=strsplit(split{1}, 'ch');
-    channel=str2num(ch{2});
-    clust=str2num(split{end});
-else %reads kilosort input, which is [clust, channel, cellnum]
-    channel=t_filename(1,2);
-    clust=t_filename(1,1);
-end
-%end of Nick addition 8/31/18.
-
 if force_reprocess
     fprintf('\nForce re-process\n')
     ProcessSoundfile_single(datadir,  t_filename, xlimits, ylimits);
 end
 
-outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
-fprintf('\nchannel %d, cluster %d', channel, clust)
+if ischar(varargin{2}) & strfind(varargin{2}, 'outPSTH')
+    outfilename=varargin{2};
+else
+    %Nick addition 8/31/18 - accomodates kilosort input
+    if ischar(t_filename)
+        [p,f,ext]=fileparts(t_filename);
+        split=strsplit(f, '_');
+        ch=strsplit(split{1}, 'ch');
+        channel=str2num(ch{2});
+        clust=str2num(split{end});
+    else %reads kilosort input, which is [clust, channel, cellnum]
+        channel=t_filename(1,2);
+        clust=t_filename(1,1);
+    end
+    %end of Nick addition 8/31/18.
+    
+    outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
+    fprintf('\nchannel %d, cluster %d', channel, clust)
+end
+
 fprintf('\n%s', t_filename)
 fprintf('\n%s', outfilename)
 
@@ -103,6 +108,8 @@ try
     LaserWidth=out.LaserWidth;
     LaserNumPulses=out.LaserNumPulses;
     LaserISI=out.LaserISI;
+    LaserStart=LaserStart(~isnan(LaserStart));
+    LaserWidth=LaserWidth(~isnan(LaserWidth));
 end
 M1ONStim=out.M1ONStim;
 M1ONLaser=out.M1ONLaser; % a crash here means this is an obsolete outfile. Set force_reprocess=1 up at the top of this mfile. (Don't forget to reset it to 0 when you're done)
@@ -198,14 +205,18 @@ for sourcefileindex=1:numsourcefiles
     ylimits2(2)=ylimits(2)+offset;
     ylimits2(2)=2*ylimits(2);
     %             ylim([-2 1.1*(yl(2)+offset)])
-    ylim(ylimits2)
+    try
+        ylim(ylimits2)
+    catch
+        ylim auto
+    end
     
     xlim(xlimits)
     set(gca, 'fontsize', fs)
     %set(gca, 'xticklabel', '')
     %set(gca, 'yticklabel', '')
     if p==1
-        h=title(sprintf('%s: \ntetrode%d cell%d %dms, nreps: %d-%d, OFF',datadir,channel,out.cluster,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
+        h=title(sprintf('%s: \ntetrode%d cell%d %dms, nreps: %d-%d, OFF',datadir,out.channel,out.cluster,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
         set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
     end
 end
@@ -275,8 +286,12 @@ if IL
         
         ylimits2(2)=ylimits(2)+offset;
         ylimits2(2)=2*ylimits(2);
-        ylim(ylimits2)
-        %                 ylim([-2 1.1*(yl(2)+offset)])
+try
+    ylim(ylimits2)
+catch 
+    ylim auto
+end
+%                 ylim([-2 1.1*(yl(2)+offset)])
         
         if 0*LaserRecorded
             for rep=1:nrepsON(sourcefileindex, aindex, dindex)
@@ -290,7 +305,9 @@ if IL
             X=[xlimits(1), LaserStart, LaserStart, LaserStart+LaserWidth, LaserStart+LaserWidth, xlimits(2)];
             height=diff(ylimits)/5;
             Y=[0 0 height height 0 0];
-            line(X,Y, 'color', 'c', 'linewidth', 2)
+           try
+               line(X,Y, 'color', 'c', 'linewidth', 2)
+           end
         end
         %this should plot a cyan line at the unique Laser
         %params - not sure what will happen if not scalar
@@ -307,7 +324,7 @@ if IL
     end
 end
 subplot1(1)
-h=title(sprintf('%s: \ntetrode%d cell%d %dms, nreps: %d-%d, ON',datadir,channel,out.cluster,durs(dindex),min(min(min(nrepsON))),max(max(max(nrepsON)))));
+h=title(sprintf('%s: \ntetrode%d cell%d %dms, nreps: %d-%d, ON',datadir,out.channel,out.cluster,durs(dindex),min(min(min(nrepsON))),max(max(max(nrepsON)))));
 set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
 
 %label amps and freqs

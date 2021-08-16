@@ -43,7 +43,7 @@ if strcmpi(stimuli(1).type,'exper2 stimulus protocol')
         end
         stimuli(i).type=a.type;
         stimuli(i).param=a.param;
-        if isfield(stimuli.param, 'AOPulseOn')
+        if isfield(stimuli(i).param, 'AOPulseOn')
             stimuli(i).param.laser=stimuli(i).param.AOPulseOn;
         end
         stimuli(i).protocol_name=name;

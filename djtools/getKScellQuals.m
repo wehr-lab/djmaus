@@ -2,11 +2,10 @@ function [channel, meanSpikeAmp, stdSpikeAmp, SNR]= getKScellQuals(cellnum);
 
 
 % read cluster ID and group id. 0= noise, 1= MUA, 2= good (single cell)
-[cluster_ID,group_ID]=readClusterGroupsCSV('cluster_groups.csv'); %KS cell IDs and quality group
-cell_ID=cluster_ID(cellnum); %find KS ID for this cell
-
 
 sp = loadKSdir(pwd);
+cell_ID=sp.cids(cellnum); %get Kilosort id
+
 [spikeAmps, spikeDepths, templateYpos, tempAmps, tempsUnW, tempDur, tempPeakWF] = ...
     templatePositionsAmplitudes(sp.temps, sp.winv, sp.ycoords, sp.spikeTemplates(sp.clu==cell_ID), sp.tempScalingAmps(sp.clu==cell_ID));
 

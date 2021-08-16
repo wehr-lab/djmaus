@@ -223,9 +223,7 @@ for N=1:num
     gd=1:numgapdurs;
     if num>1 % calculate %off based on initial startle to 0 
         for p=1:numgapdurs
-            if N==1
-                m1=abs(mPeakOFF(1, paindex)); %first data should be pre session, post sessions will be calculated from that
-            end
+            m1=abs(mPeakOFF(1, paindex)); %first data should be pre session, post sessions will be calculated from that
             m2=abs(mPeakOFF(p, paindex));
             percentGPIAS_OFF(p)=((m1-m2)/m1)*100;
             percentGPIAS_OFF(p)=percentGPIAS_OFF(p)-percentGPIAS_OFF(1);
@@ -353,7 +351,7 @@ for N=1:num
             yticks(fliplr(ticks1))
             yticklabels(fliplr(gapdurs))
             ylabel('gap durations (ms)')
-            legend(lines)
+            %legend(lines)
             plot(zeros(60), -54:5,  'Color', [.5 .5 .5]);
             ylim([-30 5])
             h=gcf;

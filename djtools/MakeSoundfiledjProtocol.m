@@ -15,7 +15,7 @@ function [filename,path]=MakeSoundfiledjProtocol(amplitude, dur, include_whiteno
 % INPUTS:
 % amplitude: in dB SPL. All sounds will be normalized to peak level across all sounds,
 %   then scaled to this amplitude
-% duration (in seconds): how much of the soundfile to use
+% duration (in ms): how much of the soundfile to use
 %   (use [] to default to total duration of the soundfile)
 % include_whitenoise: 0 or 1 to include white noise bursts (at amplitude)
 % interleave_laser: 0 or 1 to duplicate all stimuli and interleave laser
@@ -32,10 +32,10 @@ function [filename,path]=MakeSoundfiledjProtocol(amplitude, dur, include_whiteno
 % ------------------------------------------------------------------------
 %
 % example call: 
-% amp= 80; dur=[]; include_whitenoise= 1; interleave_laser= 0; include_silent_sound= 1; isi= 800; nrepeats= 20;
+% amp= 80; dur=[]; include_whitenoise= 0; interleave_laser= 0; include_silent_sound= 0; isi= 800; nrepeats= 20;
 %MakeSoundfiledjProtocol(amp, dur, include_whitenoise, interleave_laser, include_silent_sound, isi, nrepeats)
 
-
+% seach for 'Kip' for alterations for cricket soundfiles
 
 if nargin==0; fprintf('\nno input');return;end
 [filename_ext, wavpath] = uigetfile( '*', 'please choose source files','MultiSelect','on');
@@ -45,6 +45,10 @@ if isequal(filename_ext,0) || isequal(wavpath,0)
 end
 [descriptname] = inputdlg('Please name the protocol');
 descriptname = char(descriptname);
+if isempty(descriptname)
+    disp('User pressed cancel')
+    return
+end
 
 
 cd(wavpath)
@@ -119,6 +123,7 @@ filename=sprintf('soundfile-%s%s%ddB-%s-%s-%s-isi%dms-%dreps',...
 
 djPrefs
 global pref
+if isempty(pref) djPrefs; end
 cd(pref.stimuli)
 warning off MATLAB:MKDIR:DirectoryExists
 mkdir('Soundfile Protocols')
@@ -137,13 +142,17 @@ for nreps=1:nrepeats
         n=n+1;
         
         [s, Fs]=audioread(fn);
-        s=s(1:durations(i)*Fs); %truncate to requested durations or default to full length
+        s=s(1:round(durations(i)*Fs)); %truncate to requested durations or default to full length
         s=resample(s, pref.SoundFs , Fs); %resample to soundcard samprate
         
         %normalize and set to requested SPL;
-        s=s./max(abs(s));
-        %amplitude=1*(10.^((amp-pref.maxSPL)/20)); %in volts (-1<x<1), i.e. pref.maxSPL=+_1V
-        %s=amplitude.*s;
+        s=s./max(abs(s));        
+        amplitude=1*(10.^((amp-pref.maxSPL)/20)); %in volts (-1<x<1), i.e. pref.maxSPL=+_1V
+        %kip commented out below
+%         if i==1
+%             amplitude = .001;
+%         end
+        s=amplitude.*s;
         
         sample.param.description='soundfile stimulus';
         sample.param.duration=durations(i);
@@ -253,7 +262,12 @@ if n~=TotalNumStim
     error
 end
 
-stimorder=randperm(TotalNumStim); %order of single tone and 2Tone, random
+% Kip: nonRandom for cricket launching (files listed alphabetically, 
+% making 'blank' first
+%stimorder = [2:TotalNumStim 1];
+stimorder = 1:3;
+%stimorder=randperm(TotalNumStim); %order of single tone and 2Tone, random
+
 for n=1:TotalNumStim
     shuffledstimuli(n)=stimuli(stimorder(n));
 end
@@ -261,7 +275,13 @@ stimuli=shuffledstimuli;
 
 
 
+<<<<<<< Updated upstream
 cd(pref.stimuli)
+=======
+%cd('D:\lab\djmaus\stimuli')    % Kip
+cd(pref.stimuli)
+
+>>>>>>> Stashed changes
 cd ('Soundfile Protocols')
 
 path=pwd;

@@ -23,30 +23,30 @@ Laserchannel=3; %filenames and ADClines are both 1-indexed
 % 37 = adc3 laser monitor
 
 if (0)
-%this helpfully prints out all the nodes and their names
-signalchain=settings.SETTINGS.SIGNALCHAIN;
-for i=1:length(signalchain)
-    processors=signalchain{i}.PROCESSOR;
-    for j=1:length(processors)
-        if iscell(processors)
-            fprintf('\n%s: %s',    processors{j}.Attributes.NodeId, processors{j}.Attributes.name)
-        else
-            if length(processors)==1
-                fprintf('\n%s: %s',    processors.Attributes.NodeId, processors.Attributes.name)
-            elseSCT
-                error('wtf')
+    %this helpfully prints out all the nodes and their names
+    signalchain=settings.SETTINGS.SIGNALCHAIN;
+    for i=1:length(signalchain)
+        processors=signalchain{i}.PROCESSOR;
+        for j=1:length(processors)
+            if iscell(processors)
+                fprintf('\n%s: %s',    processors{j}.Attributes.NodeId, processors{j}.Attributes.name)
+            else
+                if length(processors)==1
+                    fprintf('\n%s: %s',    processors.Attributes.NodeId, processors.Attributes.name)
+                else
+                    error('wtf')
+                end
             end
         end
     end
 end
-end
 
-NodeId=[];
 
 %this searches all the nodes to see which has "record" turned on
 %we are looking for the node that has ch37 turned on, which is ADC1 which
 %should be recording the laser
-
+NodeId={};
+node_idx=0;
 signalchain=settings.SETTINGS.SIGNALCHAIN;
 for i=1:length(signalchain)
     processors=signalchain{i}.PROCESSOR;
@@ -56,9 +56,10 @@ for i=1:length(signalchain)
                 channels=processors{j}.CHANNEL;
                 for ch=1:length(channels)
                     if    str2num(channels{ch}.SELECTIONSTATE.Attributes.record)
-                       % fprintf('\n%s: %s ch %s is being recorded',    processors{j}.Attributes.NodeId, processors{j}.Attributes.name, channels{ch}.Attributes.number)
+%                         fprintf('\n%s: %s ch %s is being recorded',    processors{j}.Attributes.NodeId, processors{j}.Attributes.name, channels{ch}.Attributes.number)
                         if  strcmp(channels{ch}.Attributes.number, '37')
-                            NodeId=processors{j}.Attributes.NodeId;
+                            node_idx=node_idx+1;
+                            NodeId{node_idx}=processors{j}.Attributes.NodeId;
                         end
                     end
                 end
@@ -71,7 +72,8 @@ for i=1:length(signalchain)
                     for ch=1:length(channels)
                         if    str2num(channels{ch}.SELECTIONSTATE.Attributes.record)
                             if   strcmp(channels{ch}.Attributes.number, '37')
-                                NodeId=processors.Attributes.NodeId;
+                                node_idx=node_idx+1;
+                                NodeId{node_idx}=processors.Attributes.NodeId;
                             end
                             
                            % fprintf('\n%s: %s ch %s is being recorded',    processors.Attributes.NodeId, processors.Attributes.name, channels{ch}.Attributes.number)
@@ -89,7 +91,9 @@ for i=1:length(signalchain)
     end
 end
 
-filename=sprintf('%s_ADC%d.continuous', NodeId, Laserchannel);
+% If there are multiple NodeIds, we just take the first one (hopefully the rhythm FPGA)
+
+filename=sprintf('%s_ADC%d.continuous', NodeId{1}, Laserchannel);
 absfilename=fullfile(datadir, filename);
 if exist(absfilename,'file')
 fname=filename;

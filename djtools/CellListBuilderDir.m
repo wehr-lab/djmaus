@@ -1,18 +1,13 @@
-function CellListBuilder(varargin)
-% button to add current directory to cell list
-% will automatically scan for clustered tetrode data
-% % gives you a checklist of cells in that directory so you can keep or discard
-% another button that opens a dialog box so you can browse to the desired directory
-% add a checkbox for recursive scan
+function CellListBuilderDir(varargin)
+% modified from CellListBuilder to skip the step of
+% automatically scanning for clustered tetrode data
+% instead this just builds a list of directories 
 %
-% what does it do? It creates/appends a machine readable cell list
-% this will be a text file with each cell, stimuli presented, other
-% stuff.
-% It would be nice to have it formatted in such a way that it can be used
-% to analyze data.
+% what does it do? It creates/appends a machine readable datadir list
+% this will be a text file with each dir you select
+% uses a button to add current directory to a cell list file
 %
-%to append to an existing cell list, we could have a dropdown menu of
-%existing cell lists. Not sure where this would live.
+%
 global P
 
 if nargin > 0
@@ -64,76 +59,75 @@ if fname
     set(P.TargetCellListDisplay, 'string', {'cell list:',path, fname});
     set([P.BrowseAndAddh P.AddCurrentDirh], 'enable', 'on')
 end
+UpdateListDisplay
 
 function AddCurrentDir
-global P
-if get(P.recursive, 'value')
-    d=rdir('*/**.t');
-else
-    d=dir('*.t');
-end
-if isempty(d)
-    h = errordlg('no clustered cells found in this directory.', 'no cells');
-else
-    SelectCells(d)
-end
+    SelectCells(pwd)
+
 
 function SelectCells(d)
 listsize=35;
-if length(d)<=listsize
-    [selection, ok, ClustQual, PVcell]=myCellListDlg(d);
-else %break up into chunks
-    selection=[];  ClustQual=[]; PVcell=[];
-    uiwait(msgbox(sprintf('there are %d cells in this directory, so breaking into %d chunks of %d', length(d), ceil(length(d)/listsize), listsize), 'modal'));
-    for i=1:ceil(length(d)/listsize)
-        range=1+(i-1)*listsize:i*listsize;
-        range=range(range<length(d));
-        [selectionchunk, ok, ClustQualchunk, PVcellchunk]=myCellListDlg(d(range));
-        if ~ok break, end
-        selection=[selection selectionchunk];  ClustQual=[ClustQual ClustQualchunk]; PVcell=[PVcell PVcellchunk];
-    end
-end
 
-if ok
-    WriteToCellList(d(find(selection)), ClustQual(find(selection)), PVcell(find(selection)))
-end
+    WriteToCellList(d)
+
 
 
 function BrowseAndAdd
-d = uigetdir(pwd, 'choose directory to scan')
+d = uigetdir(pwd, 'choose directory to scan');
 if d
     cd(d)
     AddCurrentDir
 end
 
-function WriteToCellList(d, ClustQual, PVcell)
+function WriteToCellList(d)
 global P
 str='';
-for s=1:length(d)
-    str=sprintf('%s\n\ncell',str);
+    str=sprintf('%s\n\ndatadir',str);
     str=sprintf('%s\nPath: %s',str, pwd);
-    str=sprintf('%s\nFilename: %s',str,  d(s).name);
-    str=sprintf('%s\nCluster Quality: %d',str,  ClustQual(s));
-    str=sprintf('%s\nPV cell: %d',str,  PVcell(s));
     
     wd=pwd;
-    [dd, ff]=fileparts(fullfile(pwd,(d(s).name)));
-    cd(dd)
+%     [dd, ff]=fileparts(fullfile(pwd,(d(s).name)));
+%     cd(dd)
     try
         nb=load('notebook.mat');
         %here we can write out any additional stimulus or notebook info we want
-        str=sprintf('%s\n%s',str, nb.stimlog(1).protocol_name);
+        str=sprintf('%s\nStim: %s',str, nb.stimlog(1).protocol_name);
         str=sprintf('%s\n', str);
     end
     cd(wd)
-end
-response=questdlg(str, 'Write selected cells to file?', 'Write', 'Cancel', 'Write');
+
+  
+    
+response=questdlg(str, 'Write this directory to file?', 'Write', 'Cancel', 'Write');
 switch response
     case 'Write'
         fid=fopen(P.TargetCellList, 'a'); %absolute path
         fprintf(fid, '%s', str);
         fclose(fid);
+        UpdateListDisplay
+ 
 end
+
+function UpdateListDisplay
+global P
+if ispc
+    str=sprintf('!type %s', P.TargetCellList');
+elseif ismac
+    str=sprintf('!cat %s', P.TargetCellList');
+end
+set(P.DirListDisplay, 'string', evalc(str));
+
+%resize windows to fit text
+s=get(P.DirListDisplay, 'string');
+numlines=size(s, 1);
+figpos=get(P.fig, 'position');
+boxpos=get(P.DirListDisplay, 'position');
+pixperline=16; %pixels per line scale factor
+boxpos(4)=pixperline*numlines;
+figpos(4)=boxpos(4)+2;
+set(P.fig, 'position',figpos);
+set(P.DirListDisplay, 'position', boxpos);
+
 
 function InitializeGUI
 
@@ -148,14 +142,21 @@ P.fig=fig;
 set(fig,'visible','off');
 set(fig,'visible','off','numbertitle','off','name','cell list builder',...
     'doublebuffer','on','menubar','none','closerequestfcn','CellListBuilder(''Close'')')
-height=220; width=350; e=2; H=e;
+height=220; width=250; e=2; H=e;
+bigwidth=500;
 w=200; h=25;
-set(fig,'pos',[300 300         width         height],'visible','on');
+set(fig,'pos',[300 300         bigwidth         height],'visible','on');
 
 
 %TargetCellList display
 P.TargetCellListDisplay= uicontrol('parent',fig,'string','','tag','TargetCellListDisplay','units','pixels',...
     'position',[e H width-e 2*h],'enable','on',...
+    'fontweight','bold','horiz', 'left',...
+    'style','text');
+
+%Dir List in progress display
+P.DirListDisplay= uicontrol('parent',fig,'string','','tag','TargetCellListDisplay','units','pixels',...
+    'position',[width e bigwidth-e height-e],'enable','on',...
     'fontweight','bold','horiz', 'left',...
     'style','text');
 
@@ -228,7 +229,7 @@ function [selection, ok, ClustQual, PVcell]=myCellListDlg(d)
 global P
 
 fig=figure;
-set(fig, 'pos',[800 150 500 800] )
+set(fig, 'pos',[800 150 720 800] )
 
 selection=[];
 ClustQual=[];
@@ -261,21 +262,21 @@ uicontrol('style', 'text', 'pos', [col1width+col2width, top-linesize, sliderwidt
 uicontrol('style', 'text', 'pos', [col1width+col2width+col3width+col4width, top-linesize, 50, linesize], ...
     'string', 'PV cell?', 'fontsize', fontsize, 'horizontalalign', 'left')    
 
-for i=1:length(d)
-    if ~mod(i,3)
-    u=uipanel('units', 'pixels', 'pos',[ 0,top-(i+2)*linespacing-3, width, 2]); 
-    end
-    cellstr(i)=uicontrol('style', 'text', 'pos',[2, top-(i+2)*linespacing, col1width, linesize],...
-         'horizontalalignment', 'right','fontsize', fontsize,'string', d(i).name); %cell name
-    IncludeCellcheckbox(i)=uicontrol('style', 'checkbox', 'pos', ...
-        [col1width, top-(i+2)*linespacing, 30, linesize], 'value', 1); %include cell checkbox
-    slstr(i)=uicontrol('style', 'text', 'pos', ...
-        [col1width+col2width+col3width+2, top-(i+2)*linespacing, 10, linesize], 'string', 0); %cluster quality numeric indicator
-    sl(i)=uicontrol('style', 'slider', 'pos', [col1width+col2width, top-(i+2)*linespacing, sliderwidth, linesize], ...
-        'min', 0, 'max', 5, 'sliderstep', [.2 .2], 'value', 0, 'callback', {@doSlider, slstr(i)} ); %cluster quality slider
-    pvcheckbox(i)=uicontrol('style', 'checkbox', 'pos', ...
-        [col1width+col2width+col3width+col4width, top-(i+2)*linespacing, 30, linesize]); %pvcheckbox
-end
+% for i=1:length(d)
+%     if ~mod(i,3)
+%     u=uipanel('units', 'pixels', 'pos',[ 0,top-(i+2)*linespacing-3, width, 2]); 
+%     end
+%     cellstr(i)=uicontrol('style', 'text', 'pos',[2, top-(i+2)*linespacing, col1width, linesize],...
+%          'horizontalalignment', 'right','fontsize', fontsize,'string', d(i).name); %cell name
+%     IncludeCellcheckbox(i)=uicontrol('style', 'checkbox', 'pos', ...
+%         [col1width, top-(i+2)*linespacing, 30, linesize], 'value', 1); %include cell checkbox
+%     slstr(i)=uicontrol('style', 'text', 'pos', ...
+%         [col1width+col2width+col3width+2, top-(i+2)*linespacing, 10, linesize], 'string', 0); %cluster quality numeric indicator
+%     sl(i)=uicontrol('style', 'slider', 'pos', [col1width+col2width, top-(i+2)*linespacing, sliderwidth, linesize], ...
+%         'min', 0, 'max', 5, 'sliderstep', [.2 .2], 'value', 0, 'callback', {@doSlider, slstr(i)} ); %cluster quality slider
+%     pvcheckbox(i)=uicontrol('style', 'checkbox', 'pos', ...
+%         [col1width+col2width+col3width+col4width, top-(i+2)*linespacing, 30, linesize]); %pvcheckbox
+% end
 
 ok_btn = uicontrol('Style','pushbutton',...
     'String','OK',...

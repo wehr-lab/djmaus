@@ -41,11 +41,12 @@ if (0)
     end
 end
 
-NodeId=[];
 
 %this searches all the nodes to see which has "record" turned on
 %we are looking for the node that has ch35 turned on, which is ADC1 which
 %should be recording the soundcardtriggers
+NodeId={};
+node_idx=0;
 
 signalchain=settings.SETTINGS.SIGNALCHAIN;
 for i=1:length(signalchain)
@@ -59,7 +60,8 @@ for i=1:length(signalchain)
                     if    str2num(channels{ch}.SELECTIONSTATE.Attributes.record)
                         %fprintf('\n%s: %s ch %s is being recorded',    processors{j}.Attributes.NodeId, processors{j}.Attributes.name, channels{ch}.Attributes.number)
                         if  strcmp(channels{ch}.Attributes.number, '35')
-                            NodeId=processors{j}.Attributes.NodeId;
+                            node_idx=node_idx+1;
+                            NodeId{node_idx}=processors{j}.Attributes.NodeId;
                         end
                     end
                 end
@@ -73,7 +75,8 @@ for i=1:length(signalchain)
                         if    str2num(channels{ch}.SELECTIONSTATE.Attributes.record)
                             %fprintf('\n%s: %s ch %s is being recorded',    processors.Attributes.NodeId, processors.Attributes.name, channels{ch}.Attributes.number)
                             if   strcmp(channels{ch}.Attributes.number, '35')
-                                NodeId=processors.Attributes.NodeId;
+                                node_idx=node_idx+1;
+                                NodeId{node_idx}=processors.Attributes.NodeId;
                             end
                             %  don't bother, this is the network events
                             %except that on Rig 2 as of Aug 30, 2017, it's FPGA, so we need
@@ -88,8 +91,10 @@ for i=1:length(signalchain)
         end
     end
 end
+% If there are multiple NodeIds, we just take the first one (hopefully the rhythm FPGA)
 
-filename=sprintf('%s_ADC%d.continuous', NodeId, stimchannel);
+
+filename=sprintf('%s_ADC%d.continuous', NodeId{1}, stimchannel);
 absfilename=fullfile(datadir, filename);
 if exist(absfilename,'file')
 fname=filename;

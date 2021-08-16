@@ -97,6 +97,8 @@ function StandaloneCalibrateSpeaker_OpeningFcn(hObject, eventdata, handles, vara
 
 % Choose default command line output for StandaloneCalibrateSpeaker
 handles.output = hObject;
+%%%% KLUGE Kip 11/2020
+handles.OutputCh.Value=3;
 
 % Update handles structure
 guidata(hObject, handles);

@@ -22,13 +22,14 @@ mex -setup C++
 
 % it helps to execute this from within the directory
 % cd('C:\Users\WehrLab\Documents\GitHub\djmaus') % rig3
+% cd 'D:\lab\djmaus'    % rig4
 djhome
 
 %Where is the plugin-GUI folder?
 %GUIfolder = 'C:\Users\WehrLab\Documents\GitHub\plugin-GUI'; %wehrrig3
 %GUIfolder = '\\wehrrig2b\c\lab\plugin-GUI' %rig2
-GUIfolder = 'C:\lab\plugin-GUI'; %wehrrig2b
-
+%GUIfolder = 'C:\lab\plugin-GUI'; %wehrrig2b
+GUIfolder = 'C:\Users\Wehrlab\Documents\GitHub\plugin-GUI';     %rig4
 
 headerFolder = [GUIfolder, '\Resources\windows-libs\ZeroMQ\include'];% for compiled version of OE
 

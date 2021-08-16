@@ -56,6 +56,7 @@ switch action
         clear djTimer
         PPAdj('close')
         zeroMQwrapper('CloseThread',SP.zhandle);
+        pause(0.2)
         delete(SP.fig)
         clear global SP
         fprintf('\nbye\n')
@@ -565,7 +566,7 @@ else
     fclose(fid);
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function LoadProtocol
+function LoadProtocol(varargin)
 %adding capability to push files programatically
 %call dj('load', 'fullfilename')
 %where fullfilename includes the absolute path (e.g. 'D:\lab\exper2.2\protocols\Tuning Curve protocols\tuning-curve-tones-20f_1000-20000Hz-1a_80-80dB-1d_400ms-isi500ms.mat'
@@ -655,7 +656,6 @@ else
         SP.NRepeats=0;
         set(SP.Runh, 'enable', 'on','backgroundcolor',[0 0.9 0])
         
-        
     else
         djMessage('Not a valid protocol file');
     end
@@ -687,6 +687,10 @@ end
 PPAdj('playsound')
 UpdateStimlog(stimulus);
 djMessage(stimulus.stimulus_description, 'append');
+status = PsychPortAudio('GetStatus', SP.PPAhandle);
+% if ~status.Active & status.XRuns
+     fprintf('status: %d Xruns: %d\n',status.Active,status.XRuns)
+% end
 
 % figure(100)
 % plot(samples)
@@ -963,7 +967,7 @@ try
     fprintf('\ncreated notebook file in %s', nb.activedir)
 catch
     lasterr
-    close(wb1)
+    %close(wb1)
     errordlg('Go get Mike', '', 'modal');
     keyboard
     
@@ -1529,8 +1533,12 @@ warning('off', 'MATLAB:hg:uicontrol:StringMustBeNonEmpty');
 %old way was to have a list in djprefs
 %new way is to just read the database mw 12.05.2018
 %if isfield(pref, 'allmouseIDs') SP.allmouseIDs=pref.allmouseIDs; else SP.allmouseIDs='';end
-DB_IDs=whos('-file', 'mouseDB.mat');
-SP.allmouseIDs{1}='';
+try
+    DB_IDs=whos('-file', 'mouseDB.mat');
+catch
+    DB_IDs=[];
+end
+    SP.allmouseIDs{1}='';
 for i=1:length(DB_IDs)
     idname=DB_IDs(i).name;
     idname=strrep(idname, 'mouseID_', '');

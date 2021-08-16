@@ -68,7 +68,7 @@ fprintf('\n')
 % [scaledtrace1, datatimestamps, datainfo] =load_open_ephys_data(filename1);
 % [scaledtrace2, datatimestamps, datainfo] =load_open_ephys_data(filename2);
 % [scaledtrace3, datatimestamps, datainfo] =load_open_ephys_data(filename3);
-filename4=sprintf('%s_ADC4.continuous', node);
+filename4=sprintf('%s_ADC5.continuous', node);
 
 [scaledtrace2, datatimestamps, datainfo] =load_open_ephys_data(filename4);
 

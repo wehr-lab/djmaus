@@ -1,4 +1,4 @@
-function ProcessTC_PSTH_single(varargin)
+function out = ProcessTC_PSTH_single(varargin)
 
 %processes a single .t file of clustered spiking tuning curve data from djmaus
 %
@@ -29,7 +29,7 @@ try
     xlimits=varargin{3};
 end
 if isempty(xlimits)
-         xlimits=[-100 200];
+    xlimits=[-100 200];
     s=GetStimParams(datadir);
     durs=s.durs;
     dur=max(durs);
@@ -97,7 +97,6 @@ sampleRate=all_channels_info.header.sampleRate; %in Hz
 
 %get Events and soundcard trigger timestamps
 %there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
-[Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
 
 if exist('Events.mat')
     load('Events.mat')
@@ -134,18 +133,21 @@ end
 
 %read MClust .t file or Kilosort
 
-if exist('params.py','file') || exist('dirs.mat','file') 
+
+if exist('params.py','file') || channel==-1 
     fprintf('\nreading KiloSort output cell %d', clust)
-    spiketimes=readKiloSortOutput(clust, sampleRate);
+    [spiketimes, KS_ID]=readKiloSortOutput(clust, sampleRate);
 else
-fprintf('\nreading MClust output file %s', filename)
-spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
-%correct for OE start time, so that time starts at 0
-spiketimes=spiketimes-StartAcquisitionSec;
+    fprintf('\nreading MClust output file %s', t_filename)
+    spiketimes=read_MClust_output(t_filename)'/10000; %spiketimes now in seconds
+    %correct for OE start time, so that time starts at 0
+    spiketimes=spiketimes-StartAcquisitionSec;
+    fprintf('\nsuccessfully loaded MClust spike data')
+    KS_ID=-2;
 end
 
 totalnumspikes=length(spiketimes);
-fprintf('\nsuccessfully loaded MClust spike data')
+fprintf('\nsuccessfully loaded spike data with %d spikes\n',totalnumspikes)
 Nclusters=1;
 
 %uncomment this to run some sanity checks
@@ -259,7 +261,8 @@ if LaserRecorded
         Lasertrace=Lasertrace./max(abs(Lasertrace));
         fprintf('\nsuccessfully loaded laser trace')
     catch
-        fprintf('\nfound laser file %s but could not load laser trace', getLaserfile('.'))
+        [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data('105_ADC2.continuous');
+        %fprintf('\nfound laser file %s but could not load laser trace',getStimfile('.'))
     end
 else
     fprintf('\nLaser trace not recorded')
@@ -272,7 +275,8 @@ if StimRecorded
         Stimtrace=Stimtrace./max(abs(Stimtrace));
         fprintf('\nsuccessfully loaded stim trace')
     catch
-        fprintf('\nfound stim file %s but could not load stim trace', getStimfile('.'))
+        [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data('105_ADC1.continuous');
+        %fprintf('\nfound stim file %s but could not load stim trace', getStimfile('.'))
     end
 else
     fprintf('\nSound stimulus trace not recorded')
@@ -343,7 +347,7 @@ for i=1:length(Events)
             spiketimes1=st(st>start & st<stop); % spiketimes in region
             spikecount=length(spiketimes1); % No. of spikes fired in response to this rep of this stim.
             inRange=inRange+ spikecount; %accumulate total spikecount in region
-            spiketimes1=(spiketimes1-pos)*1000;%covert to ms after tone onset
+            spiketimes1=(spiketimes1-pos)*1000;%convert to ms after tone onset
             spont_spikecount=length(find(st<start & st>(start-(stop-start)))); % No. spikes in a region of same length preceding response window
             
             if strcmp(Events(i).type, 'silentsound')
@@ -695,6 +699,8 @@ catch
     out.stimlog='notebook file missing';
     out.user='unknown';
 end
+
+out.KiloSort_ID=KS_ID+1;
 out.t_filename=t_filename;
 outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
 save (outfilename, 'out')

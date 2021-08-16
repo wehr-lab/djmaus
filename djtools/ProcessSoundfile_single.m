@@ -117,7 +117,8 @@ end
 %which clustering method is prefered
 if (exist('params.py','file')==1) || exist('dirs.mat','file')
     fprintf('\nreading KiloSort output cell %d', clust)
-    spiketimes=readKiloSortOutput(cellnum, sampleRate);
+%     spiketimes=readKiloSortOutput(cellnum, sampleRate);
+    spiketimes=readKiloSortOutput(clust, sampleRate); %mw 9.3.2020
 else
     fprintf('\nreading MClust output file %s', filename)
     spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
@@ -659,6 +660,9 @@ catch
     out.user='unknown';
 end
 %out.t_filename=filename;
+out.generated_by=mfilename;
+out.generated_on=datestr(now);
+
 outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
-save (outfilename, 'out')
+save (outfilename, 'out','-v7.3')
 

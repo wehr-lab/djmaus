@@ -27,11 +27,13 @@ if force_reprocess
 end
 
 cd(datadir)
+% d=dir('outGPIAS_Behavior_combined.mat');
 d=dir('outGPIAS_Behavior.mat');
 if isempty(d)
     ProcessGPIAS_BehaviorTilt(datadir,4);
 end
 
+% d=dir('outGPIAS_Behavior_combined.mat');
 d=dir('outGPIAS_Behavior*.mat');
 fprintf('\nfound %d outfiles.', length(d))
 

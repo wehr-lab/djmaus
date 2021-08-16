@@ -1,6 +1,6 @@
 function tone=MakeASR(varargin)
 
-%makes an ASR (acoustic startle response) stimulus with a narrow band
+%makes an ASR (acoustic startle response) stimulus with a white noise
 %prepulse and white noise startle pulse
 %modified from makeASR
 % Note: now we use absolute SPL instead of attenuation!!!

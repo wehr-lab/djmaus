@@ -17,7 +17,7 @@ function MakeGPIASLaserPulseProtocol(Laserstarts, Laserpulsewidth, Lasernumpulse
 % example call
 %  Laserstarts=[0 25]; Laserpulsewidth=5; Lasernumpulses=1; Laserisi=0; 
 %  noiseamp=80; gapdurs=[0 32]; gapdelay=500; poststartle=500;
-%  pulsedur=0; pulseamp=100; soa=50; soaflag='isi'; ramp=0; isi=500; isi_var=0; nrepeats=40;
+%  pulsedur=25; pulseamp=100; soa=50; soaflag='isi'; ramp=0; isi=12000; isi_var=0; nrepeats=20;
 % MakeGPIASLaserPulseProtocol(Laserstarts, Laserpulsewidth, Lasernumpulses, Laserisi, noiseamp, gapdurs, gapdelay, poststartle, pulsedur, pulseamp, soa, soaflag, ramp, isi, isi_var, nrepeats)
 
 if any(Laserpulsewidth==0)

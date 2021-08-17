@@ -1,51 +1,42 @@
 function [filename,path]=MakePPIdjProtocol(prepulsedurs, prepulseamps, pulsedur, pulseamp, soa, soaflag, ...
     ramp, iti, iti_var, interleave_laser, post_startle_duration, nrepeats)
-% usage MakePPIdjProtocol(prepulsedurs, prepulseamps, pulsedur, pulseamp, soa, soaflag, ...
-%     ramp, iti, iti_var, interleave_laser, nrepeats)
+% usage: MakePPIdjProtocol(prepulsedurs, prepulseamps, pulsedur, pulseamp, soa, soaflag, ...
+%    ramp, iti, iti_var, interleave_laser, post_startle_duration, nrepeats)
 %
 %
 %
 % creates a djmaus stimulus protocol file for PPI (pre-pulse inhibition of acoustic startle
 % response). Pre-pulse and startle pulse are both white noise. 
-% Can use multiple pre-pulse durations. 
-% You can only use a single startle pulse amplitude. 
-
-% using variable ITI.
-%recent edits: 
-%  -updated to djmaus version 9-2016
-%  -added interleave_laser flag (0 or 1), so output can be already
-%       laser-interleaved (no need for an extra ppalaser step) 9-2016
-%  -added soaflag to specify whether soa is 'soa' or 'isi'
-
+% Can use multiple pre-pulse durations and amplitudes. 
+% You can only use a single startle pulse duration and amplitude. 
 %
 %   mw 08.16.2021
 %
 %NOTE: 
 % inputs:
-% noiseamp: amplitude of the continuous white noise, in dB SPL
 % prepulseamps: amplitudes of the pre-pulse, in dB, in a vector, e.g. 60, or [40 50 60]
 % prepulsedurs: durations of the pre-pulse, in ms, in a vector, e.g. 50, or [0 50]
-% post_startle_duration: duration of silence to play after the startle
-%       stimulus has finished. We added this to allow extra time
-%       for laser be on after the startle. 
 % pulsedur: duration of the startle pulse in ms (can be 0 for no startle)
 % pulseamp: amplitude of the startle pulse in dB SPL
-% soa: Stimulus Onset Asynchrony in ms = time between gap onset and
-%       startle pulse tone onset
+% soa: Stimulus Onset Asynchrony in ms = time between prepulse onset and
+%       startle pulse onset
 % soaflag: can be either 'soa' (default), in which case soa value specifies the time
 % between the onset of the prepulse and the onset of the startle pulse, or else 'isi',
 % in which case soa specifies the time between prepulse offset and startle
 % onset. If anything other than 'isi' it will default to 'soa'.
-% ramp: on-off ramp duration in ms
+% ramp: onset and offset ramp duration in ms, used for both prepulse and startle
 % iti: inter trial interval (onset-to-onset) in ms
 % iti_var: fractional variability of iti. Use 0 for fixed iti, or e.g. 0.1 to have iti vary by up to +-10%
 % interleave_laser: 0 or 1 to duplicate all stimuli and interleave laser
 %            and non-laser trials in random order
+% post_startle_duration: duration of silence to play after the startle
+%       stimulus has finished. We added this to allow extra time
+%       for laser be on after the startle. 
 % nrepeats: number of repetitions (different pseudorandom orders)
 %
-% note: still using the variable isi for inter-trial interval, AKA iti
 % outputs:
-% creates a suitably named stimulus protocol in D:\lab\exper2.2\protocols\ASR Protocols
+% creates a suitably named stimulus protocol in djmaus/stimuli/PPI Protocols
+% returns filename and path so you could programmatically create and use a protocol
 %
 %example calls:
 % prepulsedurs=25; prepulseamps = 60; pulsedur=25; pulseamp=100; soa = 75;
@@ -117,8 +108,6 @@ else
 end
 
 
-
-
 name= sprintf('PPI-ppa%sdB-ppd%sms-sd%dms-sa%ddb-soa%dms(%s)-r%d-iti%d-itivar%d-%s-%dreps.mat',...
     prepulseampsstring, prepulsedursstring, pulsedur, pulseamp, soa,soaflag, round(ramp), iti,round(100*iti_var),interleave_laserstr, nrepeats);
 
@@ -181,4 +170,3 @@ save(filename, 'stimuli')
 path=pwd;
 fprintf('\nwrote file %s \n in directory %s', filename, path)
 
-%  keyboard

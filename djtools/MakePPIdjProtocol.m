@@ -6,13 +6,18 @@ function [filename,path]=MakePPIdjProtocol(prepulsedurs, prepulseamps, pulsedur,
 %
 %
 % creates a djmaus stimulus protocol file for PPI (pre-pulse inhibition of acoustic startle
-% response). Pre-pulse and startle pulse are both white noise. 
-% Can use multiple pre-pulse durations and amplitudes. 
-% You can only use a single startle pulse duration and amplitude. 
+% response). Pre-pulse and startle pulse are both white noise.
+% Can use multiple pre-pulse durations and amplitudes.
+% You can only use a single startle pulse duration and amplitude.
+%
+% automatically includes a silent pre-pulse (-1000 dB) to provide a
+% pure-startle condition for comparison. If you don't want this, you can
+% set a flag below. If you request a -1000 dB or 0 ms prepulseamp it will not
+% be duplicated.
 %
 %   mw 08.16.2021
 %
-%NOTE: 
+%NOTE:
 % inputs:
 % prepulseamps: amplitudes of the pre-pulse, in dB, in a vector, e.g. 60, or [40 50 60]
 % prepulsedurs: durations of the pre-pulse, in ms, in a vector, e.g. 50, or [0 50]
@@ -31,7 +36,7 @@ function [filename,path]=MakePPIdjProtocol(prepulsedurs, prepulseamps, pulsedur,
 %            and non-laser trials in random order
 % post_startle_duration: duration of silence to play after the startle
 %       stimulus has finished. We added this to allow extra time
-%       for laser be on after the startle. 
+%       for laser be on after the startle.
 % nrepeats: number of repetitions (different pseudorandom orders)
 %
 % outputs:
@@ -43,6 +48,14 @@ function [filename,path]=MakePPIdjProtocol(prepulsedurs, prepulseamps, pulsedur,
 % soaflag='soa'; ramp=0; iti=15000; iti_var=0; interleave_laser=0;
 % nrepeats=10; post_startle_duration=0;
 % MakePPIdjProtocol(prepulsedurs, prepulseamps, pulsedur, pulseamp, soa, soaflag, ramp, iti, iti_var, interleave_laser, post_startle_duration, nrepeats)
+
+include_silent_prepulse=1; %set to 0 if you don't want to automatically include a silent prepulse condition.
+
+if ismember(-1000, prepulseamps) | ismember(0, prepulsedurs)
+    include_silent_prepulse=0;
+    %no need to duplicate since there is already a silent prepulse
+    %requested
+end
 
 if ~strcmp(soaflag, 'isi')
     soaflag='soa';
@@ -119,16 +132,44 @@ n=0;
 
 TotalDurationSecs=0;
 
+if include_silent_prepulse 
+% include a silent prepulse condition.
+    for r=1:nrepeats
+      n=n+1;
+    stimuli(n).type='ASR';
+    stimuli(n).param.ramp=ramp;
+    stimuli(n).param.soa=soa;
+    stimuli(n).param.soaflag=soaflag;
+    stimuli(n).param.loop_flg=0;
+    stimuli(n).param.seamless=0;
+    PPI_duration= soa+pulsedur+post_startle_duration; %actual duration, note prepulse dur is zero here
+    stimuli(n).param.duration=PPI_duration;
+    this_iti=round(iti+iti*iti_var*(2*rand(1)-1));
+    stimuli(n).param.next=this_iti;
+    stimuli(n).param.pulsedur=pulsedur;
+    stimuli(n).param.pulseamp=pulseamp;
+    stimuli(n).param.prepulseamp=-1000;
+    stimuli(n).param.prepulsedur=0;
+    stimuli(n).param.laser=0;
+    stimuli(n).stimulus_description=GetParamStr(stimuli(n));
+    stimuli(n).protocol_name=name;
+    stimuli(n).protocol_description=description;
+    stimuli(n).PlottingFunction='PlotPPI_PSTH';
+    stimuli(n).version='djmaus';
+    
+    TotalDurationSecs=TotalDurationSecs+(PPI_duration+this_iti)/1000;
+    end
+end
 
 for kk=1:length(rand_prepulsedurs)
-
+    
     switch soaflag
         case 'isi'
             PPI_duration=rand_prepulsedurs(kk) + soa+pulsedur+post_startle_duration; % duration
         case 'soa'
             PPI_duration= soa+pulsedur+post_startle_duration; %actual duration
     end
-n=n+1;
+    n=n+1;
     stimuli(n).type='ASR';
     stimuli(n).param.ramp=ramp;
     stimuli(n).param.soa=soa;
@@ -149,18 +190,27 @@ n=n+1;
     stimuli(n).PlottingFunction='PlotPPI_PSTH';
     stimuli(n).version='djmaus';
     
- TotalDurationSecs=TotalDurationSecs+(PPI_duration+this_iti)/1000;
-
+    TotalDurationSecs=TotalDurationSecs+(PPI_duration+this_iti)/1000;
+    
 end
 
+%add description with updated duration information
 PPIPerRepeat=length(neworder);
 DurationPerRepeatSecs=TotalDurationSecs/nrepeats;    %average duration per repeat
 TotalNumStim=length(stimuli);
 description=sprintf('PPI protocol, prepulsedurs: %s ms, prepulseamps: %s dB, startle pulse dur: %d ms, startle pulse amplitude: %d dB, SOA: %d ms (%s), ramp: %d ms, iti: %d ms, iti-var: %.1f, interleave laser: %d, post-startle dur %d ms, %d repeats, %d stim per rep, %d total stimuli, %ds per rep (avg), total dur %d s (%.1f min) ',...
-prepulsedursstring, prepulseampsstring, pulsedur, pulseamp, soa, soaflag, ramp, iti, iti_var, interleave_laser, post_startle_duration, nrepeats, PPIPerRepeat, TotalNumStim, round(DurationPerRepeatSecs), round(TotalDurationSecs), TotalDurationSecs/60);
+    prepulsedursstring, prepulseampsstring, pulsedur, pulseamp, soa, soaflag, ramp, iti, iti_var, interleave_laser, post_startle_duration, nrepeats, PPIPerRepeat, TotalNumStim, round(DurationPerRepeatSecs), round(TotalDurationSecs), TotalDurationSecs/60);
 for n=1:TotalNumStim
     stimuli(n).protocol_description=description;
 end
+
+%shuffle so that the silent prepulse trials are interleaved
+old_stim=stimuli;
+shuf_order=randperm(TotalNumStim);
+for n=1:TotalNumStim
+    new_stimuli(n)=old_stim(shuf_order(n));
+end
+stimuli=new_stimuli;
 
 cd(pref.stimuli) %where stimulus protocols are saved
 warning off MATLAB:MKDIR:DirectoryExists

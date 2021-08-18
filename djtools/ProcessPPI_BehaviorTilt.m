@@ -510,11 +510,14 @@ for ppaindex=1:numprepulseamps
         end
     end
     
-    %sanity check that first prepulsedur is 0 (i.e. control condition)
-    if prepulsedurs(1)~=0
-        error('first prepulsedur is not 0, what is wrong?')
+    %sanity check that first prepulsedur is 0 OR prepulseamp is -1000 (i.e. control condition)
+    if ~(prepulsedurs(1)==0 | prepulseamps(1) == -1000)
+        error('first prepulsedur is not 0, or firstprepulseamp is not -1000, what is wrong?')
     end
     
+    
+    %we expect that the pure startle control condition has prepulsedur=0
+    %and prepulseamp=-1000
     fprintf('\nusing MEDIAN of peak(abs(trace)) or of sum(abs(trace))  responses\n')
     
     %only makes sense for numprepulsedurs >= 2

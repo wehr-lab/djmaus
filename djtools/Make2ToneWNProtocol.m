@@ -33,26 +33,35 @@ function [filename,path]=Make2ToneWNProtocol(freqsperoctave, minfreq, maxfreq, n
 % numSOA: number of Stimulus Onset Asynchrony in ms = time between masker onset and probe tone onset
 % minSOA: the shortest SOA
 % maxSOA: the longest SOA
-
+%
 % interleave_laser: 1 for yes and 0 for no, x2 nreps with randomly inserted
 % include_silent_sound: 0 or 1 to include an extra stimulus that is silent,
 %           useful for explicitly collecting spontaneous and/or laser-only
 %           trials as a separate condition
 % laser trials
 %
+
 % outputs:
 % creates a suitably named stimulus protocol in
 % home/lab/djmaus/stimuli/2Tone
 %
 %
-%example calls: numSOA
+%example calls: 
+%Make2ToneWNProtocol(0,0,0,6, 10, 60, 1, 25, 1, 12000, 20, 1, 100, 100, 1, 75, 75, 0, 0)
+freqsperoctave=0; minfreq=0; maxfreq=0; numamplitudes=6;
+minamplitude=10; maxamplitude=60; include_whitenoise=1;
+duration=25; ramp=1; isi=12000; nrepeats=20; numprobeamplitudes=1;
+minprobeamplitude=100; maxprobeamplitude=100; numSOA=1; minSOA=75; maxSOA=75;
+interleave_laser=0; include_silent_sound=0;
+Make2ToneWNProtocol(freqsperoctave, minfreq, maxfreq, numamplitudes, ...
+    minamplitude, maxamplitude, include_whitenoise, duration, ramp, isi, nrepeats, numprobeamplitudes, ...
+    minprobeamplitude, maxprobeamplitude, numSOA, minSOA, maxSOA, interleave_laser, include_silent_sound)
 %25 ms WN bursts at 100 ms SOA, no laser or silent sound
 % Make2ToneWNProtocol(0,0,0,1, 70, 70, 1, 25, 1, 1000, 10, 1, 70,70, 1, 100, 100, 0, 0)
 %400 ms WN bursts at 100 ms SOA, no laser or silent sound
 % Make2ToneWNProtocol(0,0,0,1, 70, 70, 1, 400, 1, 1000, 10, 1, 70,70, 1, 500, 100, 0, 0)
 %
-% Make2ToneWNProtocol(3, 4e3, 20e3, 1, 70, 70, 0, 400, 3, 1000, 10, 1, 70,70,2, 100, 500, 1, 1)
-%
+% 
 % ira 01.28.17
 
 if nargin==0; fprintf('\nno input');return;end

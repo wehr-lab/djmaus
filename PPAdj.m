@@ -701,8 +701,17 @@ if isfield(param, 'seamless')
             end
         end
         SP.buffers= bufs; %store buffer pointers
+    else %this stimulus is not seamless (there is a seamless flag which is set to 0)
+    PsychPortAudio('FillBuffer', PPAhandle, samples); % fill buffer now, start in PlaySound
+    currstimuli=SP.CurrentStimulus;
+    protocol=SP.ProtocolIndex;
+    currstimulus=currstimuli(protocol);
+    SP.CurrStimatPPAstart=currstimulus;
+    nreps=0; %0=repeat
+    seamless=0;
+
     end
-else %this stimulus is not seamless
+else %this stimulus is not seamless (there is no seamless flag)
     %commenting out on rig2 mw 02-10-2011
     %   PsychPortAudio('UseSchedule', PPAhandle, 0);      %Has no effect unless seamless stimuli were previously delivered, in which case we need to turn scheduling off.
     %above line causes complaint on rig2, works fine commented out.

@@ -400,6 +400,23 @@ PeakONACC=nan(numprepulsedurs, numprepulseamps, max(nrepsON(:)));
 PeakOFFACC=nan(numprepulsedurs, numprepulseamps, max(nrepsOFF(:)));
 
 fprintf('\n')
+%sanity check that first prepulsedur is 0 OR prepulseamp is -1000 (i.e. control condition)
+if ~(prepulsedurs(1)==0 | prepulseamps(1) == -1000)
+    error('first prepulsedur is not 0, or firstprepulseamp is not -1000, what is wrong?')
+end
+
+%figure out whether the pure startle condition is duration 0 or amplitude -1000 or both
+if (prepulsedurs(1)==0 & prepulseamps(1) == -1000)
+    silentprepulse='both'
+elseif (prepulsedurs(1)~=0 & prepulseamps(1) == -1000)
+    silentprepulse='amp1000'
+elseif (prepulsedurs(1)==0 & prepulseamps(1) ~= -1000)
+    silentprepulse='dur0'
+else
+    error('this should never happen')
+end
+
+    
 for ppaindex=1:numprepulseamps
     for ppdindex=1:numprepulsedurs; % Hardcoded.
         for k=1:nrepsON(ppdindex, ppaindex);
@@ -510,14 +527,11 @@ for ppaindex=1:numprepulseamps
         end
     end
     
-    %sanity check that first prepulsedur is 0 OR prepulseamp is -1000 (i.e. control condition)
-    if ~(prepulsedurs(1)==0 | prepulseamps(1) == -1000)
-        error('first prepulsedur is not 0, or firstprepulseamp is not -1000, what is wrong?')
-    end
-    
+
     
     %we expect that the pure startle control condition has prepulsedur=0
     %and prepulseamp=-1000
+    %actually need to handle other possibilities
     fprintf('\nusing MEDIAN of peak(abs(trace)) or of sum(abs(trace))  responses\n')
     
     %only makes sense for numprepulsedurs >= 2

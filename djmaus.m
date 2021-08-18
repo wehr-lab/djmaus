@@ -748,6 +748,8 @@ switch type
         fcn='MakeAsymGPIAS';
     case 'GPIAS'
         fcn='MakeGPIAS';
+    case 'ASR'
+        fcn='MakeASR';
     case 'toneGPIAS'
         fcn='MakeToneGPIAS';
     case 'noise'

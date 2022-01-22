@@ -263,6 +263,8 @@ if n~=TotalNumStim
 end
 
 % Kip: nonRandom for cricket launching (files listed alphabetically, 
+    fprintf('\nKip edit for using non-random file order')
+    fprintf('\nKip edit !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 % making 'blank' first
 %stimorder = [2:TotalNumStim 1];
 stimorder = 1:3;
@@ -275,13 +277,7 @@ stimuli=shuffledstimuli;
 
 
 
-<<<<<<< Updated upstream
 cd(pref.stimuli)
-=======
-%cd('D:\lab\djmaus\stimuli')    % Kip
-cd(pref.stimuli)
-
->>>>>>> Stashed changes
 cd ('Soundfile Protocols')
 
 path=pwd;

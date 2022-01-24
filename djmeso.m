@@ -1,10 +1,12 @@
 function djmeso(varargin)
 
+% Mesoscope version of djmaus for presenting sound stimuli in a mesoscope
+% experiment using a national instruments soundcard and no open ephys.
 % Plays a bunch of different stimuli stored in a .mat file ('protocol')
-% Uses PPA sound which requires PsychToolbox. Download from psychtoolbox.org.
-% Sends stimulus information to Open Ephys GUI using zeroMQ, Win: download from
-% zeromq.org Linux: apt-get install libzmqpp-dev Mac: brew install zeromq
-
+% Uses NI soundcard which requires DAQ toolbox.
+% Does not use Open Ephys GUI or zeroMQ
+% uses NIdj instead of PPAdj
+% mw 01.24.22
 
 %now has the capability to load files programatically
 %call djmaus('load', fullfilename)
@@ -13,7 +15,7 @@ function djmeso(varargin)
 
 %ISI works by setting the djTimerDelay to
 %stimulus.param.duration/1000 + stimulus.param.next/1000
-%test comment
+%
 
 global SP pref djTimer djTimerDelay
 
@@ -26,26 +28,14 @@ if isempty(action)
     action='Init';
 end
 
-% %fprintf('\naction: %s', action)
-%  [uv, sv]=memory;
-%  jhm = java.lang.Runtime.getRuntime.freeMemory;
-%  fid=fopen('C:\lab\djmaus\memlog.txt', 'a');
-%  fprintf(fid, '\n%.8f %d %d %d %d %d %d %d', ...
-%      datenum(now), ...
-%      uv.MaxPossibleArrayBytes, uv.MemAvailableAllArrays, uv.MemUsedMATLAB, ...
-%      sv.VirtualAddressSpace.Available, sv.SystemMemory.Available, sv.PhysicalMemory.Available, ...
-%      jhm);
-%  fclose(fid);
-
 switch action
     case 'Init'
         SP.user='lab';
         SP.Campulse=0;
         djPrefs;
         InitializeGUI;
-        InitZMQ %initialize zeroMQ connection to open-ephys
         InitParams %initialize some default params in SP structure
-        PPAdj('init');
+        NIdj('init');
         % set the timer
         djTimer=timer('TimerFcn',[me '(''next_stimulus'');'],'StopFcn',[me '(''restart_timer'');'],'ExecutionMode','singleShot');
         djMessage('djmaus initialized', 'append')
@@ -54,8 +44,7 @@ switch action
         try stop(djTimer); end
         delete(djTimer);
         clear djTimer
-        PPAdj('close')
-        zeroMQwrapper('CloseThread',SP.zhandle);
+        NIdj('close')
         pause(0.2)
         delete(SP.fig)
         clear global SP
@@ -75,18 +64,8 @@ switch action
         end
         
     case 'Stop'
-        %stop acquisition, i.e. like clicking the > button on the
-        %open-ephys GUI
         % This button is currently disabled
-        
-        zeroMQwrapper('Send',SP.zhandle ,'StopAcquisition');
-        
-    case 'launchOE'
-        djMessage('launching OE', 'append')
-        OEpath=pref.OEpath;
-        system(OEpath)
-        djMessage('launched', 'append')
-        
+             
     case 'Reset'
         djMessage('Reset');
         prot=SP.ProtocolIndex;
@@ -150,7 +129,7 @@ switch action
         djMessage([int2str(current(protocol_choice)), '/' num2str(SP.NStimuli(protocol_choice)) ' stimuli, ' num2str(SP.NRepeats), ' repeats' ]);
         %this is a hack to solve the problem where after running a seamless
         %protocol, then regular protocols don't play any sound
-        PPAdj('init');
+        NIdj('init');
         
     case 'User'
         users=get(SP.userh, 'string');
@@ -237,8 +216,6 @@ switch action
         %save('mouseDB.mat', sprintf('mouseID_%s',SP.mouse2ID), '-append')
         LoadMouse2
         
-    case 'SecondmouseIDbutton'
-        AddSecondMouse
         
     case 'Record'
         Record
@@ -280,43 +257,8 @@ switch action
             'string', sprintf('age\n%.1f mo', SP.Age), 'fontsize', 10,...
             'enable','inact','horiz','left','pos', pos);
         
-    case 'mouse2Genotype'
-        SP.mouse2Genotype=get(SP.mouse2Genotypeh, 'string');
-        cd (pref.root)
-        try load mouseDB
-        end
-        str=sprintf('mouseID_%s.mouseGenotype=''%s'';', SP.mouse2ID, SP.mouse2Genotype);
-        eval(str);
-        save('mouseDB.mat', sprintf('mouseID_%s',SP.mouse2ID), '-append')
-        
-    case 'mouse2Sex'
-        SP.mouse2Sex=lower(get(SP.mouse2Sexh, 'string'));
-        set(SP.mouse2Sexh, 'string', SP.mouse2Sex)
-        cd (pref.root)
-        try load mouseDB
-        end
-        str=sprintf('mouseID_%s.mouseSex=''%s'';', SP.mouse2ID, SP.mouse2Sex);
-        eval(str)
-        save('mouseDB.mat', sprintf('mouseID_%s',SP.mouse2ID), '-append')
-        
-    case 'mouse2DOB'
-        SP.mouse2DOB=get(SP.mouse2DOBh, 'string');
-        cd (pref.root)
-        try load mouseDB
-        end
-        str=sprintf('mouseID_%s.mouseDOB=''%s'';', SP.mouse2ID, SP.mouse2DOB);
-        eval(str)
-        save('mouseDB.mat', sprintf('mouseID_%s',SP.mouse2ID), '-append')
-        SP.Age2=(datenum(date)-datenum(SP.mouse2DOB))/30; %in months
-        pos1=get(SP.mouse2Sexh, 'pos');
-        pos=get(SP.mouse2DOBh, 'pos');
-        pos(3)=.6*pos1(3);
-        set(SP.mouse2DOBh, 'pos',pos);
-        pos(1)=pos(1)+pos(3);
-        SP.Age2h=uicontrol(gcf,'tag','mouse2Agelabel','style','text','units','pixels',...
-            'string', sprintf('age\n%.1f mo', SP.Age2), 'fontsize', 10,...
-            'enable','inact','horiz','left','pos', pos);
-        
+   
+  
         
     case 'Reinforcement'
         SP.Reinforcement=get(SP.Reinforcementh, 'string');
@@ -333,13 +275,7 @@ switch action
     case 'Notes'
         SP.Notes=get(SP.Notesh, 'string');
         
-    case 'ResetZMQ'
-        InitZMQ;
-        
-    case 'TestZMQ'
-        zeroMQwrapper('Send',SP.zhandle ,'Test');
-        djMessage(sprintf('sent "Test" message to %s', pref.zmqurl))
-        
+           
     case 'LaserOnOff'
         SP.LaserOnOff=get(SP.LaserOnOffh, 'value');
         if SP.LaserOnOff
@@ -383,17 +319,6 @@ switch action
     case 'LaserISI'
         SP.LaserISI=str2num(get(SP.LaserISIh, 'string'));
         
-    case 'camerapulse'
-        if SP.Campulse
-            %we want to stop
-            set(SP.camerapulse,'backgroundcolor',[0 0.9 0],'String','Camera Stopped');
-            SP.Campulse=0;
-            PPAdj('camerapulse_off')
-        else
-            set(SP.camerapulse, 'backgroundcolor',[0.9 0 0],'String','Camera Recording');
-            SP.Campulse=1;
-            PPAdj('camerapulse_on')
-        end
 end
 
 function AddUser
@@ -501,39 +426,6 @@ catch
     djMessage('could not load mouse database')
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function LoadMouse2
-global SP pref
-cd (pref.root)
-try
-    mouseDB=load('mouseDB.mat');
-    if isfield(mouseDB, ['mouseID_', SP.mouse2ID])
-        try
-            str=sprintf('SP.mouse2Genotype=mouseDB.mouseID_%s.mouseGenotype;', SP.mouse2ID);
-            eval(str);
-            set(SP.mouse2Genotypeh, 'string', SP.mouse2Genotype);
-        end
-        try
-            str=sprintf('SP.mouse2DOB=mouseDB.mouseID_%s.mouseDOB;', SP.mouse2ID);
-            eval(str);
-            set(SP.mouse2DOBh, 'string', SP.mouse2DOB);
-        end
-        try
-            str=sprintf('SP.mouse2Sex=mouseDB.mouseID_%s.mouseSex;', SP.mouse2ID);
-            eval(str);
-            set(SP.mouse2Sexh, 'string', SP.mouse2Sex);
-        end
-    else
-        SP.mouse2Genotype='genotype unknown';
-        set(SP.mouse2Genotypeh, 'string', SP.mouse2Genotype);
-        SP.mouse2Sex='sex unknown';
-        set(SP.mouse2Sexh, 'string', SP.mouse2Sex);
-        SP.mouse2DOB='age unknown';
-        set(SP.mouse2DOBh, 'string', SP.mouse2DOB);
-    end
-catch
-    djMessage('could not load mouse database')
-end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function WriteMouseIDtoPrefs
@@ -673,7 +565,7 @@ stimulus.param=CalibrateSound(stimulus.param, stimulus.type);
 samples=feval(fcn,stimulus.param,SP.SoundFs);
 
 %LoadPPA(type,where,param)
-PPAdj('load', 'var', samples, stimulus.param);
+NIdj('load', 'var', samples, stimulus.param);
 str=sprintf('TrialType %s', stimulus.stimulus_description);
 %append a field saying whether the LaserON/OFF button is clicked or not:
 str=sprintf('%s %s:%g', str, 'LaserOnOff', SP.LaserOnOff);
@@ -681,19 +573,9 @@ str=sprintf('%s %s:%g', str, 'LaserOnOff', SP.LaserOnOff);
 %will fail to write the text to messages.events (although the time stamp is OK)
 if length(str)>255 fprintf('\n\n\n\n\n\n');warning('TrialType message string is too long!!!! (try re-making this stimulus protocol)');end
 
-if ~isempty(SP.zhandle)
-    zeroMQwrapper('Send', SP.zhandle, str)
-end
-PPAdj('playsound')
+NIdj('playsound')
 UpdateStimlog(stimulus);
 djMessage(stimulus.stimulus_description, 'append');
-status = PsychPortAudio('GetStatus', SP.PPAhandle);
-% if ~status.Active & status.XRuns
-     fprintf('status: %d Xruns: %d\n',status.Active,status.XRuns)
-% end
-
-% figure(100)
-% plot(samples)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function NextStimulus
@@ -807,7 +689,7 @@ if SP.Record
     if pref.camera_rec==1 %set the camera to be turned off when stopped recording
         SP.Campulse=0;
         set(SP.camerapulse, 'backgroundcolor',[0 0.9 0],'String','Camera Stopped');
-        PPAdj('camerapulse_off')
+        NIdj('camerapulse_off')
     else
         fprintf('\n camera not recording\n')
     end
@@ -850,7 +732,7 @@ else
     if pref.camera_rec==1 %set the camera to be triggered when you start recording
         SP.Campulse=1;
         set(SP.camerapulse, 'backgroundcolor',[0.9 0 0],'String','Camera Recording');
-        PPAdj('camerapulse_on')
+        NIdj('camerapulse_on')
     else
         fprintf('\n camera not recording\n')
     end

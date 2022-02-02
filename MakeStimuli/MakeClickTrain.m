@@ -52,7 +52,6 @@ start=0;
     click_starts=[0:(nclicks-1)]';
     sampled_start=max(1,sampled_start); % if sampled_start==0, we would have problems with indices below
     click_starts=sampled_start+click_starts*(sampled_ici);
-    
     widths=0:sampled_duration-1;
     
     idx=click_starts(:,ones(1,sampled_duration))+widths(ones(1,nclicks),:);

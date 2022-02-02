@@ -68,6 +68,7 @@ function varargout = StandaloneCalibrateSpeaker(varargin)
 
 
 warning off MATLAB:Axes:NegativeDataInLogAxis
+warning off MATLAB:ui:javaframe:PropertyToBeRemoved
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
@@ -243,6 +244,9 @@ for lp = 1:num_loops
         elseif GetAsioLynxDevice  & isempty(GetXonarDevice)
             fudgefactorTone=7.5;
             fudgefactorWN=9.3;
+        elseif GetPreSonusDevice  & isempty(GetXonarDevice) & strncmp(hostname, 'wehrrig4b', 9)
+            fudgefactorTone=31.7;
+            fudgefactorWN=34;            
         else
             error ('what soundcard are we using for recording?')
         end

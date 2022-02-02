@@ -824,7 +824,21 @@ else
     %disable play button here, to avoid delivering stimuli before notebook
     %is initialized (which could result in a skipped stimlog entry)
     set(SP.Runh, 'enable', 'off')
-    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%% adding in feature to find bonsai-created folder  - Nick 2/7/2021
+    destination = pref.datapath; 
+    cd(destination)
+    listoffolders = dir; thedates = arrayfun(@(x) datetime(x.date), listoffolders);
+    [~,sidx] = sort(thedates,'descend');
+    for i = 1:6 %take latest 6 (b/c sometimes '.','..',thumbs,DS,camerafiles,etc may be most recent)
+        foldername = listoffolders(sidx(i)).name;
+        if length(foldername)>15 %this will be the directory
+            break
+        end
+    end
+    RecDir = strcat(pref.remotedatapath,'\',foldername);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%% end of feature - Nick 2/7/2021
     startstr=sprintf('StartRecord');
     if ~isfield(SP, 'mouseID')
         SP.mouseID='none';
@@ -833,7 +847,8 @@ else
     % startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', pref.remotedatapath, SP.mouseID);
     %startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', [pref.remotedatapath,SP.user], SP.mouseID);
     %trying to fix double user name bug mw 05032018
-    startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', [pref.remotedatapath], SP.mouseID);
+    %startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', [pref.remotedatapath], SP.mouseID);
+    startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', [RecDir], SP.mouseID); %Nick's change 2/7/2021
     zeroMQwrapper('Send',SP.zhandle ,startstr);
     set(SP.Recordh, 'backgroundcolor',[0.9 0 0],'String','Recording...');
     set(SP.mouseIDh, 'enable', 'off');
@@ -906,7 +921,7 @@ try
     %     fprintf('\ndjmaus: read this Recording Path from file:%s', RecordingPath)
     
     %     SP.activedir=RecordingPath;
-    SP.activedir=fullfile(pref.datahost, RecordingPath);
+    SP.activedir=fullfile(pref.datahost, RecordingPath); %functional 2/8/2021 Nick
     %SP.activedir=strrep(SP.activedir, ':', ''); %commenting out to run on
     %single-machine windows configuration - was this important for
     %2-machine config?? mw 04.11.2017
@@ -1222,6 +1237,8 @@ if ~isempty(cal) %it will be empty if Init failed to load calibration
                 atten=cal.atten(findex);
                 stimparam.amplitude=stimparam.amplitude-atten;
                 djMessage( 'calibrated', 'append')
+            case 'silentsound'
+                djMessage( 'calibration unnecessary', 'append')
             otherwise
                 djMessage( 'NOT calibrated', 'append')
                 

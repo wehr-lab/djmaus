@@ -1,17 +1,17 @@
-function [filename,path]=MakeTonedjProtocol(freqsperoctave, minfreq, maxfreq, numamplitudes, ...
-    minamplitude, maxamplitude, durations, ramp, include_whitenoise, interleave_laser, include_silent_sound, isi, nrepeats)
+function [filename,path]=MakeToneAutopilotProtocol(freqsperoctave, minfreq, maxfreq, numamplitudes, ...
+    minamplitude, maxamplitude, durations, ramp, include_whitenoise, isi)
 
 
 
 
-% Usage: [filename,path]=MakeTonedjProtocol(freqsperoctave, ...
+% Usage: [filename,path]=MakeToneAutopilotProtocol(freqsperoctave, ...
 %         minfreq, maxfreq, numamplitudes, ...
 %         minamplitude, maxamplitude, durations, ramp, include_whitenoise,...
-%         interleave_laser, include_silent_sound, isi, nrepeats)
+%         isi)
 %
 %
-% same as MakeTuningCurveOct from exper, except that you can tell it
-% interleave laser trials
+% like as MakeTonedjProtocol but makes an autopilot protocol
+%
 %
 % INPUTS:
 % freqsperoctave: number of frequencies per octave (frequency resolution)
@@ -26,31 +26,17 @@ function [filename,path]=MakeTonedjProtocol(freqsperoctave, minfreq, maxfreq, nu
 % durations: vector of different tone durations (in ms) (can be a single duration)
 % ramp: on-off ramp duration in ms
 % include_whitenoise: 0 or 1 to include white noise bursts at each amplitude
-% interleave_laser: 0 or 1 to duplicate all stimuli and interleave laser
-%            and non-laser trials in random order
-% include_silent_sound: 0 or 1 to include an extra stimulus that is silent,
-%           useful for explicitly collecting spontaneous and/or laser-only
-%           trials as a separate condition
 % isi: inter stimulus interval (onset-to-onset) in ms
-% nrepeats: number of repetitions (different pseudorandom orders)
 % OUTPUTS:
 %       - creates a suitably named stimulus protocol in djprefs.stimuli\Tone Protocols
 %       - returns name & path to protocol (AKH 6/19/13)
 % ------------------------------------------------------------------------
 %
-% example call: MakeTonedjProtocol(4, 4000, 64000, 4, 20, 80, 25, 3, 1, 1, 1, 500, 10)
 %
-% example call with multiple durations:
-% MakeTonedjProtocol(4, 1000, 32000, 3, 50, 80, [200 400],10,1,1, 1, 500, 10)
-% MakeTonedjProtocol(4, 4000, 64000, 3, 50, 80, 25,3,1,0, 1, 500, 10)
-% 
-% For white noise only of several durations:
-% MakeTonedjProtocol(0, 0, 0, 4, 20, 80, [1 2 4 8 16 32 64 128 256],0,1,1, 1, 1000, 10)
-%
-% freqsperoctave= 6; minfreq= 4e3; maxfreq= 64e3; 
-% numamplitudes= 1; minamplitude= 70; maxamplitude= 70; durations= 400; ramp=3;
-% include_whitenoise= 1; interleave_laser= 0; include_silent_sound= 0; isi= 500; nrepeats= 20;
-% MakeTonedjProtocol(freqsperoctave, minfreq, maxfreq, numamplitudes,   minamplitude, maxamplitude, durations, ramp, include_whitenoise, interleave_laser, include_silent_sound, isi, nrepeats)
+% freqsperoctave= 1; minfreq= 2e3; maxfreq= 4e3;
+% numamplitudes= 1; minamplitude= .05; maxamplitude= .05; durations= 100; ramp=3;
+% include_whitenoise= 0; isi= 500;
+% MakeToneAutopilotProtocol(freqsperoctave, minfreq, maxfreq, numamplitudes,   minamplitude, maxamplitude, durations, ramp, include_whitenoise, isi)
 %
 %to include only whitenoise, use freqsperoctave==0 & minfreq==0 & maxfreq==0 & include_whitenoise==1
 
@@ -81,25 +67,79 @@ end
 linspacedamplitudes = linspace( minamplitude , maxamplitude , numamplitudes );
 if numfreqs==0; logspacedfreqs=[]; end
 
-if include_whitenoise==1
+if include_whitenoise
     logspacedfreqs=[logspacedfreqs -1]; %add whitenoise as extra freq=-1
     numfreqs=numfreqs+1;
-end
-if interleave_laser==1
-    [Amplitudes,Freqs, Durations, Lasers]=ndgrid( linspacedamplitudes , logspacedfreqs, durations, [0 1] );
-    numlasers=2;
+    include_whitenoisestr='+WN';
 else
-    [Amplitudes,Freqs, Durations]=meshgrid( linspacedamplitudes , logspacedfreqs, durations );
-    numlasers=1;
-    Lasers=zeros(size(Amplitudes));
+    include_whitenoisestr='';
 end
+durstring=sprintf('%d-', durations);durstring=durstring(1:end-1);
 
-neworder=randperm( numfreqs * numamplitudes * numdurations * numlasers);
+filename=sprintf('tuning-curve-tones%s-%dfpo_%d-%dHz-%da_%.3f-%.3f-%dd_%sms-isi%dms.json', ...
+    include_whitenoisestr, freqsperoctave,minfreq, round(maxfreq), numamplitudes,minamplitude, maxamplitude, numdurations, durstring, isi);
 
-amplitudes=zeros(size(neworder));
-freqs=zeros(size(neworder));
-durs=zeros(size(neworder));
-lasers=zeros(size(neworder));
+cd /Users/wehr/Documents/Analysis/autopilot/protocols
+fid=fopen(filename, 'w');
+
+
+
+p.graduation.type='NTrials'
+p.graduation.value.current_trial='1';
+p.graduation.value.n_trials='1000000000000000';
+p.graduation.value.type='NTrials';
+p.inter_stimulus_interval= num2str(isi);
+p.step_name= 'TuningCurve'
+
+i=0;
+for amp=linspacedamplitudes
+    for freq=logspacedfreqs
+        for dur=durations
+            i=i+1;
+            if freq==-1
+                p.stim.sounds.L(i).type='Noise';
+                p.stim.sounds.L(i).amplitude=num2str(amp);
+                p.stim.sounds.L(i).duration=num2str(dur);
+                p.stim.sounds.L(i).channel=1;
+            else
+                p.stim.sounds.L(i).type='Tone';
+                p.stim.sounds.L(i).amplitude=num2str(amp);
+                p.stim.sounds.L(i).duration=num2str(dur);
+                p.stim.sounds.L(i).frequency=num2str(freq);
+            end
+            
+            %fprintf(fid, '\n%d %d %d', amp, freq, dur)
+        end
+    end
+end
+i=0;
+for amp=linspacedamplitudes
+    for freq=logspacedfreqs
+        for dur=durations
+            i=i+1;
+            if freq==-1
+                p.stim.sounds.R(i).type='Noise';
+                p.stim.sounds.R(i).amplitude=num2str(amp);
+                p.stim.sounds.R(i).duration=num2str(dur);
+                p.stim.sounds.R(i).channel=1;
+            else
+                p.stim.sounds.R(i).type='Tone';
+                p.stim.sounds.R(i).amplitude=num2str(amp);
+                p.stim.sounds.R(i).duration=num2str(dur);
+                p.stim.sounds.R(i).frequency=num2str(freq);
+            end
+            
+            %fprintf(fid, '\n%d %d %d', amp, freq, dur)
+        end
+    end
+end
+p.stim.tag='Sounds';
+p.stim.type='sounds';
+p.task_type='TuningCurve';
+fprintf(fid, '[%s]', jsonencode(p, 'PrettyPrint',true))
+fclose(fid)
+
+return
 
 StimPerRepeat=length(neworder);
 if include_silent_sound
@@ -124,33 +164,33 @@ if include_silent_sound
 else
     include_silent_soundstr='';
 end
-    if include_whitenoise
-        include_whitenoisestr='+WN';
-    else
-        include_whitenoisestr='';
-    end
+if include_whitenoise
+    include_whitenoisestr='+WN';
+else
+    include_whitenoisestr='';
+end
 
-    if WNonly
-        name= sprintf('Tuning curve WN only, %da(%d-%ddB)/%dd(%sms)/%s-%s-%dmsisi/%d reps', ...
-            numamplitudes,minamplitude,...
-            maxamplitude, numdurations, durstring,interleave_laserstr,include_silent_soundstr, isi,nrepeats);
-        description=sprintf('tuning curve, WN only, %d ampl. (%d-%d dB SPL), %d durations (%sms),%s, %s, %d ms isi,%d stim per rep, %d repeats, %d total stimuli, %ds per rep, %d s total dur',...
-            numamplitudes,minamplitude, maxamplitude, numdurations, durstring, ...
-            interleave_laserstr,include_silent_soundstr, isi, StimPerRepeat, nrepeats,TotalNumStim, round(DurationPerRepeatSecs), round(TotalDurationSecs));
-        filename=sprintf('tuning-curve-WNonly-%da_%d-%ddB-%dd_%sms-%s-%s-isi%dms-%dreps',...
-             numamplitudes,minamplitude, maxamplitude, numdurations, durstring,...
-            interleave_laserstr,include_silent_soundstr, isi, nrepeats);
-    else
-        name= sprintf('Tuning curve %s, %dfpo(%d-%dHz)/%da(%d-%ddB)/%dd(%sms)/%s-%s-%dmsisi/%d reps', ...
-            include_whitenoisestr, freqsperoctave,minfreq, round(maxfreq), numamplitudes,minamplitude,...
-            maxamplitude, numdurations, durstring,interleave_laserstr,include_silent_soundstr, isi,nrepeats);
-        description=sprintf('tuning curve, tones%s, %d freqs/oct (%d-%dkHz), %d ampl. (%d-%d dB SPL), %d durations (%sms),%s, %s, %d ms isi,%d stim per rep, %d repeats, %d total stimuli, %ds per rep, %d s total dur (%.1f min)',...
-            include_whitenoisestr,freqsperoctave, minfreq, round(maxfreq), numamplitudes,minamplitude, maxamplitude, numdurations, durstring, ...
-            interleave_laserstr,include_silent_soundstr, isi, StimPerRepeat, nrepeats,TotalNumStim, round(DurationPerRepeatSecs), round(TotalDurationSecs), TotalDurationSecs/60);
-        filename=sprintf('tuning-curve-tones%s-%dfpo_%d-%dHz-%da_%d-%ddB-%dd_%sms-%s-%s-isi%dms-%dreps',...
-            include_whitenoisestr, freqsperoctave,minfreq, round(maxfreq), numamplitudes,minamplitude, maxamplitude, numdurations, durstring,...
-            interleave_laserstr,include_silent_soundstr, isi, nrepeats);
-    end
+if WNonly
+    name= sprintf('Tuning curve WN only, %da(%d-%ddB)/%dd(%sms)/%s-%s-%dmsisi/%d reps', ...
+        numamplitudes,minamplitude,...
+        maxamplitude, numdurations, durstring,interleave_laserstr,include_silent_soundstr, isi,nrepeats);
+    description=sprintf('tuning curve, WN only, %d ampl. (%d-%d dB SPL), %d durations (%sms),%s, %s, %d ms isi,%d stim per rep, %d repeats, %d total stimuli, %ds per rep, %d s total dur',...
+        numamplitudes,minamplitude, maxamplitude, numdurations, durstring, ...
+        interleave_laserstr,include_silent_soundstr, isi, StimPerRepeat, nrepeats,TotalNumStim, round(DurationPerRepeatSecs), round(TotalDurationSecs));
+    filename=sprintf('tuning-curve-WNonly-%da_%d-%ddB-%dd_%sms-%s-%s-isi%dms-%dreps',...
+        numamplitudes,minamplitude, maxamplitude, numdurations, durstring,...
+        interleave_laserstr,include_silent_soundstr, isi, nrepeats);
+else
+    name= sprintf('Tuning curve %s, %dfpo(%d-%dHz)/%da(%d-%ddB)/%dd(%sms)/%s-%s-%dmsisi/%d reps', ...
+        include_whitenoisestr, freqsperoctave,minfreq, round(maxfreq), numamplitudes,minamplitude,...
+        maxamplitude, numdurations, durstring,interleave_laserstr,include_silent_soundstr, isi,nrepeats);
+    description=sprintf('tuning curve, tones%s, %d freqs/oct (%d-%dkHz), %d ampl. (%d-%d dB SPL), %d durations (%sms),%s, %s, %d ms isi,%d stim per rep, %d repeats, %d total stimuli, %ds per rep, %d s total dur (%.1f min)',...
+        include_whitenoisestr,freqsperoctave, minfreq, round(maxfreq), numamplitudes,minamplitude, maxamplitude, numdurations, durstring, ...
+        interleave_laserstr,include_silent_soundstr, isi, StimPerRepeat, nrepeats,TotalNumStim, round(DurationPerRepeatSecs), round(TotalDurationSecs), TotalDurationSecs/60);
+    filename=sprintf('tuning-curve-tones%s-%dfpo_%d-%dHz-%da_%d-%ddB-%dd_%sms-%s-%s-isi%dms-%dreps',...
+        include_whitenoisestr, freqsperoctave,minfreq, round(maxfreq), numamplitudes,minamplitude, maxamplitude, numdurations, durstring,...
+        interleave_laserstr,include_silent_soundstr, isi, nrepeats);
+end
 
 nn=0;
 for rep=1:nrepeats

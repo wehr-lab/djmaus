@@ -6,13 +6,14 @@
 Welcome to djmaus's documentation!
 ==================================
 
-.. automodule:: djtools
-   :members:
-   :undoc-members:
+
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
+
+   api/djtools
+   api/makeStimuli
 
 
 

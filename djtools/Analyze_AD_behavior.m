@@ -3,6 +3,11 @@ function Analyze_AD_behavior
 %only difference is I throw out early datafiles with partial gapdur arrays
 %(I switched to full gapdur arrays early on as soon as I found the "save
 %time" bug)
+%
+% Args:
+%     arg1 (int): an argument
+%     arg2 (int): :func:`.BatchPrep`
+% 
 
 if ispc %assume we're on wehrrig2b
     dataroot='D:\lab\djmaus\Data\Kat';

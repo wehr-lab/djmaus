@@ -13,3 +13,5 @@ Datalab
 zeroMQwrapper.mexw64
 mouseDB.mat
 stimuli
+_build
+docs/_build

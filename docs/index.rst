@@ -12,6 +12,7 @@ Welcome to djmaus's documentation!
    :maxdepth: 3
    :caption: Contents:
 
+   api/djmaus
    api/djtools
    api/makeStimuli
 

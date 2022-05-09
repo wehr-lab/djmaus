@@ -1,5 +1,4 @@
 function djmaus(varargin)
-
 % Plays a bunch of different stimuli stored in a .mat file ('protocol')
 % Uses PPA sound which requires PsychToolbox. Download from psychtoolbox.org.
 % Sends stimulus information to Open Ephys GUI using zeroMQ, Win: download from
@@ -567,9 +566,9 @@ else
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function LoadProtocol(varargin)
-%adding capability to push files programatically
-%call dj('load', 'fullfilename')
-%where fullfilename includes the absolute path (e.g. 'D:\lab\exper2.2\protocols\Tuning Curve protocols\tuning-curve-tones-20f_1000-20000Hz-1a_80-80dB-1d_400ms-isi500ms.mat'
+% adding capability to push files programatically
+% call dj('load', 'fullfilename')
+% where fullfilename includes the absolute path (e.g. 'D:\lab\exper2.2\protocols\Tuning Curve protocols\tuning-curve-tones-20f_1000-20000Hz-1a_80-80dB-1d_400ms-isi500ms.mat'
 global pref SP
 if nargin==2
     if varargin{2}

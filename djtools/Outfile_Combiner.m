@@ -139,9 +139,9 @@ switch experiment_type
         Out.samprate=Out_components(1).out.samprate;
         Out.IL=Out_components(1).out.IL;
         Out.xlimits=Out_components(1).out.xlimits;
-        if size(Out_components(1).out.nrepsOFF)~=[Out.numfreqs Out.numamps]
-            error('nreps is not numfreqs x numamps')
-        end
+%         if size(Out_components(1).out.nrepsOFF) ~= [Out.numfreqs Out.numamps]
+%             error('nreps is not numfreqs x numamps')
+%         end
         
         Out.nreps=Out_components(1).out.nreps;
         Out.nrepsON=Out_components(1).out.nrepsON;
@@ -310,54 +310,54 @@ switch experiment_type
         Out.channel=Out_components(1).out.channel;
         Out.cluster=Out_components(1).out.cluster;
         Out.cell=Out_components(1).out.cell;
-        Out.sourcefiles=Out_components(1).out.sourcefiles;
+%         Out.sourcefiles=Out_components(1).out.sourcefiles;
         Out.numsourcefiles=Out_components(1).out.numsourcefiles;
-        Out.SilentSoundOFFStim=Out_components(1).out.SilentSoundOFFStim;
-        Out.SilentSoundOFFLaser=Out_components(1).out.SilentSoundOFFLaser;
-        Out.LaserRecorded=Out_components(1).out.LaserRecorded;
-        Out.StimRecorded=Out_components(1).out.StimRecorded;
+%         Out.SilentSoundOFFStim=Out_components(1).out.SilentSoundOFFStim;
+%         Out.SilentSoundOFFLaser=Out_components(1).out.SilentSoundOFFLaser;
+%         Out.LaserRecorded=Out_components(1).out.LaserRecorded;
+%         Out.StimRecorded=Out_components(1).out.StimRecorded;
         
-        Out.nb.user=Out_components(1).out.nb.user;
-        Out.nb.mouseID=Out_components(1).out.nb.mouseID;
-        Out.nb.Depth=Out_components(1).out.nb.Depth;
-        Out.nb.mouseDOB=Out_components(1).out.nb.mouseDOB;
-        Out.nb.mouseSex=Out_components(1).out.nb.mouseSex;
-        Out.nb.mouseGenotype=Out_components(1).out.nb.mouseGenotype;
+%         Out.nb.user=Out_components(1).out.nb.user;
+%         Out.nb.mouseID=Out_components(1).out.nb.mouseID;
+%         Out.nb.Depth=Out_components(1).out.nb.Depth;
+%         Out.nb.mouseDOB=Out_components(1).out.nb.mouseDOB;
+%         Out.nb.mouseSex=Out_components(1).out.nb.mouseSex;
+%         Out.nb.mouseGenotype=Out_components(1).out.nb.mouseGenotype;
         
         
-        Out.samprate=Out_components(1).out.samprate;
-        Out.IL=Out_components(1).out.IL;
-        Out.xlimits=Out_components(1).out.xlimits;
+%         Out.samprate=Out_components(1).out.samprate;
+%         Out.IL=Out_components(1).out.IL;
+%         Out.xlimits=Out_components(1).out.xlimits;
         Out.nreps=Out_components(1).out.nreps;
         Out.nrepsON=Out_components(1).out.nrepsON;
         Out.nrepsOFF=Out_components(1).out.nrepsOFF;
         Out.nreps_ssON=Out_components(1).out.nreps_ssON;
         Out.nreps_ssOFF=Out_components(1).out.nreps_ssOFF;
-        if size(Out_components(1).out.nrepsOFF, 2) ~= Out.numdurs || size(Out_components(1).out.nrepsOFF, 2) ~= Out.numamps
-            error('nreps is not numdurs x numamps')
-        end
+%         if size(Out_components(1).out.nrepsOFF, 2) ~= Out.numdurs || size(Out_components(1).out.nrepsOFF, 2) ~= Out.numamps
+%             error('nreps is not numdurs x numamps')
+%         end
         
-        Out.datadir=Out_components(1).out.datadir;
-        Out.datadirs{1}=Out_components(1).out.datadir;
-        Out.nb.notes = Out_components(1).out.nb.notes;
-        Out.nb.datapath = Out_components(1).out.nb.datapath;
-        Out.nb.datapaths{1} = Out_components(1).out.nb.datapath;
-        Out.nb.activedir = Out_components(1).out.nb.activedir;
-        Out.nb.activedirs{1} = Out_components(1).out.nb.activedir;
-        Out.stimlog=Out_components(1).out.stimlog;
-        Out.stimlogs{1}=Out_components(1).out.stimlog;
+%         Out.datadir=Out_components(1).out.datadir;
+%         Out.datadirs{1}=Out_components(1).out.datadir;
+%         Out.nb.notes = Out_components(1).out.nb.notes;
+%         Out.nb.datapath = Out_components(1).out.nb.datapath;
+%         Out.nb.datapaths{1} = Out_components(1).out.nb.datapath;
+%         Out.nb.activedir = Out_components(1).out.nb.activedir;
+%         Out.nb.activedirs{1} = Out_components(1).out.nb.activedir;
+%         Out.stimlog=Out_components(1).out.stimlog;
+%         Out.stimlogs{1}=Out_components(1).out.stimlog;
         for i=2:P.numoutfiles
             Out.nreps = Out.nreps + Out_components(i).out.nreps;
-            Out.nrepsON = Out.nrepsON + Out_components(i).out.nrepsON;
-            Out.nrepsOFF = Out.nrepsOFF + Out_components(i).out.nrepsOFF;
+%             Out.nrepsON = Out.nrepsON + Out_components(i).out.nrepsON;
+%             Out.nrepsOFF = Out.nrepsOFF + Out_components(i).out.nrepsOFF;
             
-            Out.nreps_ssON = Out.nreps_ssON + Out_components(i).out.nreps_ssON;
-            Out.nreps_ssOFF = Out.nreps_ssOFF + Out_components(i).out.nreps_ssOFF;
-            Out.datadirs{i} =  Out_components(i).out.datadir;
+%             Out.nreps_ssON = Out.nreps_ssON + Out_components(i).out.nreps_ssON;
+%             Out.nreps_ssOFF = Out.nreps_ssOFF + Out_components(i).out.nreps_ssOFF;
+%             Out.datadirs{i} =  Out_components(i).out.datadir;
 %             Out.nb.notes = Out.nb.notes + Out_components(i).out.nb.notes;
-            Out.nb.datapaths{i} =  Out_components(i).out.nb.datapath;
-            Out.nb.activedirs{i} = Out.nb.activedir + Out_components(i).out.nb.activedir;
-            Out.stimlogs{i} =  Out_components(i).out.stimlog;
+%             Out.nb.datapaths{i} =  Out_components(i).out.nb.datapath;
+%             Out.nb.activedirs{i} = Out.nb.activedir + Out_components(i).out.nb.activedir;
+%             Out.stimlogs{i} =  Out_components(i).out.stimlog;
             
         end
         
@@ -392,51 +392,51 @@ switch experiment_type
              Out.M1OFFLaser(:,:,:,r_blocks(i,1):r_blocks(i, 2),:)=Out_components(i).out.M1OFFLaser;
              Out.M1OFFStim(:,:,:,r_blocks(i,1):r_blocks(i, 2),:)=Out_components(i).out.M1OFFStim;
         end
-        Out.mM1OFFLaser(:,:,1:Out.numdurs,:)=nanmean(Out.M1OFFLaser, 5);
-        Out.mM1OFFStim(:,:,1:Out.numdurs,:)=nanmean(Out.M1OFFStim, 5);
+        Out.mM1OFFLaser(:,:,1:Out.numdurs,:)=nanmean(Out.M1OFFLaser, 4);
+        Out.mM1OFFStim(:,:, 1:Out.numdurs,:)=nanmean(Out.M1OFFStim, 4);
         
         
         %repeat for ON
-        sz=size(Out_components(i).out.M1ONLaser);
-        Out.M1ONLaser=nan(sz);
-        Out.M1ONStim=nan(sz);
-        r_cum=0;
-        for i=1:P.numoutfiles
-            nr=max(Out_components(i).out.nrepsON(:));
-        
-                r_blockstart=r_cum; %start rep -1 for this block 
-                r_blocks(i,:)=[r_blockstart+1, r_blockstart+nr]; %start and stop reps for this block
-            for r=1:nr %indexing reps
-                r_cum=r_cum+1;
-                for aindex=[Out.numamps:-1:1]
-                    for sourcefileindex=1:Out.numsourcefiles
-                        for dindex=1:Out.numdurs
-                            st=Out_components(i).out.M1ON(sourcefileindex, aindex, dindex, r).spiketimes;
-                            Out.M1ON(sourcefileindex, aindex, dindex, r_cum).spiketimes=st;
-
-                        end
-                    end
-                end
-            end
-            Out.M1ONLaser(:,:,:,r_blocks(i,1):r_blocks(i, 2),:)=Out_components(i).out.M1ONLaser;
-            Out.M1ONStim(:,:,:,r_blocks(i,1):r_blocks(i, 2),:)=Out_components(i).out.M1ONStim;
-        end
-        if ~isempty(Out.M1ONLaser) %don't bother if there are no laser trials
-            Out.mM1ONLaser(:,:,1:Out.numdurs,:)=nanmean(Out.M1ONLaser, 5);
-            Out.mM1ONStim(:,:,1:Out.numdurs,:)=nanmean(Out.M1ONStim, 5);
-        end
+%         sz=size(Out_components(i).out.M1ONLaser);
+%         Out.M1ONLaser=nan(sz);
+%         Out.M1ONStim=nan(sz);
+%         r_cum=0;
+%         for i=1:P.numoutfiles
+%             nr=max(Out_components(i).out.nrepsON(:));
+%         
+%                 r_blockstart=r_cum; %start rep -1 for this block 
+%                 r_blocks(i,:)=[r_blockstart+1, r_blockstart+nr]; %start and stop reps for this block
+%             for r=1:nr %indexing reps
+%                 r_cum=r_cum+1;
+%                 for aindex=[Out.numamps:-1:1]
+%                     for sourcefileindex=1:Out.numsourcefiles
+%                         for dindex=1:Out.numdurs
+%                             st=Out_components(i).out.M1ON(sourcefileindex, aindex, dindex, r).spiketimes;
+%                             Out.M1ON(sourcefileindex, aindex, dindex, r_cum).spiketimes=st;
+% 
+%                         end
+%                     end
+%                 end
+%             end
+%             Out.M1ONLaser(:,:,:,r_blocks(i,1):r_blocks(i, 2),:)=Out_components(i).out.M1ONLaser;
+%             Out.M1ONStim(:,:,:,r_blocks(i,1):r_blocks(i, 2),:)=Out_components(i).out.M1ONStim;
+%         end
+%         if ~isempty(Out.M1ONLaser) %don't bother if there are no laser trials
+%             Out.mM1ONLaser(:,:,1:Out.numdurs,:)=nanmean(Out.M1ONLaser, 4);
+%             Out.mM1ONStim(:,:,1:Out.numdurs,:)=nanmean(Out.M1ONStim, 4);
+%         end
         
         % Accumulate spiketimes across trials, for psth...
         for dindex=1:Out.numdurs; % Hardcoded.
             for aindex=[Out.numamps:-1:1]
                 for sourcefileidx=1:Out.numsourcefiles
                     
-                    % on
-                    spiketimesON=[];
-                    for rep=1:Out.nrepsON(sourcefileidx, aindex, dindex)
-                        spiketimesON=[spiketimesON Out.M1ON(sourcefileidx, aindex, dindex, rep).spiketimes];
-                    end
-                    Out.mM1ON(sourcefileidx, aindex, dindex).spiketimes=spiketimesON;
+%                     % on
+%                     spiketimesON=[];
+%                     for rep=1:Out.nrepsON(sourcefileidx, aindex, dindex)
+%                         spiketimesON=[spiketimesON Out.M1ON(sourcefileidx, aindex, dindex, rep).spiketimes];
+%                     end
+%                     Out.mM1ON(sourcefileidx, aindex, dindex).spiketimes=spiketimesON;
                     
                     % off
                     spiketimesOFF=[];

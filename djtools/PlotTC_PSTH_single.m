@@ -8,7 +8,7 @@ function PlotTC_PSTH_single(varargin)
 %Processes data if outfile is not found;
 
 rasters=1;
-force_reprocess=1;
+force_reprocess=0;
 
 if nargin==0
     fprintf('\nno input');
@@ -190,7 +190,7 @@ else
 end
 
 %plot the mean tuning curve OFF
-for windex=1:numw
+for windex=1:1                                                              % Normally windex=1:numw, hardcoded here for efficiency
     figure('position',[200 100 1381 680])
     p=0;
     subplot1(numy,numx, 'Max', [.95 .9])

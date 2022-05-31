@@ -1089,6 +1089,9 @@ try
     %     end
     
     save('notebook.mat', '-append', 'nb', 'stimlog')
+    json_nb_text=jsonencode(nb);
+    json_stimlog_text=jsonencode(stimlog);
+    
     fprintf('\nupdated notebook file in %s', nb.activedir)
 catch
     fprintf('\nCould not update notebook file.')

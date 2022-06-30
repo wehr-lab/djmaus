@@ -1,4 +1,4 @@
-function out=PPAdj(varargin)
+function [out] = PPAdj(varargin)
 
 % djmaus module that initializes, loads, and plays sounds using PsychToolbox PortAudio (PPA) routines
 %note: this module requires that PsychToolbox is installed. Freely available from psychtoolbox.org
@@ -145,7 +145,8 @@ PsychPortAudio('Verbosity', 0);
 
 % Initialize driver, request low-latency preinit:
 %InitializePsychSound(1); %  InitializePsychSound([reallyneedlowlatency=1])
-InitializePsychSound(0); %  InitializePsychSound([reallyneedlowlatency=0])
+%%% commented out line below Kip 2/21
+%InitializePsychSound(0); %  InitializePsychSound([reallyneedlowlatency=0])
 
 %note: this module requires that PsychToolbox is installed. Freely
 %available from psychtoolbox.org
@@ -194,9 +195,11 @@ buffPos = 0;
 % Open audio device for low-latency output:
 
 playbackonly=1;
-try PPAhandle = PsychPortAudio('Open', deviceid, playbackonly, reqlatencyclass, SoundFs, numChan, buffSize, suggestedLatency);
+try 
+    fprintf('open deviceID# %d in PPAdj\n',deviceid)
+    PPAhandle = PsychPortAudio('Open', deviceid, playbackonly, reqlatencyclass, SoundFs, numChan, buffSize, suggestedLatency);
 catch
-error(sprintf('Could not open soundcard device id %d. Call PrintDevices and confirm that the soundcard DeviceIndex matches pref.soundcarddeviceID (in djPrefs)\n', deviceid));
+    error(sprintf('Could not open soundcard device id %d. Call PrintDevices and confirm that the soundcard DeviceIndex matches pref.soundcarddeviceID (in djPrefs)\n', deviceid));
 end
 %runMode = 0; %default, turns off soundcard after playback
 runMode = 1; %leaves soundcard on (hot), uses more resources but may solve dropouts? mw 08.25.09: so far so good.
@@ -208,6 +211,7 @@ if isempty(PPAhandle)
     return;
 end
 SP.PPAhandle=PPAhandle; % hold the PsychPortAudio object
+% fprintf('set SP.PPAhandle to %d in PPAdj line 214\n',SP.PPAhandle);
 SP.numChan=numChan; %param to hold number of output channels with which we initialized card (num rows of samples must match this)
 SP.SoundFs=SoundFs; %param to hold the sampling rate
 SP.samples=[]; %param to hold the samples, used only for looping
@@ -346,8 +350,12 @@ elseif GetXonarDevice & isempty(GetAsioLynxDevice)
     trigsamples(1:triglength)=ones(size(1:triglength));
 elseif ismac
     trigsamples(1:triglength)=ones(size(1:triglength));
-elseif GetRealtekDevice
+elseif GetRealtekDevice &  isempty(GetXonarDevice) &  isempty(GetAsioLynxDevice) &  isempty(GetPreSonusDevice)
     trigsamples(1:triglength)=.1*ones(size(1:triglength)); %for lynx soundcard
+elseif GetFocusriteDevice & isempty(GetAsioLynxDevice)
+    trigsamples(1:triglength)=ones(size(1:triglength));
+elseif GetPreSonusDevice & isempty(GetAsioLynxDevice)
+    trigsamples(1:triglength)=ones(size(1:triglength))/2;    
 else
     error('cannot determine soundcard type')
 end
@@ -478,7 +486,7 @@ if on
                         pstartsamp=1;
                     else
                         %pstartsamp=pstartsamp+(pulsewidth(n-1)+isi(n-1))*SoundFs/1000;
-                        pstartsamp=pstartsamp+isi(n-1)*SoundFs/1000; %mw 1-28-2017
+                        pstartsamp=pstopsamp+isi(n-1)*SoundFs/1000; %mw 1-28-2017
                     end
                     pstopsamp=pstartsamp+pulsewidth(n)*SoundFs/1000-1;
                     laserpulse(pstartsamp:pstopsamp)=1;
@@ -500,7 +508,7 @@ if on
                         pstartsamp=start*SoundFs/1000+1;
                     else
                         %pstartsamp=pstartsamp+(pulsewidth(n-1)+isi(n-1))*SoundFs/1000;
-                        pstartsamp=pstartsamp+isi(n-1)*SoundFs/1000; %mw 1-28-2017
+                        pstartsamp=pstopsamp+isi(n-1)*SoundFs/1000; %mw 1-28-2017
                     end
                     pstartsamp=round(pstartsamp);
                     pstopsamp=pstartsamp+pulsewidth(n)*SoundFs/1000-1;

@@ -48,7 +48,7 @@ catch
     % load rez, which contains number of samples of each recording 1=1, 2=1+2,
     % 3=1+2+3, etc
     load(fullfile(MasterDir,'rez.mat'))
-    L=(rez.ops.recLength)/sp.sampleRate;
+    L=(rez.ops.recLength)/sp.sample_rate;
     save(fullfile(MasterDir,'RecLengths.mat'),'L')
 end
 

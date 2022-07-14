@@ -171,7 +171,7 @@ else
 end
 
 SCTfname=getSCTfile(datadir);
-stimfile=sprintf('%s_ADC2.continuous', node);
+stimfile=sprintf('%s_ADC1.continuous', node);
 [stim, stimtimestamps, stiminfo] =load_open_ephys_data(stimfile);
 
 %uncomment this to run some sanity checks
@@ -355,15 +355,21 @@ for i=1:length(Events)
                         t=region; t = t-t(1);t=t/samprate;
                         plot(t, scaledtrace(region), 'color',hsv2rgb([gdindex/length(gapdurs),1,1]))
                     end
-                    %                     figure(8),clf;hold on
-                    %                     t=region;t=t/samprate;
-                    %                     plot(t, stim(region), 'm', t, scaledtrace(region), 'b')
-                    %                     gap_termination=pos+gapdelay/1000;
-                    %                     gap_onset=pos+gapdelay/1000-gapdur/1000;
-                    %                     plot(gap_onset, 0, '^', gap_termination,0, 'v')
-                    %                     plot(startle_onset, 0, 'bo')
-                    %                     plot(pos, 0, 'r*')
+                    if flag.plot
+                        %some sanity check to see if the stimulus played
+                        %and there's sensor data
+                        figure(8)
+                        hold on
+                        offset=i*.1;
+                        t=region;t=t/samprate; t=t-t(1);
+                        plot(t, stim(region)-stim(1)+offset, 'm', t, scaledtrace(region)-scaledtrace(1)+offset, 'b')
+                        gap_termination=pos+gapdelay/1000;
+                        gap_onset=pos+gapdelay/1000-gapdur/1000;
+%                         plot(gap_onset, 0, '^', gap_termination,0, 'v')
+%                         plot(startle_onset, 0, 'bo')
+%                         plot(pos, 0, 'r*')
                     %                     keyboard
+                    end
                 end
             end
         end

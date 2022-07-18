@@ -51,13 +51,5 @@ catch
     save(fullfile(MasterDir,'RecLengths.mat'),'L')
 end
 
-stop=L(currentdir_indx);
-if currentdir_indx==1
-    start=0;
-else
-    start=L(currentdir_indx-1);
-end
-spiketimes=spiketimes(spiketimes & spiketimes); %find spiketimes for this recording;
-spiketimes=spiketimes-start; %all spiketimes will start at 0
 spiketimes=spiketimes';
 % cd(currentdir); %go to the original directory

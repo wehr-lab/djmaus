@@ -329,10 +329,10 @@ switch experiment_type
 %         Out.IL=Out_components(1).out.IL;
 %         Out.xlimits=Out_components(1).out.xlimits;
         Out.nreps=Out_components(1).out.nreps;
-        Out.nrepsON=Out_components(1).out.nrepsON;
+%         Out.nrepsON=Out_components(1).out.nrepsON;
         Out.nrepsOFF=Out_components(1).out.nrepsOFF;
-        Out.nreps_ssON=Out_components(1).out.nreps_ssON;
-        Out.nreps_ssOFF=Out_components(1).out.nreps_ssOFF;
+%         Out.nreps_ssON=Out_components(1).out.nreps_ssON;
+%         Out.nreps_ssOFF=Out_components(1).out.nreps_ssOFF;
 %         if size(Out_components(1).out.nrepsOFF, 2) ~= Out.numdurs || size(Out_components(1).out.nrepsOFF, 2) ~= Out.numamps
 %             error('nreps is not numdurs x numamps')
 %         end
@@ -349,7 +349,7 @@ switch experiment_type
         for i=2:P.numoutfiles
             Out.nreps = Out.nreps + Out_components(i).out.nreps;
 %             Out.nrepsON = Out.nrepsON + Out_components(i).out.nrepsON;
-%             Out.nrepsOFF = Out.nrepsOFF + Out_components(i).out.nrepsOFF;
+            Out.nrepsOFF = Out.nrepsOFF + Out_components(i).out.nrepsOFF;
             
 %             Out.nreps_ssON = Out.nreps_ssON + Out_components(i).out.nreps_ssON;
 %             Out.nreps_ssOFF = Out.nreps_ssOFF + Out_components(i).out.nreps_ssOFF;

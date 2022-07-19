@@ -13,7 +13,7 @@ function [Events, StartAcquisitionSec, StartAcquisitionSamples] = ProcessEvents(
     [all_channels_data, all_channels_timestamps, all_channels_info] = load_open_ephys_data(Eventsfilename);
     load('notebook.mat');
     sampleRate=all_channels_info.header.sampleRate;
-    [Events, StartAcquisitionSec, StartAcquisitionSamples] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
+    [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
     
    
 end

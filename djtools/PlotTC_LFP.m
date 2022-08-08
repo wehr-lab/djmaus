@@ -227,71 +227,72 @@ for dindex=1:numdurs
                 axis off
             end
         end
-        subplot1(1)
-        h=title(sprintf('OFF %s: %dms, nreps: %d-%d',datadir,durs(dindex),min(nrepsOFF(:)),max(nrepsOFF(:))));
-        %h=title(sprintf('OFF %s: %dms, nreps: %d-%d',datadir,durs(dindex), reps_to_use));
-        set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
-        set(h,  'interpreter', 'none')
-        
-        %label amps and freqs
-        p=0;
-        for aindex=numamps:-1:1
-            for findex=1:numfreqs
-                p=p+1;
-                subplot1(p)
-                if findex==1
-                    text(xlimits(1)-diff(xlimits)/2, mean(ylimits), int2str(amps(aindex)))
+    end
+    subplot1(1)
+    h=title(sprintf('OFF %s: %dms, nreps: %d-%d',datadir,durs(dindex),min(nrepsOFF(:)),max(nrepsOFF(:))));
+    %h=title(sprintf('OFF %s: %dms, nreps: %d-%d',datadir,durs(dindex), reps_to_use));
+    set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
+    set(h,  'interpreter', 'none')
+    
+    %label amps and freqs
+    p=0;
+    for aindex=numamps:-1:1
+        for findex=1:numfreqs
+            p=p+1;
+            subplot1(p)
+            if findex==1
+                text(xlimits(1)-diff(xlimits)/2, mean(ylimits), int2str(amps(aindex)))
+            end
+            
+            if aindex==1
+                if mod(findex,2) %odd freq
+                    vpos=ylimits(1)-mean(ylimits);
+                else
+                    vpos=ylimits(1)-mean(ylimits);
                 end
-                
+                if freqs(findex)==-2000
+                    text(xlimits(1), vpos, 'SS')
+                elseif freqs(findex)==-1000
+                    text(xlimits(1), vpos, 'WN')
+                elseif freqs(findex)>0
+                    text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
+                end
+            else
                 if aindex==1
                     if mod(findex,2) %odd freq
                         vpos=ylimits(1)-mean(ylimits);
                     else
                         vpos=ylimits(1)-mean(ylimits);
                     end
-                    if freqs(findex)==-2000
-                        text(xlimits(1), vpos, 'SS')
+                    if freqs(findex)>0
+                        text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
                     elseif freqs(findex)==-1000
                         text(xlimits(1), vpos, 'WN')
-                    elseif freqs(findex)>0
-                        text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
+                    elseif freqs(findex)==-2000
+                        text(xlimits(1), vpos, 'SS')
                     end
-                else
-                    if aindex==1
-                        if mod(findex,2) %odd freq
-                            vpos=ylimits(1)-mean(ylimits);
-                        else
-                            vpos=ylimits(1)-mean(ylimits);
-                        end
-                        if freqs(findex)>0
-                            text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
-                        elseif freqs(findex)==-1000
-                            text(xlimits(1), vpos, 'WN')
-                        elseif freqs(findex)==-2000
-                            text(xlimits(1), vpos, 'SS')
-                        end
-                    end
-                    
-                    %                 if freqs(findex)>0
-                    %                     text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
-                    %                 elseif freqs(findex)==-1000
-                    %                     text(xlimits(1), vpos, 'WN')
-                    %                 elseif freqs(findex)==-2000
-                    %                     text(xlimits(1), vpos, 'SS')
-                    %                 end
                 end
-                %             if findex==numfreqs && aindex==numamps
-                %                 axis on
-                %                 ylab=[ceil(ylimits(1)*10)/10 floor(ylimits(2)*10)/10];
-                %                 set(gca,'ytick',ylab,'yticklabel',ylab,'YAxisLocation','right')
-                %             end
+                
+                %                 if freqs(findex)>0
+                %                     text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
+                %                 elseif freqs(findex)==-1000
+                %                     text(xlimits(1), vpos, 'WN')
+                %                 elseif freqs(findex)==-2000
+                %                     text(xlimits(1), vpos, 'SS')
+                %                 end
             end
+            %             if findex==numfreqs && aindex==numamps
+            %                 axis on
+            %                 ylab=[ceil(ylimits(1)*10)/10 floor(ylimits(2)*10)/10];
+            %                 set(gca,'ytick',ylab,'yticklabel',ylab,'YAxisLocation','right')
+            %             end
         end
-        subplot1(1)
-        h=title(sprintf('OFF %s: %dms, nreps: %d-%d, ch%d',datadir,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF))), channel));
-        set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
     end
+    subplot1(1)
+    h=title(sprintf('OFF %s: %dms, nreps: %d-%d, ch%d',datadir,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF))), channel));
+    set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
 end
+
 
 
 % plot on

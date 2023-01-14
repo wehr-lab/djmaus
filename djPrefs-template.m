@@ -26,6 +26,7 @@ pref.root=fileparts(which(mfilename));
 pref.windowpos=[2853 861  420  643]; %djmaus GUI position
 pref.local =0; %1 for local communication (djmaus and open-ephys on same
 %computer), 0 for remote (djmaus and open-ephys on different computers)
+pref.stimuli=fullfile(pref.root, 'stimuli');
 if pref.local %same computer
     switch computer
         case 'MACI64'

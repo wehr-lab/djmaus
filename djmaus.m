@@ -54,7 +54,9 @@ switch action
         delete(djTimer);
         clear djTimer
         PPAdj('close')
-        zeroMQwrapper('CloseThread',SP.zhandle);
+        try
+            zeroMQwrapper('CloseThread',SP.zhandle);
+        end
         pause(0.2)
         delete(SP.fig)
         clear global SP

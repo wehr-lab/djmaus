@@ -647,6 +647,7 @@ end
 function LoadMouse
 global SP pref
 cd (pref.root)
+set(SP.mouseIDh, 'ForegroundColor', 'k')
 try
     mouseDB=load('mouseDB.mat');
     if isfield(mouseDB, ['mouseID_', SP.mouseID])
@@ -1595,6 +1596,7 @@ function InitParams
 global SP pref
 
 SP.datapath=pref.datapath;
+SP.mouseID='unknown';
 SP.CurrentStimulus=[];
 SP.stimcounter=0;
 SP.NStimuli=[];
@@ -1910,7 +1912,7 @@ H=H+h+e;
 
 %mouseID edit box
 SP.mouseIDh=uicontrol(fig,'Parent',hp,'tag','mouseID','style','edit','fontweight','bold','units','pixels',...
-    'string', '','horiz','left', 'callback',[me ';'],'pos',[e  H w h ]);
+    'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[e  H w h ], 'ForegroundColor', 'r');
 H=H+h+e;
 SP.mouseIDlabel=uicontrol(fig,'Parent',hp,'tag','mouseIDlabel','style','text','units','pixels',...
     'string', 'mouseID', 'fontsize', 2+labelfs,...

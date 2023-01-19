@@ -30,6 +30,7 @@ pref.windowpos=[2853 861  420  643]; %djmaus GUI position
 pref.local =0; %1 for local communication (djmaus and open-ephys on same
 %computer), 0 for remote (djmaus and open-ephys on different computers)
 pref.stimuli=fullfile(pref.root, 'stimuli');
+pref.mesoscope_mode=0; %0=use intan/openephys and save metadata to OE directory, 1=use arduino SCT and write metadata locally, no intan/openephys
 if pref.local %same computer
     switch computer
         case 'MACI64'

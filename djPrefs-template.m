@@ -17,6 +17,10 @@ pref.Soundchannel2=nan; %no binaural
 pref.Soundcardtriggerchannel=3;
 pref.Laserchannel=4;
 pref.Shockchannel=2;
+pref.CampulseOff=nan; %a pulse for triggering a pi camera
+pref.CampulseOn=nan;
+pref.camera_rec=0; %set the pi camera to be triggered when you start
+pref.SCT_digital_line_in=1;
 pref.reqlatencyclass=0; %Rig1: saw dropouts with 0, fewer 1, fewer with 2, still some with 3
 pref.suggestedLatency=.01;
 pref.SoundFs=192000;
@@ -26,6 +30,8 @@ pref.root=fileparts(which(mfilename));
 pref.windowpos=[2853 861  420  643]; %djmaus GUI position
 pref.local =0; %1 for local communication (djmaus and open-ephys on same
 %computer), 0 for remote (djmaus and open-ephys on different computers)
+pref.stimuli=fullfile(pref.root, 'stimuli');
+pref.mesoscope_mode=0; %0=use intan/openephys and save metadata to OE directory, 1=use arduino SCT and write metadata locally, no intan/openephys
 if pref.local %same computer
     switch computer
         case 'MACI64'

@@ -1,8 +1,10 @@
 function GetSCTriggersFromSpike2file(filename)
 %reads soundcard triggers and protocol start events from Spike2 smrx file
 %and writes to a .mat file with the same name
+%WINDOWS ONLY (thanks Spike2)
 %usage: 
 %    GetSCTriggersFromSpike2file(filename)
+if ~ispc error('sorry, Windows only'); end
 
 SCTchan=18;
 ProtocolStartchan=19;

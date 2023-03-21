@@ -280,6 +280,7 @@ nrepsOFF=zeros(numgapdurs, numpulseamps);
 
 xlimits=[-350 350]; %xlimits for storing traces
 startle_window=[0 100]; %hard coded integration region for startle response (ms)
+bl_window=[-100 0];%hard coded integration region for pre-startle baseline (ms)
 fprintf('\nprocessing with xlimits [%d - %d]', xlimits(1), xlimits(2))
 fprintf('\nprocessing with startle integration window [%d - %d]', startle_window(1), startle_window(2))
 
@@ -311,6 +312,7 @@ for i=1:length(Events)
         laser=LaserTrials(i);
         %since this is all about quantifying startle response, we want a trace
         %locked to startle pulse (not gap)
+        
         startle_onset=pos+gapdelay/1000+isi/1000;
         start=startle_onset + xlimits(1)/1000; %start is in seconds, should be at xlimits relative to startle onset
         stop=startle_onset + xlimits(2)/1000; %stop is in seconds
@@ -394,8 +396,8 @@ PeakON=[];
 PeakOFF=[];
 SumOFF=[];   %%%Here's what I added
 mSumOFF=[];
-% out.SumOFF=[];
-% out.mSumOFF=[];
+bl_SumOFF=[];
+
 
 
 
@@ -410,6 +412,8 @@ mM1ONstim=mean(M1ONstim, 3);
 
 % Accumulate startle response across trials using peak (or summed) rectified signal in region
 %%%% Added throwing out oddballs 6/27/2018
+bl_start=(bl_window(1)-xlimits(1))*samprate/1000;
+bl_stop=bl_start+diff(bl_window)*samprate/1000;
 start=(startle_window(1)-xlimits(1))*samprate/1000;
 stop=start+diff(startle_window)*samprate/1000;
 
@@ -417,6 +421,8 @@ SumON=nan(numgapdurs, numpulseamps, max(nrepsON(:)));
 SumOFF=nan(numgapdurs, numpulseamps, max(nrepsOFF(:)));
 SumONACC=nan(numgapdurs, numpulseamps, max(nrepsON(:)));
 SumOFFACC=nan(numgapdurs, numpulseamps, max(nrepsOFF(:)));
+
+bl_SumOFF=nan(numgapdurs, numpulseamps, max(nrepsOFF(:)));
 
 PeakON=nan(numgapdurs, numpulseamps, max(nrepsON(:)));
 PeakOFF=nan(numgapdurs, numpulseamps, max(nrepsOFF(:)));
@@ -461,16 +467,21 @@ for paindex=1:numpulseamps
         for k=1:nrepsOFF(gdindex, paindex);
             temp = squeeze(M1OFF(gdindex,paindex, k, 1:10000));
             if abs(mean(temp)) <.01 & std(temp) < .1
+                bl_traceOFF=squeeze(M1OFF(gdindex,paindex, k, bl_start:bl_stop));
                 traceOFF=squeeze(M1OFF(gdindex,paindex, k, start:stop));
                 PeakOFF(gdindex, paindex, k) = max(abs(traceOFF));
+                bl_SumOFF(gdindex, paindex, k) = sum(abs(bl_traceOFF));
                 SumOFF(gdindex, paindex, k) = sum(abs(traceOFF));
             elseif flag.includeALL
+                bl_traceOFF=squeeze(M1OFF(gdindex,paindex, k, bl_start:bl_stop));
                 traceOFF=squeeze(M1OFF(gdindex,paindex, k, start:stop));
                 PeakOFF(gdindex, paindex, k) = max(abs(traceOFF));
+                bl_SumOFF(gdindex, paindex, k) = sum(abs(bl_traceOFF));
                 SumOFF(gdindex, paindex, k) = sum(abs(traceOFF));
             else
                 fprintf('Throwing out trial#%d of gapdur#%d\n',k,gdindex)
                 PeakOFF(gdindex, paindex, k) = nan;
+                bl_SumOFF(gdindex, paindex, k) = nan;
                 SumOFF(gdindex, paindex, k) = nan;
             end
             temp = squeeze(M1OFFACC(gdindex,paindex, k, 1:10000));
@@ -662,6 +673,7 @@ out.semPeakON=semPeakON;
 out.semPeakOFF=semPeakOFF;
 out.SumON=SumON;
 out.SumOFF=SumOFF;
+out.bl_SumOFF=bl_SumOFF;
 out.mSumON=mSumON;
 out.mSumOFF=mSumOFF;
 out.semSumON=semSumON;
@@ -995,6 +1007,7 @@ nrepsON=zeros(numgapdurs, numpulseamps);
 nrepsOFF=zeros(numgapdurs, numpulseamps);
 
 xlimits=[-350 350]; %xlimits for storing traces
+bl_window=[-100 0];
 startle_window=[0 100]; %hard coded integration region for startle response (ms)
 fprintf('\nprocessing with xlimits [%d - %d]', xlimits(1), xlimits(2))
 fprintf('\nprocessing with startle integration window [%d - %d]', startle_window(1), startle_window(2))
@@ -1110,8 +1123,8 @@ PeakON=[];
 PeakOFF=[];
 SumOFF=[];   %%%Here's what I added
 mSumOFF=[];
-% out.SumOFF=[];
-% out.mSumOFF=[];
+bl_SumOFF=[];
+
 
 
 
@@ -1126,6 +1139,8 @@ mM1ONstim=mean(M1ONstim, 3);
 
 % Accumulate startle response across trials using peak (or summed) rectified signal in region
 %%%% Added throwing out oddballs 6/27/2018
+bl_start=(bl_window(1)-xlimits(1))*samprate/1000;
+bl_stop=bl_start+diff(bl_window)*samprate/1000;
 start=(startle_window(1)-xlimits(1))*samprate/1000;
 stop=start+diff(startle_window)*samprate/1000;
 
@@ -1133,6 +1148,8 @@ SumON=nan(numgapdurs, numpulseamps, max(nrepsON(:)));
 SumOFF=nan(numgapdurs, numpulseamps, max(nrepsOFF(:)));
 SumONACC=nan(numgapdurs, numpulseamps, max(nrepsON(:)));
 SumOFFACC=nan(numgapdurs, numpulseamps, max(nrepsOFF(:)));
+
+bl_SumOFF=nan(numgapdurs, numpulseamps, max(nrepsOFF(:)));
 
 PeakON=nan(numgapdurs, numpulseamps, max(nrepsON(:)));
 PeakOFF=nan(numgapdurs, numpulseamps, max(nrepsOFF(:)));
@@ -1177,16 +1194,21 @@ for paindex=1:numpulseamps
         for k=1:nrepsOFF(gdindex, paindex);
             temp = squeeze(M1OFF(gdindex,paindex, k, 1:10000));
             if abs(mean(temp)) <.01 & std(temp) < .1
+                bl_traceOFF=squeeze(M1OFF(gdindex,paindex, k, bl_start:bl_stop));
                 traceOFF=squeeze(M1OFF(gdindex,paindex, k, start:stop));
                 PeakOFF(gdindex, paindex, k) = max(abs(traceOFF));
+                bl_SumOFF(gdindex, paindex, k) = sum(abs(bl_traceOFF));
                 SumOFF(gdindex, paindex, k) = sum(abs(traceOFF));
             elseif flag.includeALL
+                bl_traceOFF=squeeze(M1OFF(gdindex,paindex, k, bl_start:bl_stop));
                 traceOFF=squeeze(M1OFF(gdindex,paindex, k, start:stop));
                 PeakOFF(gdindex, paindex, k) = max(abs(traceOFF));
+                bl_SumOFF(gdindex, paindex, k) = sum(abs(bl_traceOFF));
                 SumOFF(gdindex, paindex, k) = sum(abs(traceOFF));
             else
                 fprintf('Throwing out trial#%d of gapdur#%d\n',k,gdindex)
                 PeakOFF(gdindex, paindex, k) = nan;
+                bl_SumOFF(gdindex, paindex, k) = nan;
                 SumOFF(gdindex, paindex, k) = nan;
             end
             temp = squeeze(M1OFFACC(gdindex,paindex, k, 1:10000));
@@ -1378,6 +1400,7 @@ out.semPeakON=semPeakON;
 out.semPeakOFF=semPeakOFF;
 out.SumON=SumON;
 out.SumOFF=SumOFF;
+out.bl_SumOFF=bl_SumOFF;
 out.mSumON=mSumON;
 out.mSumOFF=mSumOFF;
 out.semSumON=semSumON;
@@ -1393,6 +1416,7 @@ out.percentGPIAS_OFF=percentGPIAS_OFF;
 out.pOFF=pOFF;
 out.percentGPIAS_ON=percentGPIAS_ON;
 out.pON=pON;
+
 
 if IL
     out.LaserStart=unique(LaserStart); %only saving one value for now, assuming it's constant

@@ -1,4 +1,4 @@
-function PlotSpeechContext(varargin)
+function PlotSpeechContextMaster(varargin)
 
 %plots clustered spiking tuning curve data from djmaus
 %
@@ -94,7 +94,11 @@ if isempty(channel)     %default to all tetrodes
         
         cd(datadir);
         %sp.cids are the kilosort cell IDs which you didn't label as noise. Found in 'cluster_groups.csv'
+        save('masterdir.m', 'masterdir');
+        poolobj = gcp;
+        addAttachedFiles(poolobj, 'masterdir.m');
         parfor i=1:length(sp.cids) %each iteration here therefore corresponds to the 'cellnum' used in readKiloSortOutput.
+            
             template = []; Utemplate = []; numUtemplate = [];
             template = sp.spikeTemplates(sp.clu==sp.cids(i)); %identifies the template for every spike in this cluster/cell_ID
             Utemplate = unique(template); %identify all the unique templates contained in this cluster/cell_ID

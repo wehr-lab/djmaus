@@ -1,5 +1,12 @@
 function PlotTC_LFP(varargin)
 
+% set filtering flag and cutoffs (if isempty(lo_pass_cutoff), then hipass created)
+flag.filt = 0;
+hi_pass_cutoff=3000;
+lo_pass_cutoff=300;
+
+force_reprocess=1;
+
 % plots continuous tuning curve data from djmaus
 %
 % usage: PlotTC_LFP(datapath, [channel], [xlimits],[ylimits])
@@ -31,7 +38,7 @@ else
     try
         xlimits=varargin{3};
     catch
-        xlimits=[-50 200];
+        xlimits=[-20 20];
     end
     try
         ylimits=varargin{4};
@@ -39,18 +46,17 @@ else
         ylimits=[];
     end
 end
-hi_pass_cutoff=400;
-lo_pass_cutoff=10;
-% [a,b]=butter(1, high_pass_cutoff/(30e3/2), 'high');
-[b,a]=butter(2, [lo_pass_cutoff hi_pass_cutoff]/(30e3/2));
-fprintf('\nband-pass filtering [%d-%d]', lo_pass_cutoff, hi_pass_cutoff)
-fprintf('\n')
-high_pass_cutoff = 400;
-low_pass_cutoff = 10;
-[a,b]=butter(1, high_pass_cutoff/(30e3/2), 'high');
-fprintf('\nusing xlimits [%d-%d]', xlimits(1), xlimits(2))
 
-force_reprocess=0;
+if flag.filt
+    if isempty(lo_pass_cutoff)
+        [a,b]=butter(1, hi_pass_cutoff/(30e3/2), 'high');
+        fprintf('\hi-pass filtering [%d]\n', hi_pass_cutoff)
+    else
+        [b,a]=butter(2, [lo_pass_cutoff hi_pass_cutoff]/(30e3/2));
+        fprintf('\nband-pass filtering [%d-%d]\n', lo_pass_cutoff, hi_pass_cutoff)
+    end
+end
+
 if force_reprocess
     fprintf('\nForce Re-process')
     fprintf('\ncalling ProcessTC_LFP')
@@ -95,7 +101,7 @@ nrepsON=out.nrepsON;
 nrepsOFF=out.nrepsOFF;
 IL=out.IL; %whether there were interleaved laser trials or not
 if isempty(xlimits) xlimits=out.xlimits; end
-fprintf('\nusing xlimits [%d-%d]', xlimits(1), xlimits(2))
+fprintf('\nusing xlimits [%d-%d]\n', xlimits(1), xlimits(2))
 
 % %find optimal axis limits
 if isempty(ylimits)
@@ -104,10 +110,13 @@ if isempty(ylimits)
         for aindex=numamps:-1:1
             for findex=1:numfreqs
                 trace1=squeeze(mM1OFF(findex, aindex, dindex, :));
-                trace1=filtfilt(b,a,trace1);
+                if flag.filt
+                    %trace1=filtfilt(b,a,trace1);
+                    trace1 = bandpass(trace1,[lo_pass_cutoff hi_pass_cutoff],samprate/2);
+                end
                 trace1=trace1-mean(trace1(1:100));
-                if min([trace1])<ylimits(1); ylimits(1)=min([trace1]);end
-                if max([trace1])>ylimits(2); ylimits(2)=max([trace1]);end
+                if min([trace1])<ylimits(1); ylimits(1)=min(trace1);end
+                if max([trace1])>ylimits(2); ylimits(2)=max(trace1);end
             end
         end
     end
@@ -125,20 +134,23 @@ if IL
             for findex=1:numfreqs
                 p=p+1;
                 subplot1(p)
-                trace1=squeeze(squeeze(out.mM1ON(findex, aindex, dindex, :)));
-                trace2=(squeeze(out.mM1OFF(findex, aindex, dindex, :)));
-                [b,a]=butter(1, low_pass_cutoff/(samprate/2), 'low');
+                trace1=squeeze(squeeze(mM1ON(findex, aindex, dindex, :)));
+                trace2=(squeeze(mM1OFF(findex, aindex, dindex, :)));
+                %              [b,a]=butter(1, low_pass_cutoff/(samprate/2), 'low');
                 
                 trace2=trace2-mean(trace2(1:10));
-                trace1=filtfilt(b,a,trace1);
-                trace2=filtfilt(b,a,trace2);
+                if flag.filt
+                    %trace1=filtfilt(b,a,trace1);
+                    trace1 = bandpass(trace1,[lo_pass_cutoff hi_pass_cutoff],samprate/2);
+                    %trace2=filtfilt(b,a,trace2);
+                    trace2 = bandpass(trace2,[lo_pass_cutoff hi_pass_cutoff],samprate/2);
+                end
                 t=1:length(trace1);
-                t=1000*t/out.samprate; %convert to ms
-                t=t+out.xlimits(1); %correct for xlim in original processing call
+                t=1000*t/samprate; %convert to ms
+                t=t+xlimits(1); %correct for xlim in original processing call
                 line([0 0+durs(dindex)], [0 0], 'color', 'm', 'linewidth', 5)
                 plot(t, trace1, 'b');
                 hold on; plot(t, trace2, 'k');
-                %ylim([-5000 5000])
                 ylim(ylimits)
                 xlim(xlimits)
                 box off
@@ -177,8 +189,9 @@ if IL
     end
 end
 
-samprate=30e3;
+%samprate=30e3;
 reps_to_use=[];
+
 
 %plot the mean tuning curve OFF
 for dindex=1:numdurs
@@ -190,23 +203,31 @@ for dindex=1:numdurs
             p=p+1;
             subplot1(p)
             trace1=squeeze(mM1OFF(findex, aindex, dindex, :));
-            [b,a]=butter(1, low_pass_cutoff/(samprate/2), 'low');
+            %            [b,a]=butter(1, low_pass_cutoff/(samprate/2), 'low');
             %             reps_to_use=1000;
             %             trace1=squeeze(mean(M1OFF(findex, aindex, dindex, 1:reps_to_use,:), 4));
-            trace1=filtfilt(b,a,trace1);
+            if flag.filt
+                %trace1=filtfilt(b,a,trace1);
+                trace1 = bandpass(trace1,[lo_pass_cutoff hi_pass_cutoff],samprate/2);
+            end
             trace1=trace1 -mean(trace1(1:100));
-            
-            Lasertrace=squeeze(mM1OFFLaser(findex, aindex, dindex, :));
-            Lasertrace=Lasertrace -mean(Lasertrace(1:100));
-            Lasertrace=.05*diff(ylimits)*Lasertrace;
-            Stimtrace=squeeze(mM1OFFStim(findex, aindex, dindex, :));
-            Stimtrace=Stimtrace -mean(Stimtrace(1:100));
-            Stimtrace=.05*diff(ylimits)*Stimtrace;
-            
-            
+            if ~isempty(mM1OFFLaser)
+                Lasertrace=squeeze(mM1OFFLaser(findex, aindex, dindex, :));
+                Lasertrace=Lasertrace -mean(Lasertrace(1:100));
+                Lasertrace=.05*diff(ylimits)*Lasertrace;
+            else
+                Lasertrace = trace1*0;
+            end
+            if ~isempty(mM1OFFStim)
+                Stimtrace=squeeze(mM1OFFStim(findex, aindex, dindex, :));
+                Stimtrace=Stimtrace -mean(Stimtrace(1:100));
+                Stimtrace=.05*diff(ylimits)*Stimtrace;
+            else
+                Stimtrace = trace1*0;
+            end
             t=1:length(trace1);
-            t=1000*t/out.samprate; %convert to ms
-            t=t+out.xlimits(1); %correct for xlim in original processing call
+            t=1000*t/samprate; %convert to ms
+            t=t+xlimits(1); %correct for xlim in original processing call
             line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
             hold on; plot(t, trace1, 'k');
             offset=ylimits(1)+.1*diff(ylimits);
@@ -223,9 +244,9 @@ for dindex=1:numdurs
             subplot1(p)
             if findex==1
                 text(xlimits(1)-diff(xlimits)/2, mean(ylimits), int2str(amps(aindex)))
-                endmM1ONLaser=out.mM1ONLaser;
-                axis off
             end
+            %mM1ONLaser=mM1ONLaser;
+            axis off
         end
     end
     subplot1(1)
@@ -308,7 +329,10 @@ if IL
                 axis off
                 
                 trace1=squeeze(mM1ON(findex, aindex, dindex, :));
-                %                              trace1=filtfilt(b,a,trace1);
+                if flag.filt
+                    %trace1=filtfilt(b,a,trace1);
+                    trace1 = bandpass(trace1,[lo_pass_cutoff hi_pass_cutoff],samprate/2);
+                end
                 trace1=trace1 -mean(trace1(1:100));
                 
                 
@@ -317,8 +341,8 @@ if IL
                 Stimtrace=.05*diff(ylimits)*Stimtrace;
                 
                 t=1:length(trace1);
-                t=1000*t/out.samprate; %convert to ms
-                t=t+out.xlimits(1); %correct for xlim in original processing call
+                t=1000*t/samprate; %convert to ms
+                t=t+xlimits(1); %correct for xlim in original processing call
                 line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
                 hold on; plot(t, trace1, 'b');
                 offset=ylimits(1)+.1*diff(ylimits);
@@ -387,19 +411,31 @@ for dindex=1:numdurs
             trace2=squeeze(mean(M1OFF(findex, aindex, dindex, 2:3:nreps(findex, aindex, dindex),:), 4));
             trace3=squeeze(mean(M1OFF(findex, aindex, dindex, 1:3:nreps(findex, aindex, dindex),:), 4));
             
-            trace_mean=filtfilt(b,a,trace_mean);
+            if flag.filt
+                %trace_mean=filtfilt(b,a,trace_mean);
+                    trace_mean = bandpass(trace_mean,[lo_pass_cutoff hi_pass_cutoff],samprate/2);
+            end
             trace_mean=trace_mean -mean(trace_mean(1:100));
-            trace1=filtfilt(b,a,trace1);
+            if flag.filt
+                %trace1=filtfilt(b,a,trace1);
+                    trace1 = bandpass(trace1,[lo_pass_cutoff hi_pass_cutoff],samprate/2);
+            end
             trace1=trace1 -mean(trace1(1:100));
-            trace2=filtfilt(b,a,trace2);
+            if flag.filt
+                %trace2=filtfilt(b,a,trace2);
+                    trace2 = bandpass(trace2,[lo_pass_cutoff hi_pass_cutoff],samprate/2);
+            end
             trace2=trace2 -mean(trace2(1:100));
-            trace3=filtfilt(b,a,trace3);
+            if flag.filt
+                %trace3=filtfilt(b,a,trace3);
+                    trace3 = bandpass(trace3,[lo_pass_cutoff hi_pass_cutoff],samprate/2);
+            end
             trace3=trace3 -mean(trace3(1:100));
             
             
             
             t=1:length(trace1);
-            t=1000*t/out.samprate; %convert to ms
+            t=1000*t/samprate; %convert to ms
             t=t+out.xlimits(1); %correct for xlim in original processing call
             line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
             hold on; plot(t, trace_mean, 'b',t, trace1, 'k', t, trace2, 'k', t, trace3, 'k');

@@ -46,9 +46,10 @@ t_filename = varargin{2};
 if ischar(t_filename)
     [p,f,ext]=fileparts(t_filename);
     split=strsplit(f, '_');
-    ch=strsplit(split{1}, 'ch');
-    channel=str2num(ch{2});
-    clust=str2num(split{end});
+    ch=strsplit(split{2}, 'ch');
+    c = strsplit(ch{2}, 'c');
+    channel=str2num(c{1});
+    clust=str2num(c{end});
 else %reads kilosort input, which is [clust, channel, cellnum]
     channel=t_filename(1,2);
     clust=t_filename(1,1);

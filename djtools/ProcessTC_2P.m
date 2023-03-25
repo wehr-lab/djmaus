@@ -1,11 +1,14 @@
 function ProcessTC_2P(varargin)
 %processes dF/F mesoscope 2P tuning curve data from djmaus running in meso mode.
-%sorts dF/F  data into a big response matrix.
+%sorts dF/F  data into a response matrix.
 %
-%usage: ProcessTC_2P(datapath, [channel], [xlimits], [ylimits])
+%usage: ProcessTC_2P([datapath], [xlimits], [ylimits])
 %datapath is the djmaus-created directory with the notebook file in it
-%channel is a number not a string
+%datapath defaults to current directory
 %saves output in an outfile
+%
+%I'm switching to including all cells, since it makes no sense to have
+%thousands of outfiles.
 %
 %notes: whitenoise plotted as freq=-1 kHz, silent sound as -2 kHz
 
@@ -13,32 +16,22 @@ djPrefs;
 global pref
 
 if nargin==0
-    fprintf('\nno input\n')
-    return
-else
-    datadir=varargin{1};
-end
-if nargin==1
+    datadir=pwd;
     xlimits=[0 5000]; %x limits for axis
     ylimits=[-.1 .2];
-    channel=1;
-elseif nargin==2
-    channel=varargin{2};
+elseif nargin==1
+    datadir=varargin{1};
     xlimits=[0 5000]; %x limits for axis
+    ylimits=[-.1 .2];
+elseif nargin==2
+    xlimits=varargin{2};
     ylimits=[-.1 .2];
 elseif nargin==3
-    channel=varargin{2};
-    xlimits=varargin{3};
-    ylimits=[-.1 .2];
-elseif nargin==4
-    channel=varargin{2};
-    xlimits=varargin{3};
-    ylimits=varargin{4};
+    xlimits=varargin{2};
+    ylimits=varargin{3};
 else
     error('wrong number of arguments');
 end
-if ischar(channel) channel=str2num(channel);end
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 djPrefs;
@@ -49,7 +42,8 @@ cd(datadir)
 try
     load notebook.mat
 catch
-    warning('could not find notebook file')
+    warning('could not find notebook file in this data directory. For datapath use the djmaus-created directory with the notebook file in it.')
+    return
 end
 
 %assume this directory structure:
@@ -60,18 +54,19 @@ cd combined
 iscell=0; %initialize because iscell is a built-in function
 load Fall
 numcells=sum(iscell(:,1));
+numframes=size(F, 2);
 fprintf('\n%d cells', numcells)
-% sort rows such that cells are at the top
+% sort rows such that best cells (highest cell likelihood) are at the top
+%exclude non-cells 
 [iscell_sorted, I]=sortrows(iscell, 2, 'descend');
-i=1;
-f=F(I(i),:);
-f0=prctile(f, 10);
-dff=(f-f0)/f0;
-scaledtrace=dff;
+f=F(I(1:numcells),:);
+f0=prctile(f', 10);
+f0=repmat(f0', 1, numframes);
+dff=(f-f0)./f0;
 
 cd(datadir)
 cd ..
-d=dir('*.smrx')
+d=dir('*.smrx');
 if length(d)<1 error('no smrx file found')
 elseif length(d)>1
     warning('multiple smrx files found, using the first one')
@@ -191,16 +186,12 @@ numdurs=length(durs);
 
 
 M1=[];
-M1OFF=[];
- M1OFFLaser=[];
-M1OFFStim=[];
+M1Stim=[];
 
 nreps=zeros(numfreqs, numamps, numdurs);
-nrepsOFF=zeros(numfreqs, numamps, numdurs);
 
 
 
-fprintf('\ncomputing tuning curve...');
 
 samprate=sampleRate;
 
@@ -248,43 +239,36 @@ for i=1:length(Events)
             aindex= find(amps==amp);
             dindex= find(durs==dur);
             nreps(findex, aindex, dindex)=nreps(findex, aindex, dindex)+1;
-            M1(findex,aindex,dindex, nreps(findex, aindex, dindex),:)=scaledtrace(region);
+            M1(findex,aindex,dindex, nreps(findex, aindex, dindex),:,:)=dff(:,region);
+            %M1 is freqs x amps x durs x reps x cells x frames
             %M1stim(findex,aindex,dindex, nreps(findex, aindex, dindex),:)=Stimtrace(region);
-                nrepsOFF(findex, aindex, dindex)=nrepsOFF(findex, aindex, dindex)+1;
-                M1OFF(findex,aindex,dindex, nrepsOFF(findex, aindex, dindex),:)=scaledtrace(region);
-             %   M1OFFStim(findex,aindex,dindex, nrepsOFF(findex, aindex, dindex),:)=Stimtrace(region);
             
+%             if freq==-1000 & amp == 80
+%                 keyboard
+%             end
+
         end
     end
 end
 
-%region=length(M1OFF);
 traces_to_keep=[];
 if ~isempty(traces_to_keep)
     fprintf('\n using only traces %d, discarding others', traces_to_keep);
-    mM1=mean(M1(:,:,:,traces_to_keep,:), 4);
-    mM1OFF=mean(M1OFF(:,:,:,traces_to_keep,:), 4);
+    mM1=mean(M1(:,:,:,traces_to_keep,:,:), 4);
 else
     for aindex=1:numamps
         for findex=1:numfreqs
             for dindex=1:numdurs
                 if nreps(findex, aindex, dindex)>0
-                    mM1(findex, aindex, dindex,:)=mean(M1(findex, aindex, dindex, 1:nreps(findex, aindex, dindex),:), 4);
+                    mM1(findex, aindex, dindex,:,:)=mean(M1(findex, aindex, dindex, 1:nreps(findex, aindex, dindex),:,:), 4);
+                    %mM1 is freqs x amps x durs x cells x frames
+
                    % mM1stim(findex, aindex, dindex,:)=mean(M1stim(findex, aindex, dindex, 1:nreps(findex, aindex, dindex),:), 4);
                 else %no reps for this stim, since rep=0
-                    mM1(findex, aindex, dindex,:)=zeros(size(region));
+                    mM1(findex, aindex, dindex,:,:)=zeros(numcells, length(region));
                     %mM1stim(findex, aindex, dindex,:)=zeros(size(region));
                 end
            
-                if nrepsOFF(findex, aindex, dindex)>0
-                    mM1OFF(findex, aindex, dindex,:)=mean(M1OFF(findex, aindex, dindex, 1:nrepsOFF(findex, aindex, dindex),:), 4);
-                    %mM1OFFStim(findex, aindex, dindex,:)=mean(M1OFFStim(findex, aindex, dindex, 1:nrepsOFF(findex, aindex, dindex),:), 4);
-                    %mM1OFFLaser(findex, aindex, dindex,:)=mean(M1OFFLaser(findex, aindex, dindex, 1:nrepsOFF(findex, aindex, dindex),:), 4);
-                else %no reps for this stim, since rep=0
-                    mM1OFF(findex, aindex, dindex,:)=zeros(size(region));
-                    %mM1OFFStim(findex, aindex, dindex,:)=zeros(size(region));
-                    %mM1OFFLaser(findex, aindex, dindex,:)=zeros(size(region));
-                end
                 
             end
         end
@@ -293,28 +277,14 @@ end
 
 
 
-%find optimal axis ylimits
-if ylimits<0
-    for aindex=[numamps:-1:1]
-        for findex=1:numfreqs
-            trace=mM1(findex, aindex, dindex,:);
-            ylimits(1)=min(ylimits(1), min(trace));
-            ylimits(2)=max(ylimits(2), max(trace));
-        end
-    end
-end
+
 
 
 
 
 %assign outputs
-out.scaledtrace=scaledtrace;
+out.dff=dff;
 out.M1=M1;
-out.M1OFF=M1OFF;
-out.M1OFFStim=M1OFFStim;
-out.M1OFFLaser=M1OFFLaser;
-out.mM1OFF=mM1OFF;
-% out.mM1OFFStim=mM1OFFStim;
 % out.M1stim=M1stim;
 % out.mM1stim=mM1stim;
 out.mM1=mM1;
@@ -323,7 +293,6 @@ out.freqs=freqs;
 out.amps=amps;
 out.durs=durs;
 out.nreps=nreps;
-out.nrepsOFF=nrepsOFF;
 out.numfreqs=numfreqs;
 out.numamps=numamps;
 out.numdurs=numdurs;
@@ -331,16 +300,16 @@ out.traces_to_keep=traces_to_keep;
 out.Events=Events;
 out.xlimits=xlimits;
 out.ylimits=ylimits;
+out.numframes=numframes;
 out.samprate=samprate;
-% out.nstd=nstd;
-out.channel=channel;
-%should probably save header info and stuff like that
+out.numcells=numcells;
+out.nb=nb;
+out.stimlog=stimlog;
+out.readme={'M1 is freqs x amps x durs x reps x cells x frames', ...
+    'mM1 is freqs x amps x durs x cells x frames'};
 
 
-
-outfilename=sprintf('outLFP_ch%d.mat',channel);
+outfilename=sprintf('out2P.mat');
 save(outfilename, 'out')
-outfilename=sprintf('outLFP_ch%d',channel);
-save(outfilename, 'out', '-v7.3' )
 fprintf('\n saved to %s', outfilename)
 

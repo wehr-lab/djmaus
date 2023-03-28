@@ -17,11 +17,11 @@ global pref
 
 if nargin==0
     datadir=pwd;
-    xlimits=[0 5000]; %x limits for axis
+    xlimits=[-1000 5000]; %x limits for axis
     ylimits=[-.1 .2];
 elseif nargin==1
     datadir=varargin{1};
-    xlimits=[0 5000]; %x limits for axis
+    xlimits=[-1000 5000]; %x limits for axis
     ylimits=[-.1 .2];
 elseif nargin==2
     xlimits=varargin{2};
@@ -53,16 +53,28 @@ cd suite2p
 cd combined
 iscell=0; %initialize because iscell is a built-in function
 load Fall
-numcells=sum(iscell(:,1));
 numframes=size(F, 2);
-fprintf('\n%d cells', numcells)
 % sort rows such that best cells (highest cell likelihood) are at the top
 %exclude non-cells 
-[iscell_sorted, I]=sortrows(iscell, 2, 'descend');
-f=F(I(1:numcells),:);
+%[iscell_sorted, I]=sortrows(iscell, 2, 'descend');
+f=F(find(iscell(:,1)), :);
+% f=F(I(1:numcells),:);
+f0=prctile(f', 10);
+keep=find(f0>0);
+f=f(keep,:);
 f0=prctile(f', 10);
 f0=repmat(f0', 1, numframes);
-dff=(f-f0)./f0;
+dff_unsorted=(f-f0)./f0;
+numcells=size(dff_unsorted, 1);
+fprintf('\n%d cells', numcells)
+
+%sort by pca
+[pcs, score, latent]=pca(dff_unsorted);
+[~, I]=sort(score(:,1));
+dff=(dff_unsorted(I,:));
+fprintf('\nsorted cells by pca (without regard to stimuli)')
+%(if you want to see pca of stim-aligned responses, we have to align to
+%stimuli first)
 
 cd(datadir)
 cd ..
@@ -158,6 +170,7 @@ for i=1:length(Events)
             |strcmp(Events(i).type, 'fmtone') | strcmp(Events(i).type, 'whitenoise')| strcmp(Events(i).type, 'grating')
         j=j+1;
         alldurs(j)=Events(i).param.duration;
+        allisis(j)=Events(i).param.next;
         if strcmp(Events(i).type, 'tone') | strcmp(Events(i).type, '2tone')
             allamps(j)=Events(i).param.amplitude;
             allfreqs(j)=Events(i).param.frequency;
@@ -180,9 +193,11 @@ allamps=allamps(~isnan(allamps)); %strip out nans from silent sound
 freqs=unique(allfreqs);
 amps=unique(allamps);
 durs=unique(alldurs);
+isis=unique(allisis);
 numfreqs=length(freqs);
 numamps=length(amps);
 numdurs=length(durs);
+numisis=length(isis);
 
 
 M1=[];
@@ -292,10 +307,12 @@ out.datadir=datadir;
 out.freqs=freqs;
 out.amps=amps;
 out.durs=durs;
+out.isis=isis;
 out.nreps=nreps;
 out.numfreqs=numfreqs;
 out.numamps=numamps;
 out.numdurs=numdurs;
+out.numisis=numisis;
 out.traces_to_keep=traces_to_keep;
 out.Events=Events;
 out.xlimits=xlimits;

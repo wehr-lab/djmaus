@@ -1,14 +1,11 @@
 function PlotTC_2P(varargin)
 
-
-
-
 % plots 2P mesoscope tuning curve data from djmaus
-%plots all cells
+% plots all cells
 %
 % usage: PlotTC_2P(datapath, [xlimits],[ylimits])
 % (xlimits & ylimits are optional)
-% channel number should be an integer
+% datapath should be the path to an outfile (out2P.mat)
 %
 % Processes data if outfile is not found;
 
@@ -26,8 +23,6 @@ if nargin==0
     xlimits=[];
 else
     datadir=varargin{1};
-
-
     outfilename=sprintf('out2P.mat');
     try
         xlimits=varargin{2};
@@ -70,46 +65,66 @@ nreps=out.nreps;
 numfreqs=out.numfreqs;
 numamps=out.numamps;
 numdurs=out.numdurs;
+numisis=out.numisis;
+isi=out.isis;
+if numisis>1 warning('multiple isis, unsupported case');end
 samprate=out.samprate; %in Hz
 numframes=out.numframes;
 xlimits=out.xlimits;
-% M1=out.M1;
-% scaledtrace=out.scaledtrace;
-% traces_to_keep=out.traces_to_keep;
-% mM1=out.mM1;
 mM1=out.mM1;
 M1=out.M1;
-% mM1ONStim=out.mM1ONStim;
-% mM1OFFStim=out.mM1OFFStim;
-% nrepsON=out.nrepsON;
 nreps=out.nreps;
-% IL=out.IL; %whether there were interleaved laser trials or not
 if isempty(xlimits) xlimits=out.xlimits; end
-fprintf('\nusing xlimits [%d-%d]\n', xlimits(1), xlimits(2))
-
-% %find optimal axis limits
-% if isempty(ylimits)
-%     ylimits=[0 0];
-%     for dindex=1:numdurs
-%         for aindex=numamps:-1:1
-%             for findex=1:numfreqs
-%                 trace1=squeeze(mM1(findex, aindex, dindex, :));
-%                 if min([trace1])<ylimits(1); ylimits(1)=min(trace1);end
-%                 if max([trace1])>ylimits(2); ylimits(2)=max(trace1);end
-%             end
-%         end
-%     end
-% end
-
-% ylimits=round(ylimits*100)/100;
-
-
-
-%samprate=30e3;
+fprintf('\nusing xlimits [%d-%d]ms', xlimits(1), xlimits(2))
 reps_to_use=[];
+fprintf('\ncells sorted by pca separately for each stimulus\n')
+
+%plot the mean dF/F for all cells for each freq/amp 
+for dindex=1:numdurs
+    figure
+    p=0;
+    subplot1(numamps,numfreqs)
+    for aindex=numamps:-1:1
+        for findex=1:numfreqs
+            p=p+1;
+            subplot1(p)
+            X=squeeze(mM1(findex, aindex, dindex, :, :));
+            [pcs, score, latent]=pca(X);
+            [~, I]=sort(score(:,1));
+            X=X(I,:); %sort by pc1
+            %note that each freq/amp combo is pca-sorted separately
+            %this means the cell order is different for each combo
+            %and the pc1 it is sorted by is also different
+            if unique(X(:))==0
+                %empty matrix, do nothing
+                axis off
+            else
+                imagesc(X)
+
+                xticks([(xlimits(1)/1000):samprate:numframes])
+                xticklabels([(xlimits(1)/1000):1:numframes/samprate])
+                if aindex==1 xlabel('time, s');end
+                if findex==1 ylabel('cell #');end
+
+                %label amps and freqs
+                if freqs(findex)==-2000 & aindex==1
+                    title( 'SS')
+                elseif freqs(findex)==-1000
+                    title(sprintf('WN %ddB', amps(aindex)))
+                elseif freqs(findex)>0
+                    title( sprintf('%.1fkHz %ddB', freqs(findex)/1000, amps(aindex)))
+                end
 
 
-%plot the mean tuning curve
+            end
+        end
+    end
+end
+[~,fname, ~]=fileparts(datadir);
+h=suptitle(sprintf('%s\n%dms, nreps: %d-%d',fname,durs(dindex),min(nreps(:)),max(nreps(:))));
+set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
+
+%plot the population mean dF/F (averaged across all cells) for each freq/amp 
 for dindex=1:numdurs
     figure
     p=0;
@@ -123,16 +138,23 @@ for dindex=1:numdurs
                 %empty matrix, do nothing
                 axis off
             else
-                imagesc(trace1)
-              
+                t=1:length(nanmean(trace1));
+                t=t/samprate;
+                t=t+xlimits(1)/1000;
+                plot(t, nanmean(trace1))
 
-xticks([0:samprate:numframes])
-xticklabels([0:1:numframes/samprate])
-if aindex==1 xlabel('time, s');end
-if findex==1 ylabel('cell #');end
+                xticks([(xlimits(1)/1000):1:xlimits(2)])
+                
+                line([0 0], ylim, 'linestyle', '--')
+                line((isi/1000)+[0 0], ylim, 'linestyle', '--')
+                line((2*isi/1000)+[0 0], ylim, 'linestyle', '--')
+
+
+                if aindex==1 xlabel('time, s');end
+                if findex==1 ylabel('cell #');end
+
 
                 %label amps and freqs
-
                 if freqs(findex)==-2000 & aindex==1
                     title( 'SS')
                 elseif freqs(findex)==-1000
@@ -141,80 +163,12 @@ if findex==1 ylabel('cell #');end
                     title( sprintf('%.1fkHz %ddB', freqs(findex)/1000, amps(aindex)))
                 end
 
-                %             subplot1(p)
-                %             if findex==1
-                %                 %text(xlimits(1)-diff(xlimits)/2, mean(ylimits), int2str(amps(aindex)))
-                %                 text(xlimits(1), mean(ylimits), int2str(amps(aindex)))
-                %             end
-                %mM1ONLaser=mM1ONLaser;
-                %axis off
+
             end
         end
     end
 end
 [~,fname, ~]=fileparts(datadir);
-h=suptitle(sprintf('%s\n%dms, nreps: %d-%d',fname,durs(dindex),min(nreps(:)),max(nreps(:))));
-%h=title(sprintf('OFF %s: %dms, nreps: %d-%d',datadir,durs(dindex), reps_to_use));
+h=suptitle(sprintf('population mean (all cells)%s\n%dms, nreps: %d-%d',fname,durs(dindex),min(nreps(:)),max(nreps(:))));
 set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
-set(h,  'interpreter', 'none')
-
-%label amps and freqs
-%     p=0;
-%     for aindex=numamps:-1:1
-%         for findex=1:numfreqs
-%             p=p+1;
-%             subplot1(p)
-%             if findex==1
-%                 text(xlimits(1)-diff(xlimits)/2, mean(ylimits), int2str(amps(aindex)))
-%             end
-%
-%             if aindex==1
-%                 if mod(findex,2) %odd freq
-%                     vpos=ylimits(1)-.2*mean(ylimits);
-%                 else
-%                     vpos=ylimits(1)-.2*mean(ylimits);
-%                 end
-%                 if freqs(findex)==-2000
-%                     text(xlimits(1), vpos, 'SS')
-%                 elseif freqs(findex)==-1000
-%                     text(xlimits(1), vpos, 'WN')
-%                 elseif freqs(findex)>0
-%                     text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
-%                 end
-%             else
-%                 if aindex==1
-%                     if mod(findex,2) %odd freq
-%                         vpos=ylimits(1)-mean(ylimits);
-%                     else
-%                         vpos=ylimits(1)-mean(ylimits);
-%                     end
-%                     if freqs(findex)>0
-%                         text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
-%                     elseif freqs(findex)==-1000
-%                         text(xlimits(1), vpos, 'WN')
-%                     elseif freqs(findex)==-2000
-%                         text(xlimits(1), vpos, 'SS')
-%                     end
-%                 end
-%
-%                 %                 if freqs(findex)>0
-%                 %                     text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
-%                 %                 elseif freqs(findex)==-1000
-%                 %                     text(xlimits(1), vpos, 'WN')
-%                 %                 elseif freqs(findex)==-2000
-%                 %                     text(xlimits(1), vpos, 'SS')
-%                 %                 end
-%             end
-%             %             if findex==numfreqs && aindex==numamps
-%             %                 axis on
-%             %                 ylab=[ceil(ylimits(1)*10)/10 floor(ylimits(2)*10)/10];
-%             %                 set(gca,'ytick',ylab,'yticklabel',ylab,'YAxisLocation','right')
-%             %             end
-%         end
-%     end
-%     subplot1(1)
-%     h=title(sprintf('OFF %s: %dms, nreps: %d-%d, ch%d',datadir,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF))), channel));
-%     set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
-% end
-
 

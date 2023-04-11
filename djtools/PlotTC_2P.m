@@ -3,7 +3,7 @@ function PlotTC_2P(varargin)
 % plots 2P mesoscope tuning curve data from djmaus
 % plots all cells
 %
-% usage: PlotTC_2P(datapath, [xlimits],[ylimits])
+% usage: PlotTC_2P([datapath], [xlimits],[ylimits])
 % (xlimits & ylimits are optional)
 % datapath should be the path to an outfile (out2P.mat)
 %

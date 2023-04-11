@@ -17,11 +17,11 @@ global pref
 
 if nargin==0
     datadir=pwd;
-    xlimits=[-1000 5000]; %x limits for axis
+    xlimits=[-1000 5000]; %default x limits for axis
     ylimits=[-.1 .2];
 elseif nargin==1
     datadir=varargin{1};
-    xlimits=[-1000 5000]; %x limits for axis
+    xlimits=[-1000 5000]; %default x limits for axis
     ylimits=[-.1 .2];
 elseif nargin==2
     xlimits=varargin{2};
@@ -84,8 +84,7 @@ elseif length(d)>1
     warning('multiple smrx files found, using the first one')
 end
 sctfilename=replace(d(1).name, '.smrx', '.mat');
-load (sctfilename)
-if num_ProtocolStarts>1 error('wtf');end %sanity check; there can be only one protocol start
+[event_times_sec,num_events, ProtocolStart_secs] = GetSCTriggersFromSpike2file(sctfilename);
 
 % % %read messages
 % % messagesfilename='messages.events';

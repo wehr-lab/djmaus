@@ -374,7 +374,7 @@ switch action
             set(SP.LaserISIh, 'enable', 'off')
         elseif SP.LaserNumPulses>1
             set(SP.LaserISIh, 'enable', 'on')
-            if str2num(get(SP.LaserISIh, 'string'))==0
+            if strcmp(get(SP.LaserISIh, 'string'),'0')
                 set(SP.LaserISIh, 'string', SP.LaserWidth)
             end
         end
@@ -688,7 +688,7 @@ UpdateStimlog(stimulus);
 djMessage(stimulus.stimulus_description, 'append');
 status = PsychPortAudio('GetStatus', SP.PPAhandle);
 % if ~status.Active & status.XRuns
-     fprintf('status: %d Xruns: %d\n',status.Active,status.XRuns)
+    % fprintf('status: %d Xruns: %d\n',status.Active,status.XRuns)
 % end
 
 % figure(100)
@@ -808,7 +808,7 @@ if SP.Record
         set(SP.camerapulse, 'backgroundcolor',[0 0.9 0],'String','Camera Stopped');
         PPAdj('camerapulse_off')
     else
-        fprintf('\n camera not recording\n')
+        %fprintf('\n camera not recording\n')
     end
     
     UpdateNotebookFile
@@ -836,8 +836,13 @@ else
         end
     end
     RecDir = strcat(pref.remotedatapath,'\',foldername);
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%% end of feature - Nick 2/7/2021
+    if pref.local
+        SP.bonsaiFolder = strcat(pref.datahost, '\', RecDir);
+    else
+        SP.bonsaiFolder = strrep(strcat(pref.datahost, '\', RecDir), ':', '');
+    end
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%% end of feature - Nick 2/7/2021
     startstr=sprintf('StartRecord');
     if ~isfield(SP, 'mouseID')
         SP.mouseID='none';
@@ -847,7 +852,8 @@ else
     %startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', [pref.remotedatapath,SP.user], SP.mouseID);
     %trying to fix double user name bug mw 05032018
     %startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', [pref.remotedatapath], SP.mouseID);
-    startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', [RecDir], SP.mouseID); %Nick's change 2/7/2021
+    startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', RecDir, SP.mouseID); %Nick's change 2/7/2021
+    fprintf('\nsending this message to Open Ephys:\n%s\n', startstr)
     zeroMQwrapper('Send',SP.zhandle ,startstr);
     set(SP.Recordh, 'backgroundcolor',[0.9 0 0],'String','Recording...');
     set(SP.mouseIDh, 'enable', 'off');
@@ -887,10 +893,10 @@ try
     %    pause(.2)
     zeroMQwrapper('Send',SP.zhandle ,'GetRecordingPath');
     pause(1)
-    RecordingPath = zeroMQwrapper('GetReply',SP.zhandle )
+    RecordingPath = zeroMQwrapper('GetReply',SP.zhandle);
     
     wb1=waitbar(0, 'zeroMQwrapper:GetReply did not return a reply, re-trying ...', 'visible', 'off');
-    while ~ exist('RecordingPath')
+    while ~exist('RecordingPath','var')
         %sometimes it doesn't work for some reason, and we get
         %"zmq wrapper GetReply: there is no reply available"
         %so we can re-try and see if that helps
@@ -906,7 +912,7 @@ try
         w=w+.1;
         waitbar(mod(w, 1),wb1)
         
-        RecordingPath = zeroMQwrapper('GetReply',SP.zhandle )
+        RecordingPath = zeroMQwrapper('GetReply',SP.zhandle);
     end
     close(wb1)
     
@@ -921,6 +927,21 @@ try
     
     %     SP.activedir=RecordingPath;
     SP.activedir=fullfile(pref.datahost, RecordingPath); %functional 2/8/2021 Nick
+    
+    %%%%%%%%%%%%%%%% for the new (6/23, Kip) OEphys GUI, need to add one more directory layer:
+    cd(SP.bonsaiFolder)
+    listoffolders = dir; thedates = arrayfun(@(x) datetime(x.date), listoffolders);
+    [~,sidx] = sort(thedates,'descend');
+    for i = 1:6 %take latest 6 (b/c sometimes '.','..',thumbs,DS,camerafiles,etc may be most recent)
+        OEFolder = listoffolders(sidx(i)).name;
+        if length(OEFolder)>15 %this will be the directory
+            break
+        end
+    end
+    SP.activedir = strcat(SP.bonsaiFolder,'\',OEFolder);
+    %%%%%%%%%%%%%%% 
+    
+    
     %SP.activedir=strrep(SP.activedir, ':', ''); %commenting out to run on
     %single-machine windows configuration - was this important for
     %2-machine config?? mw 04.11.2017
@@ -1118,7 +1139,7 @@ catch
     pause(.5)
     SP.zhandle=[];
 end
-
+fprintf('\n')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function stimparam=CalibrateSound(stimparam, stimtype);
@@ -1416,9 +1437,15 @@ H=H+e;
 laserpanel = uipanel( 'Title','Laser','units','pixels', 'Position',[4*e+2*w 3*h+3*e .9*w 7.5*h+7*e]);
 ww=.8*w;
 %laser edit boxes
+SP.LaserStart=0;
+SP.LaserWidth=100;
+SP.LaserNumPulses=10;
+SP.LaserISI=100;
+SP.LaserOnOff=0;
+
 H=2*e;
 SP.LaserISIh=uicontrol('Parent',laserpanel,'tag','LaserISI','style','edit','units','pixels',...
-    'string', '0','enable','off','horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
+    'string', num2str(SP.LaserISI),'enable','off','horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
 H=H+h;
 SP.LaserISIlabel=uicontrol('Parent', laserpanel,'tag','ISIlabel','style','text','units','pixels',...
     'string', 'ISI:', 'fontsize', labelfs,...
@@ -1426,7 +1453,7 @@ SP.LaserISIlabel=uicontrol('Parent', laserpanel,'tag','ISIlabel','style','text',
 H=H+h/2+e;
 
 SP.LaserNumPulsesh=uicontrol('Parent',laserpanel,'tag','LaserNumPulses','style','edit','units','pixels',...
-    'string', '1','horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
+    'string', num2str(SP.LaserNumPulses),'horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
 H=H+h;
 SP.LaserNumPulseslabel=uicontrol('Parent', laserpanel,'tag','NumPulseslabel','style','text','units','pixels',...
     'string', 'NumPulses:', 'fontsize', labelfs,...
@@ -1434,7 +1461,7 @@ SP.LaserNumPulseslabel=uicontrol('Parent', laserpanel,'tag','NumPulseslabel','st
 H=H+h/2+e;
 
 SP.LaserWidthh=uicontrol('Parent',laserpanel,'tag','LaserWidth','style','edit','units','pixels',...
-    'string', '100','horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
+    'string', num2str(SP.LaserWidth),'horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
 H=H+h;
 SP.LaserWidthlabel=uicontrol('Parent', laserpanel,'tag','Widthlabel','style','text','units','pixels',...
     'string', 'Width:', 'fontsize', labelfs,...
@@ -1442,7 +1469,7 @@ SP.LaserWidthlabel=uicontrol('Parent', laserpanel,'tag','Widthlabel','style','te
 H=H+h/2+e;
 
 SP.LaserStarth=uicontrol('Parent',laserpanel,'tag','LaserStart','style','edit','units','pixels',...
-    'string', '0','horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
+    'string', num2str(SP.LaserStart),'horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
 H=H+h;
 SP.LaserStartlabel=uicontrol('Parent', laserpanel,'tag','Startlabel','style','text','units','pixels',...
     'string', 'Start:', 'fontsize', labelfs,...
@@ -1452,13 +1479,6 @@ H=H+h/2+e;
 SP.LaserOnOffh=uicontrol('Parent',laserpanel,'tag','LaserOnOff','style','toggle','units','pixels',...
     'string', 'Laser is OFF','horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
 H=H+h;
-
-SP.LaserStart=0;
-SP.LaserWidth=100;
-SP.LaserNumPulses=1;
-SP.LaserISI=0;
-SP.LaserOnOff=0;
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %notebook features

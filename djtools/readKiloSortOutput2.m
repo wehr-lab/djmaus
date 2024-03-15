@@ -48,7 +48,11 @@ catch
     % load rez, which contains number of samples of each recording 1=1, 2=1+2,
     % 3=1+2+3, etc
     load(fullfile(MasterDir,'rez.mat'))
-    L=(rez.ops.recLength)/sp.sample_rate;
+    %L=(rez.ops.recLength)/sp.sample_rate;
+    %8.31.2023 rez.ops.recLength does not exist, I assume it's a relic of
+    %KS1, using rez.ops.sampsToRead instead, as a wild guess -mike 
+    L=(rez.ops.sampsToRead)/sp.sample_rate;
+    
     save(fullfile(MasterDir,'RecLengths.mat'),'L')
 end
 

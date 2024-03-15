@@ -1,5 +1,4 @@
-
-function [spiketimes, cell_ID]=readKiloSortOutput2(clust, sp, currentdir_indx, MasterDir) %output spiketimes and Kilosort ID number
+function [spiketimes, cell_ID]=readKiloSortOutput(clust, sampleRate) %output spiketimes and Kilosort ID number
 
 %reads Kilosort output, finds cell's spiking time
 % plot's statistics about this cell
@@ -12,17 +11,22 @@ function [spiketimes, cell_ID]=readKiloSortOutput2(clust, sp, currentdir_indx, M
 
 % load all cells clustered by Kilosort
 
-% load('dirs.mat') %find all directories that were clustered in one session of kilosort. all clusters are saved in the first directory
-% try
-% masterdir=dirs{1};
-% catch
-%  masterdir = pwd;
-% end
-% currentdir=pwd; %remember which directory you are in now
-% currentdir_indx=find(strcmp(currentdir, dirs)==1); %which dir are we trying to plot?
+load('dirs.mat') %find all directories that were clustered in one session of kilosort. all clusters are saved in the first directory
+try
+masterdir=dirs{1};
+catch
+ masterdir = pwd;
+end
+if ismac masterdir=macifypath(masterdir);end
+
+currentdir=pwd; %remember which directory you are in now
+currentdir_indx=find(strcmp(currentdir, dirs)==1); %which dir are we trying to plot?
 if currentdir_indx==0
     error('This directory cannot be found on the list of clustered directories. \n Either this data has not been clustered or something bad happened')
 end
+cd(masterdir) %go to the first directory to load clustered data, we can call this master directory
+sp = loadKSdir(pwd); %load all cells, all spikes
+
 
 cell_ID=clust; %get Kilosort id
 cellnum=find(sp.cids==clust);
@@ -35,6 +39,8 @@ elseif cg==2
     qual='good';
 elseif cg==3
     qual='unassigned';
+else
+    qual='could not determine';
 end
 
 fprintf('\nthis cell was saved as %s cluster', qual);
@@ -43,13 +49,15 @@ fprintf('\nthis cell was saved as %s cluster', qual);
 spiketimes=sp.st(sp.clu==cell_ID); % in seconds, start at 0
 
 try
-    load(fullfile(MasterDir,'RecLengths.mat'))
+    load('RecLengths.mat')
+    L=recLengths/sampleRate;
 catch
     % load rez, which contains number of samples of each recording 1=1, 2=1+2,
     % 3=1+2+3, etc
-    load(fullfile(MasterDir,'rez.mat'))
-    L=(rez.ops.recLength)/sp.sample_rate;
-    save(fullfile(MasterDir,'RecLengths.mat'),'L')
+    load('rez.mat')
+    
+    L=(rez.ops.recLength)/sampleRate;
+    save('RecLengths.mat','L')
 end
 
 stop=L(currentdir_indx);
@@ -58,10 +66,5 @@ if currentdir_indx==1
 else
     start=L(currentdir_indx-1);
 end
-spiketimes=spiketimes(spiketimes>start & spiketimes<stop); %find spiketimes for this recording;
-spiketimes=spiketimes-start; %all spiketimes will start at 0
 spiketimes=spiketimes';
-% cd(currentdir); %go to the original directory
-
-
-
+cd(currentdir); %go to the original directory

@@ -1,4 +1,4 @@
-function ProcessSoundfile_single(varargin)
+function ProcessSoundfile_singleMaster(varargin)
 
 %processes a single .t file of clustered spiking tuning curve data from djmaus
 %
@@ -46,10 +46,9 @@ t_filename = varargin{2};
 if ischar(t_filename)
     [p,f,ext]=fileparts(t_filename);
     split=strsplit(f, '_');
-    ch=strsplit(split{2}, 'ch');
-    c = strsplit(ch{2}, 'c');
-    channel=str2num(c{1});
-    clust=str2num(c{end});
+    ch=strsplit(split{1}, 'ch');
+    channel=str2num(ch{2});
+    clust=str2num(split{end});
 else %reads kilosort input, which is [clust, channel, cellnum]
     channel=t_filename(1,2);
     clust=t_filename(1,1);
@@ -60,10 +59,10 @@ end
 fprintf('\nchannel %d, cluster %d', channel, clust)
 fprintf('\nprocessing with xlimits [%d-%d]', xlimits(1), xlimits(2))
 
-djPrefs;
-global pref
-cd (pref.datapath);
-cd(datadir)
+% djPrefs;
+% global pref
+% cd (pref.datapath);
+% cd(datadir)
 
 try
     load notebook.mat
@@ -83,22 +82,23 @@ catch
     warning('could not find notebook file')
 end
 
-%read messages
-messagesfilename='messages.events';
-[messages] = GetNetworkEvents(messagesfilename);
-if exist(messagesfilename, 'file')~=2
-    error('Could not find messages.events file. Is this the right data directory?')
+load('dirs.mat')
+masterdir = dirs{1};
+if strcmp(masterdir, pwd) == 0
+    error('Make sure you are running ProcessSoundfile_singleMaster in the true master directory for this mouse!')
 end
 
-
-%read digital Events
-Eventsfilename='all_channels.events';
-[all_channels_data, all_channels_timestamps, all_channels_info] = load_open_ephys_data(Eventsfilename);
-sampleRate=all_channels_info.header.sampleRate; %in Hz
-
-%get Events and soundcard trigger timestamps
-[Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
-%there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
+temp_str = strsplit(masterdir, '-');
+mouseID = temp_str{end};
+try 
+    load(fullfile(masterdir, strcat('MasterEvents-', mouseID, '.mat')));
+    load(fullfile(masterdir, strcat('MasterStimlog-', mouseID, '.mat')));
+catch
+    [MasterEvents] = ProcessAllEvents(masterdir);
+    [MasterStimlog] = makeMasterStimlog(masterdir);
+end
+Events = MasterEvents.Speech;                                               %Since this is a function meant for plotting speech sounds, we can make some assumptions about our stimuli
+stimlog = MasterStimlog;
 
 try
     fprintf('\nNumber of logged stimuli in notebook: %d', length(stimlog));
@@ -111,15 +111,14 @@ switch (GetPlottingFunction(datadir))
     case 'PlotSoundfile'
         %that's fine
     otherwise
-        error('This does not appear to be a soundfile stimulus protcol ')
+%         error('This does not appear to be a soundfile stimulus protcol ')
 end
 
 %you can add djmaus user to check who is using and
 %which clustering method is prefered
 if (exist('params.py','file')==1) || exist('dirs.mat','file')
     fprintf('\nreading KiloSort output cell %d', clust)
-%     spiketimes=readKiloSortOutput(cellnum, sampleRate);
-    spiketimes=readKiloSortOutput(clust, sampleRate); %mw 9.3.2020
+    spiketimes=readKiloSortOutputAll(clust, sampleRate); %mw 9.3.2020
 else
     fprintf('\nreading MClust output file %s', filename)
     spiketimes=read_MClust_output(filename)'/10000; %spiketimes now in seconds
@@ -130,10 +129,6 @@ end
 totalnumspikes=length(spiketimes);
 
 Nclusters=1;
-
-%uncomment this to run some sanity checks
-%SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
-
 
 fprintf('\ncomputing tuning curve...');
 
@@ -212,13 +207,13 @@ end
 
 
 %try to load laser and stimulus monitor
-if isempty(getLaserfile('.'))
+if isempty(getLaserfile(masterdir))
     LaserRecorded=0;
     warning('Laser monitor channel not recorded')
 else
     LaserRecorded=1;
 end
-if isempty(getStimfile('.'))
+if isempty(getStimfile(masterdir))
     StimRecorded=0;
     warning('Stimulus monitor channel not recorded')
 else
@@ -226,26 +221,50 @@ else
 end
 
 if LaserRecorded
-    try
-        [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data(getLaserfile('.'));
-        Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
-        Lasertrace=Lasertrace./max(abs(Lasertrace));
-        fprintf('\nsuccessfully loaded laser trace')
-    catch
-        fprintf('\nfound laser file %s but could not load laser trace', getLaserfile('.'))
-    end
+%     if exist(fullfile(masterdir, 'LaserTraces.mat')) == 2
+%         load(fullfile(masterdir, 'LaserTraces.mat'));
+%         fprintf('\nsuccessfully loaded laser trace')
+%     else
+%         [MasterLasertrace, MasterLasertimestamps, MasterLaserinfo] =load_open_ephys_data(getLaserfile(masterdir));
+%         for iDir = 2:length(dirs)
+%             [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data(getLaserfile(dirs{iDir}));
+%             MasterLasertrace = [MasterLasertrace; Lasertrace];
+%             MasterLasertimestamps = [MasterLasertimestamps; Lasertimestamps];
+%             MasterLaserinfo.ts = [MasterLaserinfo.ts, Laserinfo.ts];
+%             MasterLaserinfo.nsamples = [MasterLaserinfo.nsamples, Laserinfo.nsamples];
+%             MasterLaserinfo.recNum = [MasterLaserinfo.recNum, Laserinfo.recNum];
+%         end
+%         Lasertrace = MasterLasertrace;
+%         Lasertimestamps = MasterLasertimestamps;
+%         Laserinfo = MasterLaserinfo;
+%         Lasertrace = Lasertrace./max(abs(Lasertrace));
+%         save(fullfile(masterdir, 'LaserTraces.mat'), 'Lasertrace', 'Lasertimestamps', 'Laserinfo', '-v7.3');
+%         fprintf('\nsuccessfully generated and saved laser trace')
+%     end
 else
     fprintf('\nLaser trace not recorded')
 end
 if StimRecorded
-    try
-        [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(getStimfile('.'));
-        Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
-        Stimtrace=Stimtrace./max(abs(Stimtrace));
-        fprintf('\nsuccessfully loaded stim trace')
-    catch
-        fprintf('\nfound stim file %s but could not load stim trace', getStimfile('.'))
-    end
+%     if exist(fullfile(masterdir, 'StimTraces.mat')) == 2
+%         load(fullfile(masterdir, 'StimTraces.mat'))
+%         fprintf('\nsuccessfully loaded stim trace')
+%     else
+%         [MasterStimtrace, MasterStimtimestamps, MasterStiminfo] =load_open_ephys_data(getStimfile(masterdir));
+%         for iDir = 2:length(dirs)
+%             [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(getStimfile(dirs{iDir}));
+%             MasterStimtrace = [MasterStimtrace; Stimtrace];
+%             MasterStimtimestamps = [MasterStimtimestamps; Stimtimestamps];
+%             MasterStiminfo.ts = [MasterStiminfo.ts, Stiminfo.ts];
+%             MasterStiminfo.nsamples = [MasterStiminfo.nsamples, Stiminfo.nsamples];
+%             MasterStiminfo.recNum = [MasterStiminfo.recNum, Stiminfo.recNum];
+%         end
+%         Stimtrace = MasterStimtrace;
+%         Stimtimestamps = MasterStimtimestamps;
+%         Stiminfo = MasterStiminfo;
+%         Stimtrace = Stimtrace./max(abs(Stimtrace));
+%         save(fullfile(masterdir, 'StimTraces.mat'), 'Stimtrace', 'Stimtimestamps', 'Stiminfo', '-v7.3');
+%         fprintf('\nsuccessfully generated and saved stim trace trace')
+%     end
 else
     fprintf('\nSound stimulus trace not recorded')
 end
@@ -318,12 +337,12 @@ for i=1:length(Events)
                     SilentSoundONspikecount(nreps_ssON)=spikecount;
                     
                     if LaserRecorded
-                        SilentSoundONLaser(nreps_ssON,:)=Lasertrace(region);
+%                         SilentSoundONLaser(nreps_ssON,:)=Lasertrace(region);
                     else
                         SilentSoundONLaser=[];
                     end
                     if StimRecorded
-                        SilentSoundONStim(nreps_ssON,:)=Stimtrace(region);
+%                         SilentSoundONStim(nreps_ssON,:)=Stimtrace(region);
                     else
                         SilentSoundONStim=[];
                     end
@@ -332,12 +351,12 @@ for i=1:length(Events)
                     SilentSoundOFF(nreps_ssOFF).spiketimes=spiketimes1;
                     SilentSoundOFFspikecount(nreps_ssOFF)=spikecount;
                     if LaserRecorded
-                        SilentSoundOFFLaser(nreps_ssOFF,:)=Lasertrace(region);
+%                         SilentSoundOFFLaser(nreps_ssOFF,:)=Lasertrace(region);
                     else
                         SilentSoundOFFLaser=[];
                     end
                     if StimRecorded
-                        SilentSoundOFFStim(nreps_ssOFF,:)=Stimtrace(region);
+%                         SilentSoundOFFStim(nreps_ssOFF,:)=Stimtrace(region);
                     else
                         SilentSoundOFFStim=[];
                     end
@@ -360,10 +379,10 @@ for i=1:length(Events)
                     M_LaserNumPulses(sourcefileidx,aindex,dindex, nrepsON(sourcefileidx, aindex, dindex))= LaserNumPulses(i);
                     M_LaserISI(sourcefileidx,aindex,dindex, nrepsON(sourcefileidx, aindex, dindex))= LaserISI(i);
                     if LaserRecorded
-                        M1ONLaser(sourcefileidx,aindex,dindex, nrepsON(sourcefileidx, aindex, dindex),:)=Lasertrace(region);
+%                         M1ONLaser(sourcefileidx,aindex,dindex, nrepsON(sourcefileidx, aindex, dindex),:)=Lasertrace(region);
                     end
                     if StimRecorded
-                        M1ONStim(sourcefileidx,aindex,dindex, nrepsON(sourcefileidx, aindex, dindex),:)=Stimtrace(region);
+%                         M1ONStim(sourcefileidx,aindex,dindex, nrepsON(sourcefileidx, aindex, dindex),:)=Stimtrace(region);
                     end
                 else
                     nrepsOFF(sourcefileidx, aindex, dindex)=nrepsOFF(sourcefileidx, aindex, dindex)+1;
@@ -371,10 +390,10 @@ for i=1:length(Events)
                     M1OFFspikecounts(sourcefileidx,aindex,dindex,nrepsOFF(sourcefileidx, aindex, dindex))=spikecount;
                     M1spontOFF(sourcefileidx,aindex,dindex, nrepsOFF(sourcefileidx, aindex, dindex))=spont_spikecount;
                     if LaserRecorded
-                        M1OFFLaser(sourcefileidx,aindex,dindex, nrepsOFF(sourcefileidx, aindex, dindex),:)=Lasertrace(region);
+%                         M1OFFLaser(sourcefileidx,aindex,dindex, nrepsOFF(sourcefileidx, aindex, dindex),:)=Lasertrace(region);
                     end
                     if StimRecorded
-                        M1OFFStim(sourcefileidx,aindex,dindex, nrepsOFF(sourcefileidx, aindex, dindex),:)=Stimtrace(region);
+%                         M1OFFStim(sourcefileidx,aindex,dindex, nrepsOFF(sourcefileidx, aindex, dindex),:)=Stimtrace(region);
                     end
                 end
             end
@@ -430,43 +449,43 @@ end
 mSilentSoundOFF.spiketimes=spiketimesOFF;
 
 
-%average laser and stimulus monitor M matrices across trials
-if LaserRecorded
-    for aindex=1:numamps
-        for sourcefileidx=1:numsourcefiles
-            for dindex=1:numdurs
-                if nrepsON(sourcefileidx, aindex, dindex)>0
-                    mM1ONLaser(sourcefileidx, aindex, dindex,:)=mean(M1ONLaser(sourcefileidx, aindex, dindex, 1:nrepsON(sourcefileidx, aindex, dindex),:), 4);
-                else %no reps for this stim, since rep=0
-                    mM1ONLaser(sourcefileidx, aindex, dindex,:)=zeros(size(region));
-                end
-                if nrepsOFF(sourcefileidx, aindex, dindex)>0
-                    mM1OFFLaser(sourcefileidx, aindex, dindex,:)=mean(M1OFFLaser(sourcefileidx, aindex, dindex, 1:nrepsOFF(sourcefileidx, aindex, dindex),:), 4);
-                else %no reps for this stim, since rep=0
-                    mM1OFFLaser(sourcefileidx, aindex, dindex,:)=zeros(size(region));
-                end
-            end
-        end
-    end
-end
-if StimRecorded
-    for aindex=1:numamps
-        for sourcefileidx=1:numsourcefiles
-            for dindex=1:numdurs
-                if nrepsON(sourcefileidx, aindex, dindex)>0
-                    mM1ONStim(sourcefileidx, aindex, dindex,:)=mean(M1ONStim(sourcefileidx, aindex, dindex, 1:nrepsON(sourcefileidx, aindex, dindex),:), 4);
-                else %no reps for this stim, since rep=0
-                    mM1ONStim(sourcefileidx, aindex, dindex,:)=zeros(size(region));
-                end
-                if nrepsOFF(sourcefileidx, aindex, dindex)>0
-                    mM1OFFStim(sourcefileidx, aindex, dindex,:)=mean(M1OFFStim(sourcefileidx, aindex, dindex, 1:nrepsOFF(sourcefileidx, aindex, dindex),:), 4);
-                else %no reps for this stim, since rep=0
-                    mM1OFFStim(sourcefileidx, aindex, dindex,:)=zeros(size(region));
-                end
-            end
-        end
-    end
-end
+% average laser and stimulus monitor M matrices across trials
+% if LaserRecorded
+%     for aindex=1:numamps
+%         for sourcefileidx=1:numsourcefiles
+%             for dindex=1:numdurs
+%                 if nrepsON(sourcefileidx, aindex, dindex)>0
+%                     mM1ONLaser(sourcefileidx, aindex, dindex,:)=mean(M1ONLaser(sourcefileidx, aindex, dindex, 1:nrepsON(sourcefileidx, aindex, dindex),:), 4);
+%                 else %no reps for this stim, since rep=0
+%                     mM1ONLaser(sourcefileidx, aindex, dindex,:)=zeros(size(region));
+%                 end
+%                 if nrepsOFF(sourcefileidx, aindex, dindex)>0
+%                     mM1OFFLaser(sourcefileidx, aindex, dindex,:)=mean(M1OFFLaser(sourcefileidx, aindex, dindex, 1:nrepsOFF(sourcefileidx, aindex, dindex),:), 4);
+%                 else %no reps for this stim, since rep=0
+%                     mM1OFFLaser(sourcefileidx, aindex, dindex,:)=zeros(size(region));
+%                 end
+%             end
+%         end
+%     end
+% end
+% if StimRecorded
+%     for aindex=1:numamps
+%         for sourcefileidx=1:numsourcefiles
+%             for dindex=1:numdurs
+%                 if nrepsON(sourcefileidx, aindex, dindex)>0
+%                     mM1ONStim(sourcefileidx, aindex, dindex,:)=mean(M1ONStim(sourcefileidx, aindex, dindex, 1:nrepsON(sourcefileidx, aindex, dindex),:), 4);
+%                 else %no reps for this stim, since rep=0
+%                     mM1ONStim(sourcefileidx, aindex, dindex,:)=zeros(size(region));
+%                 end
+%                 if nrepsOFF(sourcefileidx, aindex, dindex)>0
+%                     mM1OFFStim(sourcefileidx, aindex, dindex,:)=mean(M1OFFStim(sourcefileidx, aindex, dindex, 1:nrepsOFF(sourcefileidx, aindex, dindex),:), 4);
+%                 else %no reps for this stim, since rep=0
+%                     mM1OFFStim(sourcefileidx, aindex, dindex,:)=zeros(size(region));
+%                 end
+%             end
+%         end
+%     end
+% end
 
 if ~IL %no laser pulses in this file
     mM1ONspikecount=[];
@@ -653,7 +672,7 @@ end
 
 try
     out.nb=nb;
-    out.stimlog=stimlog;
+%     out.stimlog=stimlog;
     out.user=nb.user;
 catch
     out.nb='notebook file missing';
@@ -665,5 +684,4 @@ out.generated_by=mfilename;
 out.generated_on=datestr(now);
 
 outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
-save (outfilename, 'out','-v7.3')
-
+save(fullfile(masterdir, outfilename), 'out', '-v7.3');

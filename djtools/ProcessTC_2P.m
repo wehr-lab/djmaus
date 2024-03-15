@@ -68,6 +68,13 @@ dff_unsorted=(f-f0)./f0;
 numcells=size(dff_unsorted, 1);
 fprintf('\n%d cells', numcells)
 
+%another way to compute dff is to compute it for each trial, i.e. use the
+%pre-stimulus baseline as f0 for each trial. That's how Xu does it (for SOM cells).
+% For PNs, Xu did a rolling baseline removal, by computing the 8th %tile of
+% the distribution of F in a 20-s window around each frame, and subtracting
+% this from F on that frame. Then for each ROI, F0 is computed as the index of the peak
+% of the histogram of F, and dff is computed as usual, (F-F0)/F0
+
 %sort by pca
 [pcs, score, latent]=pca(dff_unsorted);
 [~, I]=sort(score(:,1));

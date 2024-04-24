@@ -262,12 +262,12 @@ if n~=TotalNumStim
     error
 end
 
-% Kip: nonRandom for cricket launching (files listed alphabetically, 
-    fprintf('\nKip edit for using non-random file order')
-    fprintf('\nKip edit !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-% making 'blank' first
-%stimorder = [2:TotalNumStim 1];
-% stimorder = 1:3;
+% % % Kip: nonRandom for cricket launching (files listed alphabetically, 
+% %     fprintf('\nKip edit for using non-random file order')
+% %     fprintf('\nKip edit !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+% % % making 'blank' first
+% % %stimorder = [2:TotalNumStim 1];
+% % % stimorder = 1:3;
 stimorder=randperm(TotalNumStim); %order of single tone and 2Tone, random
 
 for n=1:TotalNumStim

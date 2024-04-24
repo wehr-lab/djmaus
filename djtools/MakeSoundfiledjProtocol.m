@@ -145,14 +145,22 @@ for nreps=1:nrepeats
         s=s(1:round(durations(i)*Fs)); %truncate to requested durations or default to full length
         s=resample(s, pref.SoundFs , Fs); %resample to soundcard samprate
         
-        %normalize and set to requested SPL;
-        s=s./max(abs(s));        
-        amplitude=1*(10.^((amp-pref.maxSPL)/20)); %in volts (-1<x<1), i.e. pref.maxSPL=+_1V
-        %kip commented out below
-%         if i==1
-%             amplitude = .001;
-%         end
-        s=amplitude.*s;
+%         %normalize and set to requested SPL;
+%         s=s./max(abs(s)); 
+
+        %normalize here. calibrate to requested SPL (including speaker calibration) in LoadSoundfile (called by djmaus/SendStimulus);
+        s=s./max(abs(s)); 
+
+        %changed where we apply calibration 4.23.2024, it used to be here,
+        %but that failed to apply the speaker calibration (only the
+        %requested dB) -mike
+        
+%         amplitude=1*(10.^((amp-pref.maxSPL)/20)); %in volts (-1<x<1), i.e. pref.maxSPL=+_1V
+%         %kip commented out below
+% %         if i==1
+% %             amplitude = .001;
+% %         end
+%         s=amplitude.*s;
         
         sample.param.description='soundfile stimulus';
         sample.param.duration=durations(i);

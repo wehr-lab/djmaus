@@ -267,8 +267,8 @@ end
     fprintf('\nKip edit !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 % making 'blank' first
 %stimorder = [2:TotalNumStim 1];
-stimorder = 1:3;
-%stimorder=randperm(TotalNumStim); %order of single tone and 2Tone, random
+% stimorder = 1:3;
+stimorder=randperm(TotalNumStim); %order of single tone and 2Tone, random
 
 for n=1:TotalNumStim
     shuffledstimuli(n)=stimuli(stimorder(n));

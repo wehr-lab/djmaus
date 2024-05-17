@@ -45,27 +45,36 @@ spiketimes=sp.st(sp.clu==cell_ID); % in seconds, start at 0
 try
     load(fullfile(MasterDir,'RecLengths.mat'))
 catch
-    % load rez, which contains number of samples of each recording 1=1, 2=1+2,
-    % 3=1+2+3, etc
-    load(fullfile(MasterDir,'rez.mat'))
-    %L=(rez.ops.recLength)/sp.sample_rate;
-    %8.31.2023 rez.ops.recLength does not exist, I assume it's a relic of
-    %KS1, using rez.ops.sampsToRead instead, as a wild guess -mike 
-    L=(rez.ops.sampsToRead)/sp.sample_rate;
-    
-    save(fullfile(MasterDir,'RecLengths.mat'),'L')
+    try    % load rez, which contains number of samples of each recording 1=1, 2=1+2,
+        % 3=1+2+3, etc
+        load(fullfile(MasterDir,'rez.mat'))
+        %L=(rez.ops.recLength)/sp.sample_rate;
+        %8.31.2023 rez.ops.recLength does not exist, I assume it's a relic of
+        %KS1, using rez.ops.sampsToRead instead, as a wild guess -mike
+        L=(rez.ops.sampsToRead)/sp.sample_rate;
+
+        save(fullfile(MasterDir,'RecLengths.mat'),'L')
+
+
+
+        stop=L(currentdir_indx);
+        if currentdir_indx==1
+            start=0;
+        else
+            start=L(currentdir_indx-1);
+        end
+        spiketimes=spiketimes(spiketimes>start & spiketimes<stop); %find spiketimes for this recording;
+        spiketimes=spiketimes-start; %all spiketimes will start at 0
+        spiketimes=spiketimes';
+        % cd(currentdir); %go to the original directory
+
+    catch
+        %with kilosort4, there is no longer a rez.mat and I'm not sure how to
+        %get the recording durations. So punt for now and just include all
+        %spiketimes
+        warning('could not find rez.mat, maybe because this is kilosort4 data. Using all spiketimes which will probably work if this is a single session')
+        spiketimes=spiketimes';
+
+    end
 end
-
-stop=L(currentdir_indx);
-if currentdir_indx==1
-    start=0;
-else
-    start=L(currentdir_indx-1);
-end
-spiketimes=spiketimes(spiketimes>start & spiketimes<stop); %find spiketimes for this recording;
-spiketimes=spiketimes-start; %all spiketimes will start at 0
-spiketimes=spiketimes';
-% cd(currentdir); %go to the original directory
-
-
 

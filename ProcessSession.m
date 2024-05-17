@@ -12,7 +12,7 @@
 %
 ForceReprocess=0;
 
-% check to make sure we're in the bonsai folder 
+% check to make sure we're in the bonsai folder
 BonsaiPath= pwd;
 cd ..
 LocalDataRoot=pwd; %parent directory of BonsaiPath
@@ -25,27 +25,34 @@ if isempty(dsky) | isempty(dttl)
 end
 
 %get EphysPath
-EphysPath_exists=1;
-% % ed=dir('2024-*'); %this will obviously only work for 2024 data
-% % %we should add deeper checking for EphysPath
-% % if length(ed)==1 & ed.isdir
-% %     EphysPath=ed.name;
-% % else
-% %     error ('cannot find ephys dir')
-% %     EphysPath_exists=0;
-% % end
-%Here's a better way: look for notebook.mat file to identify EphysPath
 cd(BonsaiPath)
-ed=dir('**/notebook.mat');
-if isempty(d)
-    error('could not find EphysPath in this Bonsai directory')
-    EphysPath_exists=0;
-    EphysPath=[];
-elseif length(ed)==1
-    [~,EphysPath,~]=fileparts(ed.folder);
-else error('more than one candidate EphysPath folder found')
+[~,BonsaiFolder,~]=fileparts(BonsaiPath); %BonsaiFolder is just the timestamp-mouseID identifier of the Bonsai directory (excluding the abolute path)
+OEinfofilename=sprintf('OEinfo-%s.mat', BonsaiFolder);
+if exist(OEinfofilename)==2
+    load(OEinfofilename)
+    fprintf('\nfound and loaded %s\n', OEinfofilename)
+else
+    EphysPath_exists=1;
+    % % ed=dir('2024-*'); %this will obviously only work for 2024 data
+    % % %we should add deeper checking for EphysPath
+    % % if length(ed)==1 & ed.isdir
+    % %     EphysPath=ed.name;
+    % % else
+    % %     error ('cannot find ephys dir')
+    % %     EphysPath_exists=0;
+    % % end
+    %Here's a better way: look for notebook.mat file to identify EphysPath
+    ed=dir('**/notebook.mat');
+    if isempty(ed)
+        error('could not find EphysPath in this Bonsai directory')
+        EphysPath_exists=0;
+        EphysPath=[];
+    elseif length(ed)==1
+        [~,EphysPath,~]=fileparts(ed.folder);
+    else error('more than one candidate EphysPath folder found')
+    end
+    fprintf('\nfound EphysPath %s\n', EphysPath)
 end
-fprintf('\nfound EphysPath %s\n', EphysPath)
 
 %load OpenEphys session information
 sessionfilename=['session-',EphysPath];
@@ -106,34 +113,62 @@ if length(dir('Sky_mouse*_preycap*_el_filtered.csv'))>0
     warning('wrong DLC model used for this session') %tracks output to csv step
     DLC_exists=0;
 end
-        
-%get path to kilosorted data 
-cd(BonsaiPath)
-d=dir('**/phy.log');
-if isempty(d)
-    warning('could not find kilosort data')
-    EphysPath_KS=[];
-elseif length(d)==1
-    EphysPath_KS=d.folder;
-else error('more than one candidate KS folder found')
+
+%get path to kilosorted data
+if ~exist('EphysPath_KS')
+    cd(BonsaiPath)
+    d=dir('**/phy.log');
+    if isempty(d)
+        warning('could not find kilosort data')
+        EphysPath_KS=[];
+        fprintf('\nProcess Spikes will fail because there is no kilosort data')
+
+    elseif length(d)==1
+        EphysPath_KS=d.folder;
+        fprintf('\nfound EphysPath_KS kilosort folder: \n%s\n', EphysPath_KS)
+    else error('more than one candidate KS folder found')
+    end
 end
-fprintf('\nfound EphysPath_KS kilosort folder: \n%s\n', EphysPath_KS)
 
 % dirName=split(session.recordNodes{1}.recordings{1}.directory, filesep);
 % EphysPath_KS=fullfile(filesep, dirName{[1:end-3, end-4]}); %absolute path
 
+%check for dirs and bdirs files, if needed create them by calling
+%SettingYourStage. Alternatively, if you're only kilosorting individual
+%sessions (so there's no need to group sessions that were kilosorted
+%together) then you can just use the current directory
+if 0 %group sessions that were kilosorted together
+    SettingYourStage;
+else %assume we're only kilosorting individual sessions
+    Bdirs{1}=BonsaiPath;
+    dirs{1}=EphysPath;
+    DataRoot=LocalDataRoot;
+    cd(BonsaiPath)
+    save('Bdirs.mat','dirs','Bdirs','DataRoot');
+    cd(EphysPath);
+    save('dirs.mat', 'Bdirs', 'dirs','DataRoot');
+    cd(BonsaiPath)
+end
+
 %get SortedUnits from ProcessSpikes
 try
-    cd(EphysPath_KS) %abs path
-sudir=dir('./SortedUnits_*.mat'); %check if SortedUnits file output from ProcessSpikes already exists
-if isempty(sudir)
-%    [SortedUnitsFile] = ProcessSpikes(EphysPath_KS,BonsaiPath, LocalDataRoot); %Process the spikes
-    % [SortedUnitsFile] = ProcessSpikes(EphysPath_KS, LocalDataRoot); %Process the spikes
-    [SortedUnitsFile] = ProcessSpikes(BonsaiPath, EphysPath_KS, EphysPath, LocalDataRoot) %new way for new OE hierarchy
-end
+    cd(BonsaiPath)
+    cd(EphysPath)
+    sudir=dir('./SortedUnits_*.mat'); %check if SortedUnits file output from ProcessSpikes already exists
+    
+    if isempty(sudir)
+        %    [SortedUnitsFile] = ProcessSpikes(EphysPath_KS,BonsaiPath, LocalDataRoot); %Process the spikes
+        % [SortedUnitsFile] = ProcessSpikes(EphysPath_KS, LocalDataRoot); %Process the spikes
+        SortedUnitsFile = ProcessSpikes(BonsaiPath, EphysPath_KS, EphysPath, LocalDataRoot) %new way for new OE hierarchy
+    else
+        fprintf('\nfound SortedUnits file, skipping ProcessSpikes')
+        SortedUnitsFile = fullfile(sudir.folder,sudir.name);
+    end
+
 catch
     warning('ProcessSpikes failed')
-    if isempty(EphysPath_KS) warning ('ProcessSpikes failed. Probably because there is no kilosort data.'); end
+    if isempty(EphysPath_KS) error('ProcessSpikes failed. Probably because there is no kilosort data.'); end
+    
 end
 
 % these are the things I will want to add to Sky
@@ -160,7 +195,7 @@ if isempty(assimilationfilename)  | ForceReprocess
     [vids,units,chans] = AssimilateSignals;
     save Assimilation vids units chans
 end
-    
+
 fprintf('\nProcessSession done\n')
 
 

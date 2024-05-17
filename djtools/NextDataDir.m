@@ -14,4 +14,6 @@ for i=1:length(d)
         wdi=i;
     end
 end
+%wrap around if at end (comment out if you don't want to do this)
+if wdi==length(d), fprintf('at last directory in root folder, wrapping around...'); wdi=3; end
 cd(d(wdi+1).name)

@@ -66,15 +66,6 @@ end
 if exist(outfilename,'file')
     load(outfilename)
     fprintf('\nloaded outfile.')
-    fprintf('\n%d cells',length(out.SortedUnits))
-    if isempty(cells)
-        cells=1:length(out.SortedUnits);
-        fprintf('\nplotting all cells')
-    else
-        fprintf('\nplotting cells ')
-        fprintf('%d ', cells)
-    end
-
 else
     fprintf('\ncould not find outfile, calling ProcessSession...')
     if exist('./notebook.mat')==2
@@ -97,6 +88,14 @@ if ~isempty(xlimits)
 end
 fprintf('\nusing xlimits [%d %d]', xlimits)
 fprintf('\nusing binwidth %d', binwidth)
+fprintf('\n%d cells',length(out.SortedUnits))
+if isempty(cells)
+    cells=1:length(out.SortedUnits);
+    fprintf('\nplotting all cells')
+else
+    fprintf('\nplotting cells ')
+    fprintf('%d ', cells)
+end
 
 
 IL=out.IL; %whether there are any interleaved laser trials

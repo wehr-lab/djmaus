@@ -55,6 +55,7 @@ try
     cd(BonsaiPath)
     cd(EphysPath)
     load notebook.mat
+
     %check if nb and stimlog are actually there
     if ~exist('stimlog','var')
         stimlog=[];
@@ -71,6 +72,16 @@ catch
     warning('could not find notebook file')
 end
 
+try
+    cd(BonsaiPath)
+    cd(EphysPath)
+    sessionfilename=['session-',EphysPath];
+    load(sessionfilename)
+    fprintf('\nloaded session object')
+catch
+    warning('could not load session object')
+end
+
 %read messages
 cd(BonsaiPath)
 behavior_filename=dir('Behavior_*.mat');
@@ -82,7 +93,7 @@ load(behavior_filename.name);
 
 if exist('Events.mat')
     load('Events.mat')
-    fprintf('loaded Events file \n')
+    fprintf('\nloaded Events file \n')
 else
     [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(Sky);
     save('Events.mat','Events')
@@ -197,15 +208,12 @@ trainisis=unique(alltrainisis);
 pulsewidths=unique(allpulsewidths);
 silentsounddurs=unique(allsilentsounddurs);
 VarLaserstarts=unique(allVarLaserstarts);
-% nexts=unique(allnexts);
-% numnexts=length(nexts);
 numlaserstarts=length(laserstarts);
 numtrainnumpulses=length(trainnumpulses);
 numtrainpulsewidths=length(trainpulsewidths);
 numtrainisis=length(trainisis);
 numpulsewidths=length(pulsewidths);
 numsilentsounddurs=length(silentsounddurs);
-
 
 %check for laser in Eventsdjtools/ProcessTC_PSTH_single.m
 for i=1:length(Events)
@@ -262,14 +270,20 @@ end
 
 
 %try to load laser and stimulus monitor
-if 1 %isempty(getLaserfile('.'))
+if exist('lasertrace')==1
+    %we loaded lasertrace from open ephys Session object
+        LaserRecorded=1;
+elseif isempty(getLaserfile('.'))
     LaserRecorded=0;
     warning('Laser monitor channel not recorded')
     warning('ProcessTC_PSTH_single2: still need to figure out how to find/plot Laser monitor channel ')
 else
     LaserRecorded=1;
 end
-if 1 %isempty(getStimfile('.'))
+if exist('stimtrace')==1
+    %we loaded stimtrace from open ephys Session object
+        StimRecorded=1;
+elseif isempty(getStimfile('.'))
     StimRecorded=0;
     warning('Stimulus monitor channel not recorded')
     warning('ProcessTC_PSTH_single2: still need to figure out how to find/plot Stimulus monitor channel ')
@@ -278,20 +292,29 @@ else
 end
 
 if LaserRecorded
-    try
-        [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data(getLaserfile('.'));
-        %Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
-        Lasertimestamps=Lasertimestamps-Lasertimestamps(1);
-        Lasertrace=Lasertrace./max(abs(Lasertrace));
-        fprintf('\nsuccessfully loaded laser trace')
-    catch
-        [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data('105_ADC2.continuous');
-        %fprintf('\nfound laser file %s but could not load laser trace',getStimfile('.'))
+    if exist('lasertrace')==1
+        Lasertimestamps=timestamps-timestamps(1);
+        Lasertrace=lasertrace./max(abs(lasertrace));
+    else
+        try
+            [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data(getLaserfile('.'));
+            %Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+            Lasertimestamps=Lasertimestamps-Lasertimestamps(1);
+            Lasertrace=Lasertrace./max(abs(Lasertrace));
+            fprintf('\nsuccessfully loaded laser trace')
+        catch
+            [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data('105_ADC2.continuous');
+            %fprintf('\nfound laser file %s but could not load laser trace',getStimfile('.'))
+        end
     end
 else
     fprintf('\nLaser trace not recorded')
 end
 if StimRecorded
+     if exist('stimtrace')==1
+        Stimtimestamps=timestamps-timestamps(1);
+        Stimtrace=stimtrace./max(abs(stimtrace));
+    else
     try
         [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(getStimfile('.'));
         %Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
@@ -302,6 +325,7 @@ if StimRecorded
         [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data('105_ADC1.continuous');
         %fprintf('\nfound stim file %s but could not load stim trace', getStimfile('.'))
     end
+     end
 else
     fprintf('\nSound stimulus trace not recorded')
 end
@@ -468,9 +492,8 @@ for cellnum=1:length(SortedUnits);
 
                 % on
                 spiketimesON=[];
-                spikecountsON=[];
                 for rep=1:nrepsON(cellnum, findex, aindex, dindex)
-                    spiketimesON=[spiketimesON M1ON(cellnum, findex, aindex, dindex, rep).spiketimes'];
+                    spiketimesON=[spiketimesON M1ON(cellnum, findex, aindex, dindex, rep).spiketimes];
                 end
 
                 % All spiketimes for a given f/a/d combo, for psth:
@@ -478,9 +501,8 @@ for cellnum=1:length(SortedUnits);
 
                 % off
                 spiketimesOFF=[];
-                spikecountsOFF=[];
                 for rep=1:nrepsOFF(cellnum, findex, aindex, dindex)
-                    spiketimesOFF=[spiketimesOFF M1OFF(cellnum, findex, aindex, dindex, rep).spiketimes'];
+                    spiketimesOFF=[spiketimesOFF M1OFF(cellnum, findex, aindex, dindex, rep).spiketimes];
                 end
                 mM1OFF(cellnum, findex, aindex, dindex).spiketimes=spiketimesOFF;
             end

@@ -63,6 +63,29 @@ catch
     fprintf('\ndid not find saved Open Ephys session object for this directory ...')
     fprintf('\nloading Open Ephys data (this will take a couple minutes) ...\n')
     session = Session(pwd); %open-ephys-matlab-tools function
+
+num_channels=session.recordNodes{1}.recordings{1}.info.continuous.num_channels;
+for ch=1:num_channels
+    bit_volts(ch)=session.recordNodes{1}.recordings{1}.info.continuous.channels(ch).bit_volts;
+end
+keys=session.recordNodes{1}.recordings{1}.continuous.keys();
+key=keys{1};
+timestamps=session.recordNodes{1}.recordings{1}.continuous(key).timestamps;
+samples=session.recordNodes{1}.recordings{1}.continuous(key).samples(:,:);
+if num_channels==78 %for 64 channel neuronexus probe
+    stimtracech=71;
+    soundcardtriggerch=72;
+    lasertracech=73;
+elseif num_channels==142 %for 128 channel diagnostic biochips probe
+    stimtracech=135;
+    soundcardtriggerch=136;
+    lasertracech=137;
+end
+    stimtrace=session.recordNodes{1}.recordings{1}.continuous(key).samples(stimtracech,:);
+    soundcardtrigger=session.recordNodes{1}.recordings{1}.continuous(key).samples(soundcardtriggerch,:);
+    lasertrace=session.recordNodes{1}.recordings{1}.continuous(key).samples(lasertracech,:);
+
+
     %it is slow, takes 3 minutes. so we save for fast loading in the
     %future.
     % manually delete any continuous data fields prior to saving a copy of
@@ -71,7 +94,8 @@ catch
     session.recordNodes{2}.recordings{1}.continuous=[];
     session.recordNodes{2}.recordings{1}.spikes=[];
     fprintf('\nsaving Open Ephys session object in OpenEphys folder...')
-    save(sessionfilename, 'session')
+    save(sessionfilename, 'session', 'stimtrace','soundcardtrigger','lasertrace','timestamps','num_channels')
+    %save('samples', 'samples')
     fprintf(' done. ')
 end
 OEversion = session.recordNodes{1}.recordings{1}.info.GUIVersion;

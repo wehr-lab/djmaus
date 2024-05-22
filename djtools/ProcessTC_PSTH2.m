@@ -480,8 +480,8 @@ for cellnum=1:length(SortedUnits);
     end
 
 
-    fprintf('\nmin num ON reps: %d\nmax num ON reps: %d', min(nrepsON(:)), max(nrepsON(:)))
-    fprintf('\nmin num OFF reps: %d\nmax num OFF reps: %d',min(nrepsOFF(:)), max(nrepsOFF(:)))
+%    fprintf('\nmin num ON reps: %d\nmax num ON reps: %d', min(nrepsON(:)), max(nrepsON(:)))
+ %   fprintf('\nmin num OFF reps: %d\nmax num OFF reps: %d',min(nrepsOFF(:)), max(nrepsOFF(:)))
     fprintf('\ncell %d, total num spikes: %d', cellnum, length(spiketimes))
     fprintf('\nIn range: %d', inRange)
 

@@ -16,6 +16,8 @@ windowpos=[200 100 1381 680];
 if ismac  windowpos=[ -1415 479 1381 680];end %mike's pref
 maxwindows=20; %raise a "continue?" box after this many windows to avoid crashing
 fs=12; %fontsize
+printtofile=1; %print figures to postscript file
+closewindows=1; %close windows as soon as you print them
 
 if nargin==0
     datadir=pwd;
@@ -97,6 +99,10 @@ else
     fprintf('%d ', cells)
 end
 
+if printtofile
+    delete figs.ps
+    delete figs.pdf
+end
 
 IL=out.IL; %whether there are any interleaved laser trials
 freqs=out.freqs;
@@ -164,7 +170,7 @@ nreps_ssOFF=out.nreps_ssOFF;
 
 
 for cellnum=cells
-    fprintf('\ncell %d', cellnum)
+    fprintf('\ncell %d/%d', cellnum, cells(end))
 
      if ismac %you could check this on windows, too, in case of excessive figure windows
         f=findobj('type', 'figure');
@@ -269,7 +275,7 @@ for cellnum=cells
 
                 offsetS=ylimits(1)+.05*diff(ylimits);
                 if StimRecorded
-                    Stimtrace=squeeze(mM1OFFStim(cellnum, findex, aindex, dindex, :));
+                    Stimtrace=squeeze(mM1OFFStim(findex, aindex, dindex, :));
                     Stimtrace=Stimtrace -mean(Stimtrace(1:100));
                     Stimtrace=.25*diff(ylimits)*Stimtrace;
                     t=1:length(Stimtrace);
@@ -331,8 +337,13 @@ for cellnum=cells
                     else
                         vpos=mean(ylimits);
                     end
-                    %text(0, vpos, sprintf('%.1f', freqs(findex)/1000))
-                    xlabel(sprintf('%.1f', freqs(findex)/1000))
+
+                    if freqs(findex)==-1
+                        xlabel('WN')
+                    else
+                        xlabel(sprintf('%.1f', freqs(findex)/1000))
+                    end
+
                 end
 
                 if ~isempty(mSilentSoundOFF(cellnum).spiketimes) && yindex==1 && findex==1
@@ -570,4 +581,18 @@ for cellnum=cells
             end
         end
     end
+
+      if printtofile
+            %print figures to postscript file
+            f=findobj('type', 'figure');
+            for idx=1:length(f)
+                figure(f(idx))
+                orient landscape
+                print figs -dpsc2 -append -bestfit
+                if closewindows
+                    close
+                end
+            end
+      end
+
 end

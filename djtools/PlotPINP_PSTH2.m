@@ -21,6 +21,8 @@ windowpos=[200 100 1381 680];
 maxwindows=20; %raise a "continue?" box after this many windows to avoid crashing
 if ismac  windowpos=[ -1415 479 1381 680];end %mike's pref
 fs=12;
+printtofile=1; %print figures to postscript file
+closewindows=1; %close windows as soon as you print them
 
 if nargin==0
     datadir=pwd;
@@ -100,6 +102,11 @@ if ~isempty(xlimits)
 end
 fprintf('\nusing xlimits [%d %d]', out.xlimits)
 
+if printtofile
+    delete figs.ps
+    delete figs.pdf
+end
+
 MPulse=out.MPulse;
 mMPulse=out.mMPulse;
 mMSilentSoundOFF=out.mMSilentSoundOFF;
@@ -147,6 +154,8 @@ samprate=out.samprate; %in Hz
 if isempty(xlimits) xlimits=out.xlimits;end
 
 for cellnum=cells
+        fprintf('\ncell %d/%d', cellnum, length(cells)
+
     if ismac %you could check this on windows, too, in case of excessive figure windows
         f=findobj('type', 'figure');
         if length(f)>maxwindows
@@ -528,6 +537,19 @@ for cellnum=cells
     set(h, 'markersize', 10, 'markerfacecolor', 'k')
         h=title(sprintf('%s, cell %d',out.BonsaiFolder, cellnum));
         set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
+
+        if printtofile
+            %print figures to postscript file
+            f=findobj('type', 'figure');
+            for idx=1:length(f)
+                figure(f(idx))
+                orient landscape
+                print figs -dpsc2 -append -bestfit
+                if closewindows
+                    close
+                end
+            end
+        end
 
 end %for cellnum
 

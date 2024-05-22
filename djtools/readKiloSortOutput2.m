@@ -37,7 +37,7 @@ elseif cg==3
     qual='unassigned';
 end
 
-fprintf('\nthis cell was saved as %s cluster', qual);
+% fprintf('\nthis cell was saved as %s cluster', qual);
 
 %find spiketimes
 spiketimes=sp.st(sp.clu==cell_ID); % in seconds, start at 0

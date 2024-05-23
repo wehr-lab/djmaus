@@ -171,6 +171,7 @@ nreps_ssOFF=out.nreps_ssOFF;
 
 for cellnum=cells
     fprintf('\ncell %d/%d', cellnum, cells(end))
+    fprintf('\n%d spikes',  length(out.SortedUnits(cellnum).spiketimes))
 
      if ismac %you could check this on windows, too, in case of excessive figure windows
         f=findobj('type', 'figure');
@@ -311,7 +312,7 @@ for cellnum=cells
                 %set(gca, 'xticklabel', '')
                 %set(gca, 'yticklabel', '')
                 if p==1
-                    h=title(sprintf('%s: \ncell%d %dms, nreps: %d-%d, OFF ',datadir,cellnum,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
+                    h=title(sprintf('%s: \ncell%d %d spikes, %dms, nreps: %d-%d, OFF ',datadir,cellnum, length(out.SortedUnits(cellnum).spiketimes), durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
                     set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
                 end
                 xl = xlim; yl = ylim;

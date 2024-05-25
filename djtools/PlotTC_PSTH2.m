@@ -80,6 +80,12 @@ else
     load(outfilename);
 end
 
+if isempty(ylimits)
+    autoscale_ylimits=1;
+else
+    autoscale_ylimits=0;
+end
+
 %if xlimits are requested but don't match those in outfile, force preprocess
 if ~isempty(xlimits)
     if out.xlimits(1)>xlimits(1) | out.xlimits(2)<xlimits(2) %xlimits in outfile are too narrow, so reprocess
@@ -186,7 +192,7 @@ for cellnum=cells
      end
 
     % %find optimal axis limits
-    if isempty(ylimits)
+    if autoscale_ylimits
         ymax=0;
         for aindex=[numamps:-1:1]
             for findex=1:numfreqs
@@ -215,9 +221,8 @@ for cellnum=cells
         end
         ylimits=[-.3 ymax];
     end
-    if 1%cellnum==1 
-        fprintf('\nusing ylimits [%.1f %.1f]', ylimits); 
-    end
+    fprintf('\nusing ylimits [%.1f %.1f]', ylimits);
+    
 
 
     if numamps>=numdurs
@@ -245,7 +250,7 @@ for cellnum=cells
 
     %plot the mean tuning curve OFF
     for windex=1:1                                                              % Normally windex=1:numw, hardcoded here for efficiency
-        figure('position',windowpos)
+        figure('position',windowpos, 'PaperOrientation', 'landscape')
         p=0;
         subplot1(numy,numx, 'Max', [.95 .9])
         for yindex=ystart:ystep:yend
@@ -409,7 +414,8 @@ for cellnum=cells
     if IL
         %plot the mean tuning curve ON
         for windex=1:numw
-        figure('position',windowpos)
+        figure('position',windowpos, 'PaperOrientation', 'landscape')
+                
             p=0;
             subplot1(numy,numx, 'Max', [.95 .9])
             for yindex=ystart:ystep:yend
@@ -587,9 +593,11 @@ for cellnum=cells
             %print figures to postscript file
             f=findobj('type', 'figure');
             for idx=1:length(f)
-                figure(f(idx))
-                orient landscape
-                print figs -dpsc2 -append -bestfit
+                %figure(f(idx))
+                % orient landscape
+                % % print figs -dpsc2 -append -bestfit
+                exportgraphics(f(idx),'figs.pdf','Append',true)
+
                 if closewindows
                     close
                 end

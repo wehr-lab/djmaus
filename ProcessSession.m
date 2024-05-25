@@ -94,7 +94,7 @@ end
     session.recordNodes{2}.recordings{1}.continuous=[];
     session.recordNodes{2}.recordings{1}.spikes=[];
     fprintf('\nsaving Open Ephys session object in OpenEphys folder...')
-    save(sessionfilename, 'session', 'stimtrace','soundcardtrigger','lasertrace','timestamps','num_channels')
+    save(sessionfilename, 'session', 'stimtrace','soundcardtrigger','lasertrace','timestamps','num_channels', 'bit_volts')
     %save('samples', 'samples')
     fprintf(' done. ')
 end

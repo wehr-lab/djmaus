@@ -150,7 +150,7 @@ catch
     session.recordNodes{2}.recordings{1}.continuous=[];
     session.recordNodes{2}.recordings{1}.spikes=[];
     fprintf('\nsaving Open Ephys session object in OpenEphys folder...')
-    save(sessionfilename, 'session', 'stimtrace','soundcardtrigger','lasertrace','timestamps','num_channels')
+    save(sessionfilename, 'session', 'stimtrace','soundcardtrigger','lasertrace','timestamps','num_channels', 'bit_volts')
     save(samplesfilename, 'samples')
     fprintf(' done. ')
     toc
@@ -271,7 +271,7 @@ fprintf('\nextracting traces into BIG matrix...');
 
 samprate=Sky.OEsamplerate;
 
-channelorder=1:128
+channelorder=1:128; %default
 if num_channels==78 %for 64 channel neuronexus probe
     % ch 1-64 = headstage channels
     % ch  = A1_AUX channels 1-3
@@ -282,7 +282,15 @@ elseif num_channels==142 %for 128 channel diagnostic biochips probe
     % ch 129-131 = A1_AUX channels 1-3
     % ch 132-134 = A2_AUX channels 1-3
     % ch 135-142 =  ADC channels ADC1-ADC8
-    chans=1:128;
+    try
+        load(fullfile(DataRoot, 'chanMap128.mat'))
+        chans=1:128;
+        channelorder=chanMap;
+    catch
+        warning('could not load channel map, defaulting to wrong order 1-128')
+        chans=1:128;
+        channelorder=1:128;
+    end
 end
 
 

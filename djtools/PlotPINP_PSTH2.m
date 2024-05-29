@@ -105,6 +105,7 @@ fprintf('\nusing xlimits [%d %d]', out.xlimits)
 if printtofile
     delete figs.ps
     delete figs.pdf
+    close all
 end
 
 MPulse=out.MPulse;
@@ -268,7 +269,7 @@ for cellnum=cells
         h=title(sprintf('%s, cell %d\nSilent Sound no laser, nreps: %d-%d',out.BonsaiFolder, cellnum,min(nrepsOFF(:)),max(nrepsOFF(:))));
         set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
     end
-    close
+    
 
     %plot the psth for silent sound with single laser pulse
     figure('position',windowpos)
@@ -429,13 +430,16 @@ for cellnum=cells
                     %fr is 10 samples/ms
                     start=1+round(10*(0+(pnum-1)*trainisi)-10*my_xlimits(1));
                     stop=start+100*10;
-
-                    frwin=fr(start:stop);
-                    [pk, pki]=find(frwin==max(frwin));
+                    if stop>length(fr)
+                        warning('latencies clipped beacuse axis limits of data are shorter than pulse train')
+                        L(pnum)=nan;
+                    else
+                        frwin=fr(start:stop);
+                        [pk, pki]=find(frwin==max(frwin));
                     %pki is index of peak, in 10x ms relative to laser onset
                     pki=pki(1);
                     L(pnum)=pki/10;
-
+                    end
                 end
 
                 if StimRecorded
@@ -542,9 +546,12 @@ for cellnum=cells
             %print figures to postscript file
             f=findobj('type', 'figure');
             for idx=1:length(f)
+                
                 figure(f(idx))
-                orient landscape
-                print figs -dpsc2 -append -bestfit
+                % orient landscape
+                % % print figs -dpsc2 -append -bestfit
+                exportgraphics(f(idx),'figs.pdf','Append',true)
+
                 if closewindows
                     close
                 end

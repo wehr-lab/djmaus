@@ -154,7 +154,7 @@ samprate=out.samprate; %in Hz
 if isempty(xlimits) xlimits=out.xlimits;end
 
 for cellnum=cells
-        fprintf('\ncell %d/%d', cellnum, length(cells)
+        fprintf('\ncell %d/%d', cellnum, length(cells))
 
     if ismac %you could check this on windows, too, in case of excessive figure windows
         f=findobj('type', 'figure');

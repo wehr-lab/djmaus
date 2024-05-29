@@ -3,6 +3,10 @@ function NextDataDir
 %I wrote this because I was tired of scrolling through a long list of data
 %directories every time you cd ..
 
+if exist('notebook.mat')==2
+    %we're in an ephys directory, so first cd .. up to the bonsai directory
+    cd ..
+end
 wd=pwd;
 [path,name,ext]=fileparts(wd);
 

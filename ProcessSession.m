@@ -191,7 +191,7 @@ try
 
 catch
     warning('ProcessSpikes failed')
-    if isempty(EphysPath_KS) error('ProcessSpikes failed. Probably because there is no kilosort data.'); end
+    if isempty(EphysPath_KS) warning('ProcessSpikes failed. Probably because there is no kilosort data.'); end
     
 end
 

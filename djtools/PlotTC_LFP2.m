@@ -457,4 +457,3 @@ ylabel('depth, um')
 title('shank 2')
 set(gca, 'pos', [ 0.5300    0.1100    0.3347    0.8150])
 
-keyboard

@@ -32,7 +32,9 @@ elseif nargin==3
 else
     error('wrong number of arguments');
 end
-
+if isempty(xlimits)
+        xlimits=[-20 100]; %default xlimits 
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 cd(datadir)
@@ -78,6 +80,12 @@ end
 %read messages
 cd(BonsaiPath)
 behavior_filename=dir('Behavior_*.mat');
+if isempty(behavior_filename)
+        fprintf('\nno behavior file found, calling ProcessSession ')
+
+    ProcessSession
+    behavior_filename=dir('Behavior_*.mat');
+end
 load(behavior_filename.name);
 
 if exist('Events.mat')

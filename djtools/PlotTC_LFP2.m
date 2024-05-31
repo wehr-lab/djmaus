@@ -13,6 +13,8 @@ function PlotTC_LFP2(varargin)
 flag.filt = 0;
 hi_pass_cutoff=3000;
 lo_pass_cutoff=300;
+printtofile=1; %print figures to postscript file
+closewindows=1; %close windows as soon as you print them
 
 force_reprocess=0;
 
@@ -48,6 +50,10 @@ end
 
 outfilename='outLFP.mat';
 cd(datadir)
+
+if printtofile
+    delete figs.pdf
+end
 
 if force_reprocess
     fprintf('\nForce Re-process')
@@ -457,3 +463,19 @@ ylabel('depth, um')
 title('shank 2')
 set(gca, 'pos', [ 0.5300    0.1100    0.3347    0.8150])
 
+     if printtofile
+            %print figures to postscript file
+            f=findobj('type', 'figure');
+            for idx=1:length(f)
+                pause(.5)
+                %figure(f(idx))
+                % orient landscape
+                % % print figs -dpsc2 -append -bestfit
+                exportgraphics(f(idx),'figs.pdf','Append',true)
+                pause(.5)
+
+                if closewindows
+                    close
+                end
+            end
+      end

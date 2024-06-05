@@ -102,6 +102,12 @@ if ~isempty(xlimits)
 end
 fprintf('\nusing xlimits [%d %d]', out.xlimits)
 
+if isempty(ylimits)
+    autoscale_ylimits=1;
+else
+    autoscale_ylimits=0;
+end
+
 if printtofile
     delete figs.ps
     delete figs.pdf
@@ -170,7 +176,7 @@ for cellnum=cells
     end
 
     % %find optimal axis limits
-    if isempty(ylimits)
+    if autoscale_ylimits
         ymax=0;
         for dindex=1:numsilentsounddurs
             st=mMSilentSoundOFF(cellnum, dindex).spiketimes;

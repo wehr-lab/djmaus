@@ -420,6 +420,23 @@ traces=traces -mean(traces(:,1:100), 2);
 traces=traces(out.channelorder,:);
 clear depthstr
 
+
+%Ira smoothed the traces like this:
+% smooth_traces=[];
+% for j=2:size(traces,1)-1 %smoothing to get rid of variance, -2 channels
+%     smooth_traces(j-1,:)=(1/4)*(traces(j+1,:)+2*traces(j,:)+traces(j-1,:));
+% end
+% for j=2:size(smooth_traces,1)-1 %cannot compute CSD for first and last channels, - 2 channels
+%     CSD(j-1,:)=(smooth_traces(j-1,:)+smooth_traces(j+1,:)-2*smooth_traces(j,:))/distance^2;
+% end
+
+%Ira's smoothing method to get rid of variance, -2 channels
+smooth_traces=traces;
+for j=2:size(traces,1)-1 %smoothing to get rid of variance, -2 channels
+    smooth_traces(j-1,:)=(1/4)*(traces(j+1,:)+2*traces(j,:)+traces(j-1,:));
+end
+traces=smooth_traces;
+
 for shank=1:2
     for j=2:chans_per_shank-1 %cannot compute CSD for first and last channels, - 2 channels
         if shank==1
@@ -435,8 +452,10 @@ for shank=1:2
 end
 % depthstr=fliplr(depthstr);
 
-CSD(1,62,1:100)=.05; %check depth
-CSD(2,62,1:100)=-.05; %check depth
+%this puts a marker in the lower left corner to check that we're correctly
+%plotting the deepest channel at the bottom
+% CSD(1,62,1:100)=.05; %check depth
+% CSD(2,62,1:100)=-.05; %check depth
 
 numxticks=7;
 numyticks=6;

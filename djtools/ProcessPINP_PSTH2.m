@@ -73,6 +73,42 @@ cd(BonsaiPath)
 behavior_filename=dir('Behavior_*.mat');
 load(behavior_filename.name);
 
+channelorder=1:128; %default
+probe='';
+try
+    num_channels=out.num_channels; %if it was saved earlier
+catch
+    %load OpenEphys session information
+    sessionfilename=['session-',EphysPath];
+    samplesfilename=['samples-',EphysPath];
+    cd(BonsaiPath)
+    cd(EphysPath)
+    fprintf('\nloading Open Ephys data ...\n')
+    load(sessionfilename)
+    num_channels=session.recordNodes{1}.recordings{1}.info.continuous.num_channels;
+end
+
+if num_channels==78 %for 64 channel neuronexus probe
+    % ch 1-64 = headstage channels
+    % ch  = A1_AUX channels 1-3
+    % ch  = A2_AUX channels 1-3
+    % ch  =  ADC channels ADC1-ADC8
+elseif num_channels==142 %for 128 channel diagnostic biochips probe
+    probe='P128-2';
+    % ch 1-128 = headstage channels
+    % ch 129-131 = A1_AUX channels 1-3
+    % ch 132-134 = A2_AUX channels 1-3
+    % ch 135-142 =  ADC channels ADC1-ADC8
+    try
+        load(fullfile(DataRoot, 'chanMap128.mat'))
+        chans=1:128;
+        channelorder=chanMap;
+    catch
+        warning('could not load channel map, defaulting to wrong order 1-128')
+        chans=1:128;
+        channelorder=1:128;
+    end
+end
 
 %get Events and soundcard trigger timestamps
 %there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
@@ -457,6 +493,11 @@ out.BonsaiPath=BonsaiPath;
 out.EphysPath=EphysPath;
 out.EphysPath_KS=EphysPath_KS;
 out.SortedUnits=SortedUnits;
+
+out.chans=chans;
+out.channelorder=channelorder;
+out.num_channels=num_channels;
+out.probe=probe;
 
 out.generated_by=mfilename;
 out.generated_on=datestr(now);

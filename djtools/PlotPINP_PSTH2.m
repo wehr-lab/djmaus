@@ -16,7 +16,7 @@ function PlotPINP_PSTH2(varargin)
 %Processes data if outfile is not found;
 
 rasters=1;
-force_reprocess=0;
+force_reprocess=1;
 windowpos=[200 100 1381 680];
 maxwindows=20; %raise a "continue?" box after this many windows to avoid crashing
 if ismac  windowpos=[ -1415 479 1381 680];end %mike's pref
@@ -160,6 +160,17 @@ StimRecorded=out.StimRecorded;
 samprate=out.samprate; %in Hz
 if isempty(xlimits) xlimits=out.xlimits;end
 
+probe='';
+try probe=out.probe; end
+switch probe
+    case 'P128-2'
+        distance=20;
+        chans_per_shank=64;
+    otherwise
+        distance=0;
+        chans_per_shank=0;
+end
+
 for cellnum=cells
         fprintf('\ncell %d/%d', cellnum, length(cells))
 
@@ -174,6 +185,17 @@ for cellnum=cells
             end
         end
     end
+
+
+    chan=out.SortedUnits(cellnum).channel;
+    if chan<=chans_per_shank 
+        shank=1;
+        depth=distance*chan;
+    else 
+        shank=2;
+        depth=distance*chan-chans_per_shank;
+    end
+    fprintf('\ncell %d, chan %d, shank %d, raw depth %d', cellnum, chan, shank, depth) 
 
     % %find optimal axis limits
     if autoscale_ylimits
@@ -272,7 +294,8 @@ for cellnum=cells
         %     xlim(xlimits) %(makes less sense for silent sound)
         xlim([-next/2 silentsounddurs(dindex)+next/2]);
         set(gca, 'fontsize', fs)
-        h=title(sprintf('%s, cell %d\nSilent Sound no laser, nreps: %d-%d',out.BonsaiFolder, cellnum,min(nrepsOFF(:)),max(nrepsOFF(:))));
+        
+        h=title(sprintf('%s, cell %d, chan %d, shank %d, raw depth %d, \nSilent Sound no laser, nreps: %d-%d',out.BonsaiFolder, cellnum, chan, shank, depth, min(nrepsOFF(:)),max(nrepsOFF(:))));
         set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
     end
     
@@ -342,7 +365,7 @@ for cellnum=cells
         %xlim(xlimits)
         xlim([-200 pulsewidths(pwindex)+200]);
         set(gca, 'fontsize', fs)
-        h=title(sprintf('%s, cell %d\nSilent Sound with single laser pulse, nreps: %d-%d',out.BonsaiFolder,cellnum,min(nrepsOFF(:)),max(nrepsOFF(:))));
+        h=title(sprintf('%s, cell %d, chan %d, shank %d, raw depth %d \nSilent Sound with single laser pulse, nreps: %d-%d',out.BonsaiFolder,cellnum, chan, shank, depth, min(nrepsOFF(:)),max(nrepsOFF(:))));
         set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
 
 
@@ -486,7 +509,8 @@ for cellnum=cells
                 xlim(xlimits)
                 %xlim([-next/2 silentsounddurs(dindex)+next/2]);
                 set(gca, 'fontsize', fs)
-                h=title(sprintf('%s, cell %d\nSilent Sound with laser train, nreps: %d-%d',out.BonsaiFolder,cellnum,min(nrepsOFF(:)),max(nrepsOFF(:))));
+                h=title(sprintf('%s, cell %d, chan %d, shank %d, raw depth %d\nSilent Sound with laser train, nreps: %d-%d',out.BonsaiFolder,cellnum, chan, shank, depth,min(nrepsOFF(:)),max(nrepsOFF(:))));
+        h=title(sprintf('%s, cell %d, chan %d, shank %d, raw depth %d \nSilent Sound with single laser pulse, nreps: %d-%d',out.BonsaiFolder,cellnum, chan, shank, depth, min(nrepsOFF(:)),max(nrepsOFF(:))));
                 set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
             end
         end
@@ -549,14 +573,15 @@ for cellnum=cells
         set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
 
         if printtofile
-            %print figures to postscript file
+            %print figures to pdf file
+            pdffilename=sprintf('%s-figs.pdf', BonsaiFolder);
             f=findobj('type', 'figure');
             for idx=1:length(f)
                 
                 figure(f(idx))
                 % orient landscape
                 % % print figs -dpsc2 -append -bestfit
-                exportgraphics(f(idx),'figs.pdf','Append',true)
+                exportgraphics(f(idx),pdffilename,'Append',true)
 
                 if closewindows
                     close

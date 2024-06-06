@@ -33,7 +33,7 @@ else
     error('wrong number of arguments');
 end
 if isempty(xlimits)
-        xlimits=[-20 100]; %default xlimits 
+    xlimits=[-20 100]; %default xlimits
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -81,7 +81,7 @@ end
 cd(BonsaiPath)
 behavior_filename=dir('Behavior_*.mat');
 if isempty(behavior_filename)
-        fprintf('\nno behavior file found, calling ProcessSession ')
+    fprintf('\nno behavior file found, calling ProcessSession ')
 
     ProcessSession
     behavior_filename=dir('Behavior_*.mat');
@@ -167,27 +167,27 @@ end
 %try to load laser and stimulus monitor
 if exist('lasertrace')==1
     %we loaded lasertrace from open ephys Session object
-        LaserRecorded=1;
+    LaserRecorded=1;
 else    LaserRecorded=0;
     warning('Laser monitor channel not recorded')
 end
 if exist('stimtrace')==1
     %we loaded stimtrace from open ephys Session object
-        StimRecorded=1;
+    StimRecorded=1;
 else
     StimRecorded=0;
     warning('Stimulus monitor channel not recorded')
 end
 
 if LaserRecorded
-        Lasertimestamps=timestamps-timestamps(1);
-        Lasertrace=lasertrace./max(abs(lasertrace));
+    Lasertimestamps=timestamps-timestamps(1);
+    Lasertrace=lasertrace./max(abs(lasertrace));
 else
     fprintf('\nLaser trace not recorded')
 end
 if StimRecorded
-        Stimtimestamps=timestamps-timestamps(1);
-        Stimtrace=stimtrace./max(abs(stimtrace));
+    Stimtimestamps=timestamps-timestamps(1);
+    Stimtrace=stimtrace./max(abs(stimtrace));
 else
     fprintf('\nSound stimulus trace not recorded')
 end
@@ -244,7 +244,7 @@ for i=1:length(Events)
         warning('ProcessTC_LFP: Cannot tell if laser button was turned on in djmaus GUI');
         LaserTrials(i)=0;
         Events(i).laser=0;%
-        
+
     elseif ~isfield(Events(i), 'laser') & ~isfield(Events(i), 'LaserOnOff')
         %if neither of the right fields are there, assume no laser
         LaserTrials(i)=0;
@@ -280,12 +280,14 @@ fprintf('\nextracting traces into BIG matrix...');
 samprate=Sky.OEsamplerate;
 
 channelorder=1:128; %default
+probe='';
 if num_channels==78 %for 64 channel neuronexus probe
     % ch 1-64 = headstage channels
     % ch  = A1_AUX channels 1-3
     % ch  = A2_AUX channels 1-3
     % ch  =  ADC channels ADC1-ADC8
 elseif num_channels==142 %for 128 channel diagnostic biochips probe
+    probe='P128-2';
     % ch 1-128 = headstage channels
     % ch 129-131 = A1_AUX channels 1-3
     % ch 132-134 = A2_AUX channels 1-3
@@ -300,7 +302,6 @@ elseif num_channels==142 %for 128 channel diagnostic biochips probe
         channelorder=1:128;
     end
 end
-
 
 %extract the traces into a big matrix M
 j=0;
@@ -317,7 +318,7 @@ for i=1:length(Events)
         start=round(pos+xlimits(1)*1e-3*samprate);
         stop=round(pos+xlimits(2)*1e-3*samprate)-1;
         region=start:stop;
-        
+
         if isempty(find(region<1)) %(disallow negative or zero start times)
             switch Events(i).type
                 case {'tone', '2tone'}
@@ -336,7 +337,7 @@ for i=1:length(Events)
                     amp=Events(i).spatialfrequency;
                     freq=Events(i).angle*1000;
             end
-                    
+
             dur=Events(i).duration;
             findex= find(freqs==freq);
             aindex= find(amps==amp);
@@ -459,6 +460,7 @@ out.samprate=samprate;
 out.chans=chans;
 out.channelorder=channelorder;
 out.num_channels=num_channels;
+out.probe=probe;
 %should probably save header info and stuff like that
 
 

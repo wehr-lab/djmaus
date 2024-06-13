@@ -139,8 +139,10 @@ if length(dir('Sky_mouse*_preycap*_el_filtered.csv'))>0
 end
 
 %get path to kilosorted data
-if ~exist('EphysPath_KS')
+if ~exist('EphysPath_KS') | isempty(EphysPath_KS)
     cd(BonsaiPath)
+    fprintf('\nsearching for kilosort folder...')
+    tic
     d=dir('**/phy.log');
     if isempty(d)
         warning('could not find kilosort data')
@@ -148,6 +150,7 @@ if ~exist('EphysPath_KS')
         fprintf('\nProcess Spikes will fail because there is no kilosort data')
 
     elseif length(d)==1
+        fprintf('\tfound it. (took %.0fs to find)', toc)
         EphysPath_KS=d.folder;
         fprintf('\nfound EphysPath_KS kilosort folder: \n%s\n', EphysPath_KS)
     else error('more than one candidate KS folder found')

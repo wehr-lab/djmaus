@@ -111,6 +111,8 @@ end
 if printtofile
     delete figs.ps
     delete figs.pdf
+    pdffilename=sprintf('%s-figs.pdf', BonsaiFolder);
+    delete(pdffilename)
     close all
 end
 

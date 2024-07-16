@@ -483,6 +483,7 @@ title('shank 2')
 set(gca, 'pos', [ 0.5300    0.1100    0.3347    0.8150])
 
      if printtofile
+         pdffilename=sprintf('%s-figs.pdf', out.BonsaiFolder);
             %print figures to postscript file
             f=findobj('type', 'figure');
             for idx=1:length(f)
@@ -490,7 +491,7 @@ set(gca, 'pos', [ 0.5300    0.1100    0.3347    0.8150])
                 %figure(f(idx))
                 % orient landscape
                 % % print figs -dpsc2 -append -bestfit
-                exportgraphics(f(idx),'figs.pdf','Append',true)
+                exportgraphics(f(idx),pdffilename,'Append',true)
                 pause(.5)
 
                 if closewindows

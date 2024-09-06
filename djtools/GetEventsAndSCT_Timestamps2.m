@@ -86,6 +86,15 @@ for k=1:height(Sky.TTL)
     end
 end
 
+%Here's where we can recover from a situation where the TTLs were not
+%recorded (e.g. the BNC only went to an ADC channel)
+if ~height(Sky.TTL) %this means TTL is empty (although it doesn't show up as empty(TTL) bc it's a dataframe)
+    str=sprintf('\n\n%s\n\n%s\n\n%s\n\n', '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', ...
+        'TTLs are empty. Maybe the soundcard triggers weren''t plugged into the Digital In channel? Attempting to recover soundcard triggers from messages and/or analog soundcardtrig', ...
+        '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+    warning(str)
+end
+
 for i=1:height(messages)
     
     timestamp=messages.timestamps(i);
@@ -121,8 +130,18 @@ for i=1:height(messages)
         end
         Events(sound_index).message_timestamp_samples=sample_number - StartAcquisitionSamples;
         Events(sound_index).message_timestamp_sec=timestamp - StartAcquisitionSec;
+        if ~isempty(all_SCTs) %the normal case, we have digital TTL soundcard triggers
         SCTtime_sec=all_SCTs(sound_index);
+        else
+            %the digital TTL soundcard triggers are missing, so we try to
+            %recover using the message timestamp (very suboptimal!)
+            %-mike 04.25.2024
+            SCTtime_sec=Events(sound_index).message_timestamp_sec;
+            Events(sound_index).soundcardtrig_is_missing='using message timestamp as workaround';
+        end
         Events(sound_index).soundcard_trigger_timestamp_sec=SCTtime_sec;
+
+
 
 %         figure; plot(diff(all_SCTs), 'ko')
 %         if er
@@ -165,4 +184,4 @@ end
 
 fprintf('\nsuccessfully processed network messages and soundcard triggers into Events.')
 fprintf('\nNumber of sound events (from network messages): %d', length(Events));
-fprintf('\nNumber of hardware triggers (soundcardtrig TTLs): %d', length(all_SCTs));
+fprintf('\nNumber of hardware triggers (soundcardtrig TTLs): %d\n', length(all_SCTs));

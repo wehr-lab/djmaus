@@ -62,7 +62,7 @@ if force_reprocess
     ProcessSession
     if ~exist('SortedUnitsFile') fprintf('\nNo Sorted Units File, probably because there is no kilosort data. \nPlotTC_PSTH2 will fail.'); end
     load(SortedUnitsFile)
-    ProcessTC_PSTH2(SortedUnits, BonsaiPath, EphysPath, EphysPath_KS, xlimits,ylimits)
+    ProcessTC_PSTH2(SortedUnits, BonsaiPath, EphysPath, EphysPath_KS, xlimits,ylimits);
     load(outfilename);
 end
 
@@ -78,7 +78,7 @@ else
     ProcessSession
     if ~exist('SortedUnitsFile') fprintf('\nNo Sorted Units File, probably because there is no kilosort data. PlotTC_PSTH2 will fail.'); end
     load(SortedUnitsFile)
-    ProcessTC_PSTH2(SortedUnits, BonsaiPath, EphysPath, EphysPath_KS, xlimits,ylimits)
+    ProcessTC_PSTH2(SortedUnits, BonsaiPath, EphysPath, EphysPath_KS, xlimits,ylimits);
     load(outfilename);
 end
 
@@ -519,7 +519,7 @@ for cellnum=cells
                     % set(gca, 'yticklabel', '')
 
                     subplot1(1)
-                    h=title(sprintf('%s: \ncell %d, chan %d, shank %d, raw depth %d um, %d spikes, %dms, nreps: %d-%d, ON ',datadir,cellnum, chan, shank, depth, length(out.SortedUnits(cellnum).spiketimes), durs(dindex),min(min(min(nrepsON))),max(max(max(nrepsON)))));
+                    h=title(sprintf('%s: \ncell %d, chan %d, shank %d, raw depth %d um, %d spikes, %dms, nreps: %d-%d, ON ',BonsaiFolder,cellnum, chan, shank, depth, length(out.SortedUnits(cellnum).spiketimes), durs(dindex),min(min(min(nrepsON))),max(max(max(nrepsON)))));
                     set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
 
                     %label amps and freqs
@@ -681,7 +681,7 @@ for cellnum=cells
                     % set(gca, 'yticklabel', '')
 
                     subplot1(1)
-                    h=title(sprintf('%s: \ncell %d, chan %d, shank %d, raw depth %d, %d spikes, %dms, nreps: %d-%d, ON & OFF ',datadir,cellnum, chan, shank, depth, length(out.SortedUnits(cellnum).spiketimes), durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
+                    h=title(sprintf('%s: \ncell %d, chan %d, shank %d, raw depth %d, %d spikes, %dms, nreps: %d-%d, ON & OFF ',BonsaiFolder,cellnum, chan, shank, depth, length(out.SortedUnits(cellnum).spiketimes), durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
                     set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
 
                     %label amps and freqs

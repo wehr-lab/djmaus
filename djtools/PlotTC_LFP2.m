@@ -51,6 +51,9 @@ end
 outfilename='outLFP.mat';
 cd(datadir)
 
+dOEinfo=dir('../OEinfo*.mat');
+load(fullfile(dOEinfo.folder, dOEinfo.name))
+
 if printtofile
     delete figs.pdf
 end
@@ -320,8 +323,8 @@ for dindex=1:numdurs
         end
     end
     subplot1(1)
-    h=title(sprintf('OFF %s: %dms, nreps: %d-%d',datadir,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
-    set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
+    h=title(sprintf('OFF %s \n%dms, nreps: %d-%d',datadir,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
+    set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none')
 end
 
 
@@ -468,7 +471,8 @@ yticks(linspace(1, 60, numyticks))
 yticklabels(depthstr(round(yticks)))
 xlabel('time, ms')
 ylabel('depth, um')
-title('CSD shank 1')
+h=title(sprintf('CSD shank 1 %s \n %dms, nreps: %d',BonsaiFolder,durs(dindex),min(nrepsOFF(:))));
+set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none')
 
 subplot(122)
 imagesc(squeeze(CSD(2,:,:)));
@@ -483,7 +487,7 @@ title('shank 2')
 set(gca, 'pos', [ 0.5300    0.1100    0.3347    0.8150])
 
      if printtofile
-         pdffilename=sprintf('%s-figs.pdf', out.BonsaiFolder);
+         pdffilename=sprintf('%s-LFP-figs.pdf', BonsaiFolder);
             %print figures to postscript file
             f=findobj('type', 'figure');
             for idx=1:length(f)

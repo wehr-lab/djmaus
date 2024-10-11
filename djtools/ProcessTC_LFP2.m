@@ -461,6 +461,12 @@ out.chans=chans;
 out.channelorder=channelorder;
 out.num_channels=num_channels;
 out.probe=probe;
+
+[~,BonsaiFolder,~]=fileparts(BonsaiPath);
+out.BonsaiFolder=BonsaiFolder;
+out.BonsaiPath=BonsaiPath;
+out.EphysPath=EphysPath;
+
 %should probably save header info and stuff like that
 
 

@@ -16,7 +16,7 @@ function PlotPINP_PSTH2(varargin)
 %Processes data if outfile is not found;
 
 rasters=1;
-force_reprocess=1;
+force_reprocess=0;
 windowpos=[200 100 1381 680];
 maxwindows=20; %raise a "continue?" box after this many windows to avoid crashing
 if ismac  windowpos=[ -1415 479 1381 680];end %mike's pref

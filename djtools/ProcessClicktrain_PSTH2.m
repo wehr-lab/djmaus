@@ -265,7 +265,7 @@ end
 
 % Mt: matrix with each complete train, size: Mt(numicis, nreps).spiketimes
 % Ms: stimulus matrix in same format as Mt
-% Mc: matrix sorted into each click response, size: Mt(numicis, nclicks, nreps).spiketimes
+% Mc: matrix sorted into each click response, size: Mc(numicis, nclicks, nreps).spiketimes
 
 %first sort trains into matrix Mt
 
@@ -417,17 +417,21 @@ for cellnum=1:numcells;
     semMtspontOFF=sMtspontOFF./nrepsOFF(cellnum, iciindex);
 
     % %WHAT SHOULD TRACELENGTH BE????
-     tracelength=50;%25; %ms
-     fprintf('\nusing response window of 0-%d ms after tone onset', tracelength);
+     tracelength=500;%25; %ms
+     baseline=100;
+     out.tracelength=tracelength;
+     out.baseline=baseline;
+     %these are the window for storing responses to individual clicks in click matrix Mc
+     fprintf('\nusing response window of -%d-%d ms after tone onset', baseline, tracelength);
     %
     fprintf( '\nsorting into click matrix...');
     for iciindex=1:numicis
         for k=1:nclicks(iciindex)
             for rep=1:nrepsON(cellnum, iciindex)
                 ici=icis(iciindex);
-                start=(0+(k-1)*(ici));
+                start=(0+(k-1)*(ici))-baseline;
                 if start<1 start=1;end
-                stop=start+tracelength ;
+                stop=start+tracelength;
                 region=round(start):round(stop);
                 spiketimes=MtON(cellnum, iciindex, rep).spiketimes;
                 st=spiketimes(spiketimes>start & spiketimes<stop); % spiketimes in region
@@ -437,9 +441,9 @@ for cellnum=1:numcells;
             end
             for rep=1:nrepsOFF(cellnum, iciindex)
                 ici=icis(iciindex);
-                start=(0+(k-1)*(ici));
+                start=(0+(k-1)*(ici))-baseline;
                 if start<1 start=1;end
-                stop=start+tracelength ;
+                stop=start+tracelength;
                 region=round(start):round(stop);
                 spiketimes=MtOFF(cellnum, iciindex, rep).spiketimes;
                 st=spiketimes(spiketimes>start & spiketimes<stop); % spiketimes in region
@@ -460,11 +464,13 @@ for cellnum=1:numcells;
     % JLS 080417
     for iciindex=1:numicis
         for k=1:nclicks(iciindex)
+            ici=icis(iciindex);
+            start=(0+(k-1)*(ici));
             if IL
-                mMcON(cellnum, iciindex, k).spiketimes=[McON(cellnum, iciindex, k, 1:nrepsON(cellnum, iciindex)).spiketimes];
+                mMcON(cellnum, iciindex, k).spiketimes=[McON(cellnum, iciindex, k, 1:nrepsON(cellnum, iciindex)).spiketimes]-start;
                 mMcONStim(iciindex, k,:)=mean(McONStim(iciindex, k, 1:nrepsON(cellnum, iciindex), :), 3);
             end
-            mMcOFF(cellnum, iciindex, k).spiketimes=[McOFF(cellnum, iciindex, k, 1:nrepsOFF(cellnum, iciindex)).spiketimes];
+            mMcOFF(cellnum, iciindex, k).spiketimes=[McOFF(cellnum, iciindex, k, 1:nrepsOFF(cellnum, iciindex)).spiketimes]-start;
             mMcOFFStim(iciindex, k,:)=mean(McOFFStim(iciindex, k, 1:nrepsOFF(cellnum, iciindex), :), 3);
         end
     end
@@ -656,6 +662,8 @@ out.nclicks=nclicks;
 out.numnclicks=numnclicks;
 out.durs=durs;
 out.numdurs=numdurs;
+
+
 if IL
     out.MtON=MtON;
     out.mMtON=mMtON;
@@ -665,19 +673,26 @@ if IL
     out.mMtspontON=mMtspontON;
     out.sMtspontON=sMtspontON;
     out.semMtspontON=semMtspontON;
-    out.M_LaserStart=M_LaserStart;
-    out.M_LaserWidth=M_LaserWidth;
-    out.M_LaserNumPulses=M_LaserNumPulses;
-    out.M_LaserISI=M_LaserISI;
-    out.LaserStart=uniquelo(LaserStart); %only saving one value for now, assuming it's constant
+    % out.M_LaserStart=M_LaserStart; %I'm not sure what these are supposed to be
+    % out.M_LaserWidth=M_LaserWidth;
+    % out.M_LaserNumPulses=M_LaserNumPulses;
+    % out.M_LaserISI=M_LaserISI;
+    out.LaserStart=unique(LaserStart); %only saving one value for now, assuming it's constant
     out.LaserWidth=unique(LaserWidth);
     out.LaserNumPulses=unique(LaserNumPulses);
+    out.LaserISI=unique(LaserISI);
     out.P2P1_ON=P2P1_ON;
     out.mP2P1_ON=mP2P1_ON;
     out.RRTF_ON=RRTF_ON;
     out.mRRTF_ON=mRRTF_ON;
+    out.McON=McON;
+    out.mMcON=mMcON;
+    out.McONStim=McONStim;
 
 else
+    out.McON=[];
+    out.mMcON=[];
+    out.McONStim=[];
     out.MtON=[];
     out.mMtONspikecount=[];
     out.sMtONspikecount=[];
@@ -689,10 +704,10 @@ else
     out.LaserStart=[];
     out.LaserWidth=[];
     out.Lasernumpulses=[];
-    out.M_LaserStart=[];
-    out.M_LaserWidth=[];
-    out.M_LaserNumPulses=[];
-    out.M_LaserISI=[];
+    % out.M_LaserStart=[];
+    % out.M_LaserWidth=[];
+    % out.M_LaserNumPulses=[];
+    % out.M_LaserISI=[];
 end
 if isempty(MtOFF)
     out.MtOFF=[];
@@ -727,6 +742,9 @@ out.VsOFF=VsOFF;
 out.RZOFF=RZOFF;
 out.p_OFF=p_OFF;
 out.PhaseOFF=PhaseOFF; %spike times represented as phases
+out.McOFF=McOFF; 
+out.mMcOFF=mMcOFF; 
+out.McOFFStim=McOFFStim;
 
 out.LaserRecorded=LaserRecorded; %whether the laser signal was hooked up and recorded as a continuous channel
 out.StimRecorded=StimRecorded; %%whether the sound stimulus signal was hooked up and recorded as a continuous channel

@@ -109,21 +109,31 @@ alldurs=h5read(taskcontrolfilename, '/resultsData/stimDur/');
 numstim=length(allfreqs);
 fprintf('\n%d sound triggers \n%d logged stimuli', numtriggers, numstim)
 if numtriggers==numstim
-fprintf('\t good, they match')
+    fprintf('\t good, they match')
 else
-fprintf('\nproblem: numtriggers does not match numstim...')
-fprintf('\n\twill use the first %d triggers, and discard the last %d trigger', numstim, numtriggers-numstim)
+    fprintf('\nproblem: numtriggers does not match numstim...')
+    fprintf('\n\twill use the first %d triggers, and discard the last %d trigger', numstim, numtriggers-numstim)
 end
 
-for i=1:numstim
-    Events(i).type='tone';
-    Events(i).freq=allfreqs(i);
-    Events(i).amp=allamps(i);
-    Events(i).dur=alldurs(i);
-    Events(i).isi=allisis(i);
-    Events(i).frame=frames(i);
+if numtriggers>=numstim
+    for i=1:numstim
+        Events(i).type='tone';
+        Events(i).freq=allfreqs(i);
+        Events(i).amp=allamps(i);
+        Events(i).dur=alldurs(i);
+        Events(i).isi=allisis(i);
+        Events(i).frame=frames(i);
+    end
+else
+    for i=1:numtriggers
+        Events(i).type='tone';
+        Events(i).freq=allfreqs(i);
+        Events(i).amp=allamps(i);
+        Events(i).dur=alldurs(i);
+        Events(i).isi=allisis(i);
+        Events(i).frame=frames(i);
+    end
 end
-
 
         LaserRecorded=0;
         StimRecorded=0;

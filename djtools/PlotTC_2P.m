@@ -236,24 +236,34 @@ f=mean(f, 3);
 dff=(f-f0)./f0;
 
 
-[~, CFidx]=(max(dff));
+[mag, CFidx]=(max(dff));
+mag=mag-min(mag);
+mag=mag./max(mag);
+mag=mag.^.5;
+
 for i=1:length(out.iscell)
-    fprintf('\n CF %d x %d y %d', CFidx(i), out.stat{i}.xpix(1), out.stat{i}.ypix(1))
+    fprintf('\n CF %d %.1fkHz x %d y %d', CFidx(i), freqs(CFidx(i))/1000, out.stat{i}.xpix(1), out.stat{i}.ypix(1))
 end
 cmap=jet(numfreqs);
 figure
 hold on
 for i=1:length(out.iscell)
-    h=plot(out.stat{i}.xpix(1), out.stat{i}.ypix(1), '.');
-    set(h, 'MarkerFaceColor', cmap(CFidx(i),:), 'MarkerSize', 20)
+    h=plot(out.stat{i}.xpix(1), -out.stat{i}.ypix(1), '.');
+    set(h, 'Color', mag(i)*cmap(CFidx(i),:), 'MarkerSize', 20)
 end
 xlabel('x position, in pixels')
 ylabel('y position, in pixels')
-title('tonotopic map with color-coded best frequency of cells')
+title(sprintf('%s tonotopic map with color-coded best frequency of cells', fname))
 
           
-
-
+figure('position',[1561  817 222  420])
+hold on
+for i=1:length(freqs)
+    h=plot(1,i, '.');
+    set(h, 'Color', cmap(i,:), 'MarkerSize', 20)
+    text(1.2, i, sprintf('%.1f kHz',freqs(i)/1000))
+end
+title('frequency color code ')
 
 
 

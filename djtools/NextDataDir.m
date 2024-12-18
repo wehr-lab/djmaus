@@ -5,7 +5,9 @@ function NextDataDir
 
 if exist('notebook.mat')==2
     %we're in an ephys directory, so first cd .. up to the bonsai directory
-    cd ..
+    %comment out if your data doesn't have nested bonsai/OE folders
+   
+    %cd ..
 end
 wd=pwd;
 [path,name,ext]=fileparts(wd);

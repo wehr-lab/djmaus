@@ -180,7 +180,7 @@ nreps_ssON=out.nreps_ssON;
 nreps_ssOFF=out.nreps_ssOFF;
 
 %hardcoding for probe P128-2
-distance=20;
+pitch=20; %distance between recording sites in µm
 chans_per_shank=64;
 
 for cellnum=cells
@@ -200,15 +200,15 @@ for cellnum=cells
         end
      end
 
-      chan=out.SortedUnits(cellnum).channel;
-    if chan<=chans_per_shank 
+    chan=out.SortedUnits(cellnum).channel;
+    if chan<=chans_per_shank
         shank=1;
-        depth=distance*chan;
-    else 
+        depth=pitch*chan;
+    else
         shank=2;
-        depth=distance*chan-chans_per_shank;
+        depth=pitch*(chan-chans_per_shank); %fixed mw 12.17.24
     end
-    fprintf('\ncell %d, chan %d, shank %d, raw depth %d', cellnum, chan, shank, depth) 
+    fprintf('\ncell %d, chan %d, shank %d, raw depth %d', cellnum, chan, shank, depth)
 
     % %find optimal axis limits
     if autoscale_ylimits

@@ -415,7 +415,7 @@ end
 %hard coded for P128-2 distance=20 um, 64 ch on each shank (1260 um total), shanks are 500 um apart
 %CSD(2 shanks, 64 ch, duration)
 %should rewrite this to flexibly use various probes
-distance=20;
+pitch=20;
 chans_per_shank=64;
 
 traces=squeeze(mM1OFF(:,findex, aindex, dindex, :));
@@ -443,13 +443,13 @@ traces=smooth_traces;
 for shank=1:2
     for j=2:chans_per_shank-1 %cannot compute CSD for first and last channels, - 2 channels
         if shank==1
-            CSD(shank, j-1,:)=(traces(j-1,:)+traces(j+1,:)-2*traces(j,:))/distance^2;
-            depth(shank, j-1)=distance*j;
+            CSD(shank, j-1,:)=(traces(j-1,:)+traces(j+1,:)-2*traces(j,:))/pitch^2;
+            depth(shank, j-1)=pitch*j;
             depthstr{j-1}=sprintf('%.0f',depth(shank, j-1));
         elseif shank==2
             k=j+64;
-            CSD(shank, j-1,:)=(traces(k-1,:)+traces(k+1,:)-2*traces(k,:))/distance^2;
-            depth(shank, j-1)=distance*j;
+            CSD(shank, j-1,:)=(traces(k-1,:)+traces(k+1,:)-2*traces(k,:))/pitch^2;
+            depth(shank, j-1)=pitch*j;
         end
     end
 end

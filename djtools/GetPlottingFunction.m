@@ -18,7 +18,12 @@ match=0;
 cd(datadir)
 stimparams=GetStimParams(datadir); %uses stimlog
 
-%firsst check if stimulus protocol is new enough to contain the
+if isempty(stimparams) %this will happen e.g. when the directory has no djmaus data
+    PlottingFunction=[];
+    return
+end
+
+%first check if stimulus protocol is new enough to contain the
 %PlottingFunction field
 if isfield(stimparams(1), 'PlottingFunction')
     PlottingFunction=stimparams(1).PlottingFunction;

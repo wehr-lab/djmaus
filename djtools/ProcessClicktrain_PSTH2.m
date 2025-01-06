@@ -802,7 +802,26 @@ catch
     out.user='unknown';
 end
 
+%the outfile can get up to several gigs, in which case we might want to
+%clear unnecessary stim/laser trace variables
+%keep trial mean, but clear all-trial matrices
+s=whos('out');
+if s.bytes>1e9
+    out.MtONStim=[];
+    out.MtOFFStim=[];
+    out.MtONLaser=[];
+    out.MtOFFLaser=[];
+    out.McOFFStim=[];
+    out.McONStim=[];
+    out.McON=[]; %these are also huge and probably not used
+    out.McOFF=[];
+end
+
+
 outfilename='outPSTH.mat';
-save (outfilename, 'out')
-
-
+s=whos('out');
+if s.bytes>1e9
+    save (outfilename, 'out', '-v7.3')
+else
+    save (outfilename, 'out')
+end

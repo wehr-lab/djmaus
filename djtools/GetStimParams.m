@@ -164,6 +164,8 @@ stimparams.gapdelays=unique(allgapdelays);
 stimparams.gapdurs=unique(allgapdurs);
 stimparams.ISIs=unique(allISIs);
 
+stimparams.icis=unique(allicis);
+
 stimparams.prepulseamps=unique(allprepulseamps);
 stimparams.prepulsefreqs=unique(allprepulsefreqs);
 stimparams.prepulsebandwidths=unique(allprepulsebandwidths);

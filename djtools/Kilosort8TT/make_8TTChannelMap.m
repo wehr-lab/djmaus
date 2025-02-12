@@ -41,5 +41,5 @@ kcoords = [1 1 1 1 2 2 2 2 3 3 3 3 4 4 4 4 5 5 5 5 6 6 6 6 7 7 7 7 8 8 8 8];
 
 % would be good to also save the sampling frequency here
 fs = 30000; 
-fpath = pwd;
+% fpath = pwd;
 save(fullfile(fpath, 'chanMap.mat'), 'chanMap', 'connected', 'xcoords', 'ycoords', 'kcoords', 'fs')

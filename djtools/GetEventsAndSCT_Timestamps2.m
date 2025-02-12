@@ -1,11 +1,18 @@
-function [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(Sky)
+function [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(BonsaiPath)
 global pref
 if isempty(pref); djPrefs;end
 
 %updated to work with new OE file formats and file hierarchy with version 0.6 and open-ephys-matlab-tools
 % -mike 9.2023
+
+%I stored OE info in Sky, but sometimes we want to run without a camera, so
+%I'm changin it to pull from OEinfo instead
+%-mike 2.12.25'
+[~,BonsaiFolder,~]=fileparts(BonsaiPath);
+OEinfofilename=sprintf('OEinfo-%s', BonsaiFolder);
+load(OEinfofilename)
+
 try
-    OEversion = Sky.OEversion;
     if startsWith(OEversion, 'old')
         error('GetEventsAndSCT_Timestamps2: this data is from old version of open ephys, use GetEventsAndSCT_Timestamps instead')
     elseif startsWith(OEversion, '0.6')
@@ -44,8 +51,8 @@ er=0; % manually fix SCT if there are too many
 % get all SCT timestamps
 sound_index=0;
 
-messages=Sky.messages;
-TTL=Sky.TTL;
+%messages=Sky.messages;
+%TTL=Sky.TTL;
 
 % this works with OE 06.4, but you have to locate the continuous files:
 % cont_files=dir('*.continuous');
@@ -78,7 +85,7 @@ end
 %     1925.7088       57771264       "GetRecordingPath"
 
 all_SCTs=[];
-for k=1:height(Sky.TTL)
+for k=1:height(TTL)
     if TTL.state(k) ... %is true, means rising
             & TTL.line(k)==pref.SCT_digital_line_in %should be line 2
         corrected_SCT=TTL.timestamp(k)-StartAcquisitionSec;
@@ -88,7 +95,7 @@ end
 
 %Here's where we can recover from a situation where the TTLs were not
 %recorded (e.g. the BNC only went to an ADC channel)
-if ~height(Sky.TTL) %this means TTL is empty (although it doesn't show up as empty(TTL) bc it's a dataframe)
+if ~height(TTL) %this means TTL is empty (although it doesn't show up as empty(TTL) bc it's a dataframe)
     str=sprintf('\n\n%s\n\n%s\n\n%s\n\n', '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', ...
         'TTLs are empty. Maybe the soundcard triggers weren''t plugged into the Digital In channel? Attempting to recover soundcard triggers from messages and/or analog soundcardtrig', ...
         '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');

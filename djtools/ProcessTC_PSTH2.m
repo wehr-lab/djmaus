@@ -39,6 +39,7 @@ if isempty(xlimits)
     durs=s.durs;
     dur=max(durs);
     xlimits=[-.5*dur 1.5*dur]; %default x limits for axis
+    if xlimits(2)<100 xlimits(2)=100;end
 end
 try
     ylimits=varargin{6};
@@ -85,7 +86,11 @@ end
 %read messages
 cd(BonsaiPath)
 behavior_filename=dir('Behavior_*.mat');
-load(behavior_filename.name);
+try 
+    load(behavior_filename.name);
+catch
+    warning('could not load behavior file, not sure if we need something from that file')
+end
 
 
 %get Events and soundcard trigger timestamps
@@ -95,14 +100,14 @@ if exist('Events.mat')
     load('Events.mat')
     fprintf('\nloaded Events file \n')
 else
-    [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(Sky);
+    [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(BonsaiPath);
     save('Events.mat','Events')
     save('StartAcquisitionSec.mat','StartAcquisitionSec')
 end
 if exist('StartAcquisitionSec.mat')
     load('StartAcquisitionSec.mat')
 else
-    [~, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(Sky);
+    [~, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(BonsaiPath);
     save('StartAcquisitionSec.mat','StartAcquisitionSec')
 end
 
@@ -133,7 +138,11 @@ end
 
 fprintf('\ncomputing tuning curve...');
 
-samprate=Sky.OEsamplerate;
+[~,BonsaiFolder,~]=fileparts(BonsaiPath);
+OEinfofilename=sprintf('OEinfo-%s', BonsaiFolder);
+load(fullfile(BonsaiPath, OEinfofilename))
+
+samprate=OEsamplerate;
 
 %get freqs/amps
 j=0;
@@ -527,12 +536,12 @@ for cellnum=1:length(SortedUnits);
             for findex=1:numfreqs
                 for dindex=1:numdurs
                     if nrepsON(cellnum, findex, aindex, dindex)>0
-                        mM1ONLaser(findex, aindex, dindex,:)=mean(M1ONLaser(findex, aindex, dindex, 1:nrepsON(findex, aindex, dindex),:), 4);
+                        mM1ONLaser(findex, aindex, dindex,:)=mean(M1ONLaser(findex, aindex, dindex, 1:nrepsON(cellnum, findex, aindex, dindex),:), 4);
                     else %no reps for this stim, since rep=0
                         mM1ONLaser(findex, aindex, dindex,:)=zeros(size(region));
                     end
                     if nrepsOFF(cellnum, findex, aindex, dindex)>0
-                        mM1OFFLaser(findex, aindex, dindex,:)=mean(M1OFFLaser(findex, aindex, dindex, 1:nrepsOFF(findex, aindex, dindex),:), 4);
+                        mM1OFFLaser(findex, aindex, dindex,:)=mean(M1OFFLaser(findex, aindex, dindex, 1:nrepsOFF(cellnum, findex, aindex, dindex),:), 4);
                     else %no reps for this stim, since rep=0
                         mM1OFFLaser(findex, aindex, dindex,:)=zeros(size(region));
                     end
@@ -545,12 +554,12 @@ for cellnum=1:length(SortedUnits);
             for findex=1:numfreqs
                 for dindex=1:numdurs
                     if nrepsON(cellnum, findex, aindex, dindex)>0
-                        mM1ONStim(findex, aindex, dindex,:)=mean(M1ONStim(findex, aindex, dindex, 1:nrepsON(findex, aindex, dindex),:), 4);
+                        mM1ONStim(findex, aindex, dindex,:)=mean(M1ONStim(findex, aindex, dindex, 1:nrepsON(cellnum, findex, aindex, dindex),:), 4);
                     else %no reps for this stim, since rep=0
                         mM1ONStim(findex, aindex, dindex,:)=zeros(size(region));
                     end
                     if nrepsOFF(cellnum, findex, aindex, dindex)>0
-                        mM1OFFStim(findex, aindex, dindex,:)=mean(M1OFFStim(findex, aindex, dindex, 1:nrepsOFF(findex, aindex, dindex),:), 4);
+                        mM1OFFStim(findex, aindex, dindex,:)=mean(M1OFFStim(findex, aindex, dindex, 1:nrepsOFF(cellnum, findex, aindex, dindex),:), 4);
                     else %no reps for this stim, since rep=0
                         mM1OFFStim(findex, aindex, dindex,:)=zeros(size(region));
                     end

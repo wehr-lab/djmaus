@@ -16,7 +16,7 @@ windowpos=[200 100 1381 680];
 if ismac  windowpos=[ -1415 479 1381 680];end %mike's pref
 maxwindows=20; %raise a "continue?" box after this many windows to avoid crashing
 fs=12; %fontsize
-printtofile=0; %print figures to postscript file
+printtofile=1; %print figures to postscript file
 closewindows=0; %close windows as soon as you print them
 
 if nargin==0

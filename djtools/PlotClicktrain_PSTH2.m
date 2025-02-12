@@ -88,6 +88,15 @@ else
     autoscale_ylimits=0;
 end
 
+if ~exist('out', 'var')
+    temp=dir(outfilename);
+    if temp.bytes<1000
+        keyboard
+        %really big outfiles were being saved as empty files, this catches so they
+        %can be deleted and replaced
+    end
+end
+
 %if xlimits are requested but don't match those in outfile, force preprocess
 if ~isempty(xlimits)
     if out.xlimits(1)>xlimits(1) | out.xlimits(2)<xlimits(2) %xlimits in outfile are too narrow, so reprocess

@@ -51,11 +51,17 @@ end
 outfilename='outLFP.mat';
 cd(datadir)
 
-dOEinfo=dir('../OEinfo*.mat');
-load(fullfile(dOEinfo.folder, dOEinfo.name))
+try
+    dOEinfo=dir('OEinfo*.mat'); %if we're in bonsai dir
+    load(fullfile(dOEinfo.folder, dOEinfo.name))
+catch %if we're in ephys dir
+    dOEinfo=dir('../OEinfo*.mat');
+    load(fullfile(dOEinfo.folder, dOEinfo.name))
+end
 
 if printtofile
-    delete figs.pdf
+    pdffilename=sprintf('%s-LFP-figs.pdf', BonsaiFolder);
+    delete(pdffilename)
 end
 
 if force_reprocess
@@ -64,7 +70,14 @@ if force_reprocess
     ProcessTC_LFP2(datadir, xlimits, ylimits);
 end
 
-cd(datadir)
+cd(BonsaiPath)
+cd(EphysPath)
+
+if printtofile
+    pdffilename=sprintf('%s-LFP-figs.pdf', BonsaiFolder);
+    delete(pdffilename)
+end
+
 d=dir(outfilename);
 if ~isempty(d)
     tic
@@ -73,10 +86,17 @@ if ~isempty(d)
     fprintf('\tdone');
     toc
 else
-    fprintf('\ncalling ProcessTC_LFP2')
+    fprintf('\ndid not find outfile, calling ProcessTC_LFP2')
     ProcessTC_LFP2(datadir, xlimits, ylimits);
     load(outfilename);
 end
+
+%hard coded for P128-2 distance=20 um, 64 ch on each shank (1260 um total), shanks are 500 um apart
+%CSD(2 shanks, 64 ch, duration)
+%should rewrite this to flexibly use various probes
+pitch=20;
+chans_per_shank=64;
+
 
 M1stim=out.M1stim;
 
@@ -223,6 +243,7 @@ for dindex=1:numdurs
             traces=traces(out.channelorder,:); %re-order to be in probe channel order
             inc=ylimits(2);
             offsets=inc*[1:size(traces, 1)]';
+            offsets(chans_per_shank)=inc*20;
 
             if ~isempty(mM1OFFLaser)
                 Lasertrace=squeeze(mM1OFFLaser(findex, aindex, dindex, :));
@@ -251,6 +272,16 @@ for dindex=1:numdurs
             xlim(xlimits)
             xlabel off
             ylabel off
+
+            %label channels and shanks
+            for i=1:128
+                str{i}=sprintf('ch%d', i);
+                if i<=64 sh{i}=1;
+                elseif i>64 sh{i}=2;
+                end
+            end
+            text(repmat(-30, 1, 128), offsets, str, 'fontsize', 6)
+            text(repmat(-25, 1, 128), offsets, sh, 'fontsize', 6)
 
             %label amps and freqs
 
@@ -326,6 +357,7 @@ for dindex=1:numdurs
     h=title(sprintf('OFF %s \n%dms, nreps: %d-%d',datadir,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
     set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none')
 end
+set(gcf, 'pos', [ 998         198         660        1100])
 
 
 
@@ -411,15 +443,9 @@ if IL
 end
 
 
-% plot CSD
-%hard coded for P128-2 distance=20 um, 64 ch on each shank (1260 um total), shanks are 500 um apart
-%CSD(2 shanks, 64 ch, duration)
-%should rewrite this to flexibly use various probes
-pitch=20;
-chans_per_shank=64;
 
 traces=squeeze(mM1OFF(:,findex, aindex, dindex, :));
-traces=traces -mean(traces(:,1:100), 2);
+%traces=traces -mean(traces(:,1:100), 2);
 traces=traces(out.channelorder,:);
 clear depthstr
 
@@ -433,26 +459,53 @@ clear depthstr
 %     CSD(j-1,:)=(smooth_traces(j-1,:)+smooth_traces(j+1,:)-2*smooth_traces(j,:))/distance^2;
 % end
 
-%Ira's smoothing method to get rid of variance, -2 channels
-smooth_traces=traces;
-for j=2:size(traces,1)-1 %smoothing to get rid of variance, -2 channels
-    smooth_traces(j-1,:)=(1/4)*(traces(j+1,:)+2*traces(j,:)+traces(j-1,:));
+traces_by_shank(1, 1:chans_per_shank, :)=traces(1:chans_per_shank, :);
+traces_by_shank(2, 1:chans_per_shank, :)=traces(chans_per_shank+1:2*chans_per_shank, :);
+%putting into traces_by_shank because Ira's smoothing (and possibly the csd calculation) was wrapping
+%around to inputs from channels on the next shank
+
+% % %Ira's smoothing method to get rid of variance, -2 channels
+% % smooth_traces=traces_by_shank;
+% % for shank=1:2
+% % for j=2:chans_per_shank-1 %smoothing to get rid of variance, -2 channels
+% %     smooth_traces(shank,j-1,:)=(1/4)*(traces_by_shank(shank, j+1,:)+2*traces_by_shank(shank, j,:)+traces_by_shank(shank, j-1,:));
+% % end
+% % end
+% % traces_by_shank=smooth_traces;
+
+%Ira's smoothing method to get rid of variance, -2 channels, trying to
+%include edge channels too
+smooth_traces=traces_by_shank;
+for shank=1:2
+for j=2:chans_per_shank-1 %smoothing to get rid of variance, -2 channels
+    smooth_traces(shank,j,:)=(1/4)*(traces_by_shank(shank, j+1,:)+2*traces_by_shank(shank, j,:)+traces_by_shank(shank, j-1,:));
 end
-traces=smooth_traces;
+end
+traces_by_shank=smooth_traces;
+
 
 for shank=1:2
     for j=2:chans_per_shank-1 %cannot compute CSD for first and last channels, - 2 channels
-        if shank==1
-            CSD(shank, j-1,:)=(traces(j-1,:)+traces(j+1,:)-2*traces(j,:))/pitch^2;
+            CSD(shank, j-1,:)=(traces_by_shank(shank, j-1,:)+traces_by_shank(shank, j+1,:)-2*traces_by_shank(shank,j,:))/pitch^2;
             depth(shank, j-1)=pitch*j;
             depthstr{j-1}=sprintf('%.0f',depth(shank, j-1));
-        elseif shank==2
-            k=j+64;
-            CSD(shank, j-1,:)=(traces(k-1,:)+traces(k+1,:)-2*traces(k,:))/pitch^2;
-            depth(shank, j-1)=pitch*j;
-        end
     end
 end
+
+% % old way
+% for shank=1:2
+%     for j=2:chans_per_shank-1 %cannot compute CSD for first and last channels, - 2 channels
+%         if shank==1
+%             CSD(shank, j-1,:)=(traces(j-1,:)+traces(j+1,:)-2*traces(j,:))/pitch^2;
+%             depth(shank, j-1)=pitch*j;
+%             depthstr{j-1}=sprintf('%.0f',depth(shank, j-1));
+%         elseif shank==2
+%             k=j+64;
+%             CSD(shank, j-1,:)=(traces(k-1,:)+traces(k+1,:)-2*traces(k,:))/pitch^2;
+%             depth(shank, j-1)=pitch*j;
+%         end
+%     end
+% end
 % depthstr=fliplr(depthstr);
 
 %this puts a marker in the lower left corner to check that we're correctly
@@ -465,6 +518,7 @@ numyticks=6;
 figure
 subplot(121)
 imagesc(squeeze(CSD(1,:,:)));
+caxis([min(CSD(:)) max(CSD(:))])
 xticks(linspace(1, size(CSD,3), numxticks))
 xticklabels(linspace(xlimits(1), xlimits(2), numxticks))
 yticks(linspace(1, 60, numyticks))
@@ -476,6 +530,7 @@ set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none')
 
 subplot(122)
 imagesc(squeeze(CSD(2,:,:)));
+caxis([min(CSD(:)) max(CSD(:))])
 colorbar
 colormap(parula)
 xticks(linspace(1, size(CSD,3), numxticks))
@@ -486,20 +541,21 @@ ylabel('depth, um')
 title('shank 2')
 set(gca, 'pos', [ 0.5300    0.1100    0.3347    0.8150])
 
-     if printtofile
-         pdffilename=sprintf('%s-LFP-figs.pdf', BonsaiFolder);
-            %print figures to postscript file
-            f=findobj('type', 'figure');
-            for idx=1:length(f)
-                pause(.5)
-                %figure(f(idx))
-                % orient landscape
-                % % print figs -dpsc2 -append -bestfit
-                exportgraphics(f(idx),pdffilename,'Append',true)
-                pause(.5)
+if printtofile
+    pdffilename=sprintf('%s-LFP-figs.pdf', BonsaiFolder);
+    %print figures to postscript file
+    f=findobj('type', 'figure');
+    for idx=1:length(f)
+        pause(.5)
+        %figure(f(idx))
+        % orient landscape
+        % % print figs -dpsc2 -append -bestfit
+        exportgraphics(f(idx),pdffilename,'Append',true)
+        pause(.5)
 
-                if closewindows
-                    close
-                end
-            end
-      end
+        if closewindows
+            close
+        end
+    end
+end
+

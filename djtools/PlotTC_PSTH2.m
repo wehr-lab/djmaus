@@ -798,16 +798,17 @@ for cellnum=cells
                     line(xlimits, [0 0], 'color', 'k')
                     ylimits2(2)=ylimits(2)+offset;
 
+                    f=1.5; %raster offset fudge factor
                     if rasters==1
                         for n=1:nrepsON(cellnum, findex, aindex, dindex)
                             spiketimesON2=M1ON(cellnum, findex, aindex, dindex, n).spiketimes;
                             offset=offset+inc;
-                            h=plot(spiketimesON2, 0*yl(2)+ones(size(spiketimesON2))+offset, '.c');
+                            h=plot(spiketimesON2, f*yl(2)+ones(size(spiketimesON2))+offset, '.c');
                         end
                         for n=1:nrepsOFF(cellnum, findex, aindex, dindex)
                             spiketimesOFF2=M1OFF(cellnum, findex, aindex, dindex, n).spiketimes;
                             offset=offset+inc;
-                            h=plot(spiketimesOFF2, 0*yl(2)+ones(size(spiketimesOFF2))+offset, '.k');
+                            h=plot(spiketimesOFF2, f*yl(2)+ones(size(spiketimesOFF2))+offset, '.k');
                         end
                     end
 

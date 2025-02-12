@@ -544,8 +544,8 @@ for cellnum=1:numcells;
         else
             mP2P1_ON=[];
         end
-        spiketimes1=cat(2, McOFF(cellnum, iciindex, 1, 1:nrepsON(cellnum, iciindex)).spiketimes);
-        spiketimes2=cat(2, McOFF(cellnum, iciindex, 2, 1:nrepsON(cellnum, iciindex)).spiketimes);
+        spiketimes1=cat(2, McOFF(cellnum, iciindex, 1, 1:nrepsOFF(cellnum, iciindex)).spiketimes);
+        spiketimes2=cat(2, McOFF(cellnum, iciindex, 2, 1:nrepsOFF(cellnum, iciindex)).spiketimes);
         mP2P1_OFF(cellnum, iciindex)=length(spiketimes2)/(length(spiketimes1));
     end
 

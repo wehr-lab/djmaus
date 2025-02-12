@@ -3,7 +3,7 @@ function PlotClicktrain_PSTH3(varargin)
 %plots clustered spiking Clicktrain data from djmaus
 %using new OpenEphys and kilosort file formats and hierarchy
 %
-% usage: PlotClicktrain_PSTH2([datapath], [cells], [xlimits],[ylimits], [binwidth])
+% usage: PlotClicktrain_PSTH3([datapath], [cells], [xlimits],[ylimits], [binwidth])
 % all inputs are optional
 % defaults to datapath=pwd, xlimits and ylimits autoscaled, binwidth=5ms
 % cells defaults to all cells in data directory (or specify from [1:numcells])

@@ -7,6 +7,7 @@
 
 %url = 'localhost:5556'; % or, e.g., //'tcp://10.71.212.19:5556 if GUI runs on another machine...
 url = 'tcp://127.0.0.1:5556';
+%url = 'tcp://184.171.84.30:5556';    % if GUI runs on another machine...
 fprintf('\n\nopening thread to %s', url)
 
 handle = zeroMQwrapper('StartConnectThread',url);

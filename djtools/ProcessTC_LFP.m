@@ -20,13 +20,13 @@ else
     datadir=varargin{1};
 end
 if nargin==1
-    xlimits=[0 300]; %x limits for axis
+    xlimits=[-20 100]; %x limits for axis
     ylimits=[-.1 .2];
     prompt=('Please enter channel number: ');
     channel=input(prompt) ;
 elseif nargin==2
     channel=varargin{2};
-    xlimits=[0 300]; %x limits for axis
+    xlimits=[-20 100]; %x limits for axis
     ylimits=[-.1 .2];
 elseif nargin==3
     channel=varargin{2};
@@ -64,7 +64,7 @@ Eventsfilename='all_channels.events';
 [all_channels_data, all_channels_timestamps, all_channels_info] = load_open_ephys_data(Eventsfilename);
 sampleRate=all_channels_info.header.sampleRate; %in Hz
 
-%get Events and soundcard trigger timestamps 
+%get Events and soundcard trigger timestamps
 [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
 %there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
 
@@ -76,10 +76,12 @@ switch GetPlottingFunction(datadir)
 end
 
 node='';
-nodes={};j=0;
+nodes={};
+j=0;
 NodeIds=getNodes(pwd);
 for i=1:length(NodeIds)
     filename=sprintf('%s_CH%d.continuous', NodeIds{i}, channel);
+    
     if exist(filename,'file')
         node=NodeIds{i};
         j=j+1;
@@ -88,15 +90,23 @@ for i=1:length(NodeIds)
 end
 %note if there are multiple continuous recordings of the requested channel,
 %this will only return the last node
-if length(nodes)>1 
+%node=nodes{1};
+if length(nodes)>1
     fprintf('\n%d nodes found for channel %d: ', length(nodes), channel)
     fprintf('\t%s', nodes{:})
-    fprintf('\n using node %s', node)
+end
+fprintf('\n using node %s', node)
+
+
+filename=sprintf('%s_CH%d.continuous', node, channel);
+if exist(filename, 'file')~=2 %couldn't find it
+    error(sprintf('could not find data file %s in datadir %s', filename, datadir))
 end
 
+[scaledtrace, datatimestamps, datainfo] =load_open_ephys_data(filename);
 
 %messages is a list of all network event, which includes the stimuli
-%messages sent by djmaus, SCTchannelas well as the "ChangeDirectory" and
+%messages sent by djmaus, SCTchannel as well as the "ChangeDirectory" and
 %"GetRecordingPath" messages sent by djmaus, as well as 2 initial system
 %messages. I strip out the stimulus (sound) event and put them in "Events."
 %Events is a list of sound event, which were sent by djmaus with the
@@ -118,64 +128,55 @@ try
     [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data(getLaserfile('.'));
     %Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
     Lasertimestamps=Lasertimestamps-Lasertimestamps(1);
-   % Lasertrace=Lasertrace./max(abs(Lasertrace));
+    % Lasertrace=Lasertrace./max(abs(Lasertrace));
     fprintf('\nsuccessfully loaded laser trace')
 end
 try
     [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(getStimfile('.'));
     %Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
     Stimtimestamps=Stimtimestamps-Stimtimestamps(1);
-  %  Stimtrace=Stimtrace./max(abs(Stimtrace));
+    %  Stimtrace=Stimtrace./max(abs(Stimtrace));
     fprintf('\nsuccessfully loaded stim trace')
 catch
     [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data('105_ADC3.continuous');
-    fprintf('\ncouldnt find a stimtrace, loaded a differnt trace for plotting')
-filename=sprintf('%s_CH%d.continuous', node, channel);
-if exist(filename, 'file')~=2 %couldn't find it
-    error(sprintf('could not find data file %s in datadir %s', filename, datadir))
-end
-[scaledtrace, datatimestamps, datainfo] =load_open_ephys_data(filename);
-
-if isempty(getLaserfile('.'))
-    LaserRecorded=0;
-else
-    LaserRecorded=1;
-end
-if isempty(getStimfile('.'))
-    StimRecorded=0;
-else
-    StimRecorded=1;
-end
-
-if LaserRecorded
-    try
-        [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data(getLaserfile('.'));
-        Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
-        Lasertrace=Lasertrace./max(abs(Lasertrace));
-        fprintf('\nsuccessfully loaded laser trace\n')
-    catch
-        fprintf('\nfound laser file %s but could not load laser trace', getLaserfile('.'))
+    fprintf('\ncouldnt find a stimtrace, loaded a different trace for plotting')
+    
+    if isempty(getLaserfile('.'))
+        LaserRecorded=0;
+    else
+        LaserRecorded=1;
     end
-else
-    fprintf('\nLaser trace not recorded')
-end
-if StimRecorded
-    try
-        [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(getStimfile('.'));
-        Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
-        Stimtrace=Stimtrace./max(abs(Stimtrace));
-        fprintf('\nsuccessfully loaded stim trace')
-    catch
-        fprintf('\nfound stim file %s but could not load stim trace', getStimfile('.'))
+    if isempty(getStimfile('.'))
+        StimRecorded=0;
+    else
+        StimRecorded=1;
     end
-else
-    fprintf('\nSound stimulus trace not recorded')
+    
+    if LaserRecorded
+        try
+            [Lasertrace, Lasertimestamps, Laserinfo] =load_open_ephys_data(getLaserfile('.'));
+            Lasertimestamps=Lasertimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+            Lasertrace=Lasertrace./max(abs(Lasertrace));
+            fprintf('\nsuccessfully loaded laser trace\n')
+        catch
+            fprintf('\nfound laser file %s but could not load laser trace', getLaserfile('.'))
+        end
+    else
+        fprintf('\nLaser trace not recorded')
+    end
+    if StimRecorded
+        try
+            [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(getStimfile('.'));
+            Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
+            Stimtrace=Stimtrace./max(abs(Stimtrace));
+            fprintf('\nsuccessfully loaded stim trace')
+        catch
+            fprintf('\nfound stim file %s but could not load stim trace', getStimfile('.'))
+        end
+    else
+        fprintf('\nSound stimulus trace not recorded')
+    end
 end
-
-
-
-
-
 
 
 fprintf('\ncomputing tuning curve...');
@@ -192,10 +193,10 @@ for i=1:length(Events)
         if strcmp(Events(i).type, 'tone') | strcmp(Events(i).type, '2tone')
             allamps(j)=Events(i).amplitude;
             allfreqs(j)=Events(i).frequency;
-        elseif strcmp(Events(i).type, 'whitenoise') 
+        elseif strcmp(Events(i).type, 'whitenoise')
             allamps(j)=Events(i).amplitude;
             allfreqs(j)=-1000;
-        elseif strcmp(Events(i).type, 'silentsound') 
+        elseif strcmp(Events(i).type, 'silentsound')
             allfreqs(j)=-2000;
             allamps(j)=nan; %flagging silent sound amp as nan
         elseif strcmp(Events(i).type, 'fmtone')
@@ -227,7 +228,7 @@ for i=1:length(Events)
         warning('ProcessTC_LFP: Cannot tell if laser button was turned on in djmaus GUI');
         LaserTrials(i)=0;
         Events(i).laser=0;%
-
+        
     elseif ~isfield(Events(i), 'laser') & ~isfield(Events(i), 'LaserOnOff')
         %if neither of the right fields are there, assume no laser
         LaserTrials(i)=0;
@@ -258,13 +259,9 @@ nreps=zeros(numfreqs, numamps, numdurs);
 nrepsON=zeros(numfreqs, numamps, numdurs);
 nrepsOFF=zeros(numfreqs, numamps, numdurs);
 
-
-
-fprintf('\ncomputing tuning curve...');
+fprintf('\nextracting traces into BIG matrix...');
 
 samprate=sampleRate;
-
-
 
 %extract the traces into a big matrix M
 j=0;
@@ -281,7 +278,7 @@ for i=1:length(Events)
         start=round(pos+xlimits(1)*1e-3*samprate);
         stop=round(pos+xlimits(2)*1e-3*samprate)-1;
         region=start:stop;
-
+        
         if isempty(find(region<1)) %(disallow negative or zero start times)
             switch Events(i).type
                 case {'tone', '2tone'}
@@ -300,15 +297,14 @@ for i=1:length(Events)
                     amp=Events(i).spatialfrequency;
                     freq=Events(i).angle*1000;
             end
-            
-            
+                    
             dur=Events(i).duration;
             findex= find(freqs==freq);
             aindex= find(amps==amp);
             dindex= find(durs==dur);
             nreps(findex, aindex, dindex)=nreps(findex, aindex, dindex)+1;
-           M1(findex,aindex,dindex, nreps(findex, aindex, dindex),:)=scaledtrace(region);
-           M1stim(findex,aindex,dindex, nreps(findex, aindex, dindex),:)=Stimtrace(region);
+            M1(findex,aindex,dindex, nreps(findex, aindex, dindex),:)=scaledtrace(region);
+            M1stim(findex,aindex,dindex, nreps(findex, aindex, dindex),:)=Stimtrace(region);
             if laser
                 nrepsON(findex, aindex, dindex)=nrepsON(findex, aindex, dindex)+1;
                 M1ON(findex,aindex,dindex, nrepsON(findex, aindex, dindex),:)=scaledtrace(region);
@@ -322,14 +318,23 @@ for i=1:length(Events)
             end
         end
     end
-%end
+end
 
 %region=length(M1OFF);
 traces_to_keep=[];
 if ~isempty(traces_to_keep)
-    fprintf('\n using only traces %d, discarding others', traces_to_keep);
+    fprintf('\n using only traces %d to %d, discarding others\n', traces_to_keep(1),traces_to_keep(end));
     mM1=mean(M1(:,:,:,traces_to_keep,:), 4);
-    mM1ON=mean(M1ON(:,:,:,traces_to_keep,:), 4);
+    if ~isempty(M1ON)
+        mM1ON=mean(M1ON(:,:,:,traces_to_keep,:), 4);
+    else
+        mM1ON = [];
+        mM1stim = [];
+        mM1ONStim = [];
+        mM1ONLaser = [];
+        mM1OFFStim = [];
+        mM1OFFLaser = [];
+    end
     mM1OFF=mean(M1OFF(:,:,:,traces_to_keep,:), 4);
 else
     for aindex=1:numamps
@@ -355,17 +360,15 @@ else
                     mM1OFF(findex, aindex, dindex,:)=mean(M1OFF(findex, aindex, dindex, 1:nrepsOFF(findex, aindex, dindex),:), 4);
                     mM1OFFStim(findex, aindex, dindex,:)=mean(M1OFFStim(findex, aindex, dindex, 1:nrepsOFF(findex, aindex, dindex),:), 4);
                     mM1OFFLaser(findex, aindex, dindex,:)=mean(M1OFFLaser(findex, aindex, dindex, 1:nrepsOFF(findex, aindex, dindex),:), 4);
- else %no reps for this stim, since rep=0
+                else %no reps for this stim, since rep=0
                     mM1OFF(findex, aindex, dindex,:)=zeros(size(region));
                     mM1OFFStim(findex, aindex, dindex,:)=zeros(size(region));
                     mM1OFFLaser(findex, aindex, dindex,:)=zeros(size(region));
                 end
-                
             end
         end
     end
 end
-
 
 
 %find optimal axis ylimits
@@ -379,8 +382,7 @@ if ylimits<0
     end
 end
 
-
-
+fprintf('\nsaving out file...');
 
 %assign outputs
 out.scaledtrace=scaledtrace;

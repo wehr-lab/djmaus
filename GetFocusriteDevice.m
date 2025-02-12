@@ -21,5 +21,9 @@ deviceID=[];
 for n = 1:length(devs) 
     if strcmp(devs(n).DeviceName, 'Focusrite USB ASIO')
         deviceID=devs(n).DeviceIndex;
+    elseif contains(devs(n).DeviceName, 'Scarlett Solo')
+        deviceID=devs(n).DeviceIndex;
     end
 end
+
+ 

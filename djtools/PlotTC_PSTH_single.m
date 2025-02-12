@@ -8,7 +8,7 @@ function PlotTC_PSTH_single(varargin)
 %Processes data if outfile is not found;
 
 rasters=1;
-force_reprocess=1;
+force_reprocess=0;
 
 if nargin==0
     fprintf('\nno input');
@@ -37,9 +37,10 @@ end
 if ischar(t_filename)
     [p,f,ext]=fileparts(t_filename);
     split=strsplit(f, '_');
-    ch=strsplit(split{1}, 'ch');
-    channel=str2num(ch{2});
-    clust=str2num(split{end});
+    ch=strsplit(split{3}, 'ch');
+    chanclust = strsplit(ch{2}, 'c');
+    channel=str2num(chanclust{1});
+    clust=str2num(chanclust{2});
 else %reads kilosort input, which is [clust, channel, cellnum]
     channel=t_filename(1,2);
     clust=t_filename(1,1);
@@ -51,7 +52,7 @@ if force_reprocess
     ProcessTC_PSTH_single(datadir,  t_filename, xlimits, ylimits);
 end
 
-outfilename=sprintf('outPSTH_ch%dc%d.mat',channel, clust);
+outfilename=sprintf('outPSTH_TC_ch%dc%d.mat',channel, clust);
 fprintf('\nchannel %d, cluster %d', channel, clust)
 fprintf('\n%s', t_filename)
 fprintf('\n%s', outfilename)
@@ -190,7 +191,7 @@ else
 end
 
 %plot the mean tuning curve OFF
-for windex=1:numw
+for windex=1:1                                                              % Normally windex=1:numw, hardcoded here for efficiency
     figure('position',[200 100 1381 680])
     p=0;
     subplot1(numy,numx, 'Max', [.95 .9])

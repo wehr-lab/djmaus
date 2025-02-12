@@ -24,6 +24,7 @@ end
 params=varargin{1};
 samplerate=varargin{2};
     amplitude=params.amplitude;
+    amplitude=1*(10.^((amplitude-pref.maxSPL)/20)); %in volts (-1<x<1), i.e. pref.maxSPL=+_1V
 
 duration=params.duration;
 ramp=params.ramp;
@@ -35,5 +36,6 @@ cd('Soundfile Protocols')
 cd(sourcepath)
 load(sourcefile)
 samples=sample.sample;
+samples=amplitude*samples;
 
-% amplitude already applied during soundfile creation
+%NO: mike 4.23.2024 % amplitude already applied during soundfile creation

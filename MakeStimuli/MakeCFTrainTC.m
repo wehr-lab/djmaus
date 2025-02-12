@@ -1,22 +1,25 @@
 function tonetrain=MakeCFTrainTC(varargin)
 % Creates a CFTrainTC type tone train (a tone train at CF followed by a
 % test tone)
-% Input
-%   cf              - the freq of the tones in train
-%   ntones         -   number of tones
-%   isi             -   inter-stimulus interval, i.e. interval between the
-%                       start of previous tone and start of the next tone
-%   toneduration   -   duration of an individual tone (ms)
-%  frequency          -   frequency of the tone (Hz)
-%   amplitude       -   tone amplitude (dB)
-%   start           -   start of the first tone after the trigger (ms)
-%   duration        -   total duration of the tone train (ms) %%???not used? mw 04.13.06
-%   next            -   inter-tone-train-interval, i.e. when the next
-%                       tone train should follow the previous one (ms)
-%   ramp            -   rising/falling edge of individual tones
-%   samplerate      -   sampling rate (Hz)
-% Output
-%   pulse   -   the required  waveform
+% 
+% Args:
+%   cf: the freq of the tones in train
+%   ntones:   number of tones
+%   isi: inter-stimulus interval, i.e. interval between the
+%        start of previous tone and start of the next tone
+%   toneduration:  duration of an individual tone (ms)
+%   frequency: frequency of the tone (Hz)
+%   amplitude:  tone amplitude (dB)
+%   start:  start of the first tone after the trigger (ms)
+%   duration: total duration of the tone train (ms) %%???not used? mw 04.13.06
+%   next: inter-tone-train-interval, i.e. when the next
+%         tone train should follow the previous one (ms)
+%   ramp: rising/falling edge of individual tones
+%   samplerate: sampling rate (Hz)
+%
+% Returns:
+%     pulse   -   the required  waveform
+% 
 %mw 111907
 global exper pref
 

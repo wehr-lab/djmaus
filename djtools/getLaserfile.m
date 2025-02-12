@@ -3,9 +3,14 @@ function [ fname ] = getLaserfile( datadir )
 %was recorded on, and hence what the filename is
 %usage: [ fname ] = getLaserfile( datadir )
 
-cd(datadir)
-settings=xml2struct('settings.xml');
-Laserchannel=3; %filenames and ADClines are both 1-indexed
+try
+    cd(datadir)
+    settings=xml2struct('settings.xml');
+    Laserchannel=3; %filenames and ADClines are both 1-indexed
+catch
+    fname=[];
+    return
+end
 
 % ADC1: sound monitor
 % ADC2: soundcard trigger monitor

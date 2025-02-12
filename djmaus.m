@@ -1,5 +1,4 @@
 function djmaus(varargin)
-
 % Plays a bunch of different stimuli stored in a .mat file ('protocol')
 % Uses PPA sound which requires PsychToolbox. Download from psychtoolbox.org.
 % Sends stimulus information to Open Ephys GUI using zeroMQ, Win: download from
@@ -43,7 +42,14 @@ switch action
         SP.Campulse=0;
         djPrefs;
         InitializeGUI;
-        InitZMQ %initialize zeroMQ connection to open-ephys
+        if SP.mesoscope_mode
+            set(SP.Recordh, 'enable', 'on');
+            djMessage('using mesoscope mode, no zmq or OpenEphys', 'append')
+            fprintf('using mesoscope mode, no zmq or OpenEphys')
+            SP.zhandle=[];
+        elseif ~SP.mesoscope_mode
+            InitZMQ %initialize zeroMQ connection to open-ephys
+        end
         InitParams %initialize some default params in SP structure
         PPAdj('init');
         % set the timer
@@ -55,7 +61,14 @@ switch action
         delete(djTimer);
         clear djTimer
         PPAdj('close')
-        zeroMQwrapper('CloseThread',SP.zhandle);
+        try
+            zeroMQwrapper('CloseThread',SP.zhandle);
+        end
+        try
+            clearvars -global SP.arduino
+        catch
+            warning('could not close arduino')
+        end
         pause(0.2)
         delete(SP.fig)
         clear global SP
@@ -189,6 +202,26 @@ switch action
         SP.mouse2ID=mouseID;
         LoadMouse2
         
+    case 'mouse3IDMenu'
+        mouseIDs=get(SP.mouse3IDMenuh, 'string');
+        if ~iscell(mouseIDs) %skip if only one menu item
+        else
+            mouseID=mouseIDs{get(SP.mouse3IDMenuh, 'value')};
+            set(SP.mouse3IDh, 'string', mouseID)
+        end
+        SP.mouse3ID=mouseID;
+        LoadMouse3
+        
+    case 'mouse4IDMenu'
+        mouseIDs=get(SP.mouse4IDMenuh, 'string');
+        if ~iscell(mouseIDs) %skip if only one menu item
+        else
+            mouseID=mouseIDs{get(SP.mouse4IDMenuh, 'value')};
+            set(SP.mouse4IDh, 'string', mouseID)
+        end
+        SP.mouse4ID=mouseID;
+        LoadMouse4
+        
     case 'mouseID'
         SP.mouseID=get(SP.mouseIDh, 'string');
         mouseIDs=get(SP.mouseIDMenuh, 'string');
@@ -237,8 +270,64 @@ switch action
         %save('mouseDB.mat', sprintf('mouseID_%s',SP.mouse2ID), '-append')
         LoadMouse2
         
+        
+    case 'mouse3ID'
+        SP.mouse3ID=get(SP.mouse3IDh, 'string');
+        mouseIDs=get(SP.mouse3IDMenuh, 'string');
+        if ~iscell(mouseIDs) mouseIDs={mouseIDs};end
+        
+        if isempty(mouseIDs)
+            mouseIDs=SP.mouse3ID;
+        elseif iscell(mouseIDs) & length(mouseIDs)>1 %more than one menu item
+            mouseIDs=unique({mouseIDs{:}, SP.mouse3ID});
+        elseif iscell(mouseIDs) & length(mouseIDs)==1 %only one menu item
+            mouseIDs=unique({mouseIDs{:}, SP.mouse3ID});
+            set(SP.mouseIDMenu2h, 'value',1)
+        elseif length(mouseIDs)==1 %only one menu item
+            mouseIDs={mouseIDs, SP.mouse3ID};
+            set(SP.mouseIDMenu2h, 'value',1)
+        else
+            error('?')
+        end
+        set(SP.mouse3IDMenuh, 'string',mouseIDs)
+        SP.allmouseIDs=mouseIDs;
+        %WriteMouseIDtoPrefs %not using prefs for this anymore 12.05.2018
+        %save('mouseDB.mat', sprintf('mouseID_%s',SP.mouse3ID), '-append')
+        LoadMouse3
+        
+        
+    case 'mouse4ID'
+        SP.mouse4ID=get(SP.mouse4IDh, 'string');
+        mouseIDs=get(SP.mouse4IDMenuh, 'string');
+        if ~iscell(mouseIDs) mouseIDs={mouseIDs};end
+        
+        if isempty(mouseIDs)
+            mouseIDs=SP.mouse4ID;
+        elseif iscell(mouseIDs) & length(mouseIDs)>1 %more than one menu item
+            mouseIDs=unique({mouseIDs{:}, SP.mouse4ID});
+        elseif iscell(mouseIDs) & length(mouseIDs)==1 %only one menu item
+            mouseIDs=unique({mouseIDs{:}, SP.mouse4ID});
+            set(SP.mouseIDMenu2h, 'value',1)
+        elseif length(mouseIDs)==1 %only one menu item
+            mouseIDs={mouseIDs, SP.mouse4ID};
+            set(SP.mouseIDMenu2h, 'value',1)
+        else
+            error('?')
+        end
+        set(SP.mouse4IDMenuh, 'string',mouseIDs)
+        SP.allmouseIDs=mouseIDs;
+        %WriteMouseIDtoPrefs %not using prefs for this anymore 12.05.2018
+        %save('mouseDB.mat', sprintf('mouseID_%s',SP.mouse4ID), '-append')
+        LoadMouse4
+        
     case 'SecondmouseIDbutton'
         AddSecondMouse
+        
+    case 'ThirdmouseIDbutton'
+        AddThirdMouse
+        
+    case 'FourthmouseIDbutton'
+        AddFourthMouse
         
     case 'Record'
         Record
@@ -280,6 +369,7 @@ switch action
             'string', sprintf('age\n%.1f mo', SP.Age), 'fontsize', 10,...
             'enable','inact','horiz','left','pos', pos);
         
+        %mouse2
     case 'mouse2Genotype'
         SP.mouse2Genotype=get(SP.mouse2Genotypeh, 'string');
         cd (pref.root)
@@ -317,6 +407,81 @@ switch action
             'string', sprintf('age\n%.1f mo', SP.Age2), 'fontsize', 10,...
             'enable','inact','horiz','left','pos', pos);
         
+        %mouse3
+    case 'mouse3Genotype'
+        SP.mouse3Genotype=get(SP.mouse3Genotypeh, 'string');
+        cd (pref.root)
+        try load mouseDB
+        end
+        str=sprintf('mouseID_%s.mouseGenotype=''%s'';', SP.mouse3ID, SP.mouse3Genotype);
+        eval(str);
+        save('mouseDB.mat', sprintf('mouseID_%s',SP.mouse3ID), '-append')
+        
+    case 'mouse3Sex'
+        SP.mouse3Sex=lower(get(SP.mouse3Sexh, 'string'));
+        set(SP.mouse3Sexh, 'string', SP.mouse3Sex)
+        cd (pref.root)
+        try load mouseDB
+        end
+        str=sprintf('mouseID_%s.mouseSex=''%s'';', SP.mouse3ID, SP.mouse3Sex);
+        eval(str)
+        save('mouseDB.mat', sprintf('mouseID_%s',SP.mouse3ID), '-append')
+        
+    case 'mouse3DOB'
+        SP.mouse3DOB=get(SP.mouse3DOBh, 'string');
+        cd (pref.root)
+        try load mouseDB
+        end
+        str=sprintf('mouseID_%s.mouseDOB=''%s'';', SP.mouse3ID, SP.mouse3DOB);
+        eval(str)
+        save('mouseDB.mat', sprintf('mouseID_%s',SP.mouse3ID), '-append')
+        SP.Age2=(datenum(date)-datenum(SP.mouse3DOB))/30; %in months
+        pos1=get(SP.mouse3Sexh, 'pos');
+        pos=get(SP.mouse3DOBh, 'pos');
+        pos(3)=.6*pos1(3);
+        set(SP.mouse3DOBh, 'pos',pos);
+        pos(1)=pos(1)+pos(3);
+        SP.Age2h=uicontrol(gcf,'tag','mouse3Agelabel','style','text','units','pixels',...
+            'string', sprintf('age\n%.1f mo', SP.Age2), 'fontsize', 10,...
+            'enable','inact','horiz','left','pos', pos);
+        
+        %mouse4
+    case 'mouse4Genotype'
+        SP.mouse4Genotype=get(SP.mouse4Genotypeh, 'string');
+        cd (pref.root)
+        try load mouseDB
+        end
+        str=sprintf('mouseID_%s.mouseGenotype=''%s'';', SP.mouse4ID, SP.mouse4Genotype);
+        eval(str);
+        save('mouseDB.mat', sprintf('mouseID_%s',SP.mouse4ID), '-append')
+        
+    case 'mouse4Sex'
+        SP.mouse4Sex=lower(get(SP.mouse4Sexh, 'string'));
+        set(SP.mouse4Sexh, 'string', SP.mouse4Sex)
+        cd (pref.root)
+        try load mouseDB
+        end
+        str=sprintf('mouseID_%s.mouseSex=''%s'';', SP.mouse4ID, SP.mouse4Sex);
+        eval(str)
+        save('mouseDB.mat', sprintf('mouseID_%s',SP.mouse4ID), '-append')
+        
+    case 'mouse4DOB'
+        SP.mouse4DOB=get(SP.mouse4DOBh, 'string');
+        cd (pref.root)
+        try load mouseDB
+        end
+        str=sprintf('mouseID_%s.mouseDOB=''%s'';', SP.mouse4ID, SP.mouse4DOB);
+        eval(str)
+        save('mouseDB.mat', sprintf('mouseID_%s',SP.mouse4ID), '-append')
+        SP.Age2=(datenum(date)-datenum(SP.mouse4DOB))/30; %in months
+        pos1=get(SP.mouse4Sexh, 'pos');
+        pos=get(SP.mouse4DOBh, 'pos');
+        pos(3)=.6*pos1(3);
+        set(SP.mouse4DOBh, 'pos',pos);
+        pos(1)=pos(1)+pos(3);
+        SP.Age2h=uicontrol(gcf,'tag','mouse4Agelabel','style','text','units','pixels',...
+            'string', sprintf('age\n%.1f mo', SP.Age2), 'fontsize', 10,...
+            'enable','inact','horiz','left','pos', pos);
         
     case 'Reinforcement'
         SP.Reinforcement=get(SP.Reinforcementh, 'string');
@@ -375,7 +540,7 @@ switch action
             set(SP.LaserISIh, 'enable', 'off')
         elseif SP.LaserNumPulses>1
             set(SP.LaserISIh, 'enable', 'on')
-            if str2num(get(SP.LaserISIh, 'string'))==0
+            if strcmp(get(SP.LaserISIh, 'string'),'0')
                 set(SP.LaserISIh, 'string', SP.LaserWidth)
             end
         end
@@ -394,6 +559,17 @@ switch action
             SP.Campulse=1;
             PPAdj('camerapulse_on')
         end
+        
+    case 'mesoscope_mode' %toggle mesoscope/OpenEphys mode
+        if get(SP.MesoModeh, 'value') %1=meso, 0=intan/OE
+            set(SP.MesoModeh, 'String', 'Mesoscope');
+            SP.mesoscope_mode=1;
+            
+        elseif ~get(SP.MesoModeh, 'value') %set to OE
+            set(SP.MesoModeh, 'String', 'OpenEphys');
+            SP.mesoscope_mode=0;
+        end
+        
 end
 
 function AddUser
@@ -471,6 +647,7 @@ end
 function LoadMouse
 global SP pref
 cd (pref.root)
+set(SP.mouseIDh, 'ForegroundColor', 'k')
 try
     mouseDB=load('mouseDB.mat');
     if isfield(mouseDB, ['mouseID_', SP.mouseID])
@@ -536,6 +713,74 @@ catch
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function LoadMouse3
+global SP pref
+cd (pref.root)
+try
+    mouseDB=load('mouseDB.mat');
+    if isfield(mouseDB, ['mouseID_', SP.mouse3ID])
+        try
+            str=sprintf('SP.mouse3Genotype=mouseDB.mouseID_%s.mouseGenotype;', SP.mouse3ID);
+            eval(str);
+            set(SP.mouse3Genotypeh, 'string', SP.mouse3Genotype);
+        end
+        try
+            str=sprintf('SP.mouse3DOB=mouseDB.mouseID_%s.mouseDOB;', SP.mouse3ID);
+            eval(str);
+            set(SP.mouse3DOBh, 'string', SP.mouse3DOB);
+        end
+        try
+            str=sprintf('SP.mouse3Sex=mouseDB.mouseID_%s.mouseSex;', SP.mouse3ID);
+            eval(str);
+            set(SP.mouse3Sexh, 'string', SP.mouse3Sex);
+        end
+    else
+        SP.mouse3Genotype='genotype unknown';
+        set(SP.mouse3Genotypeh, 'string', SP.mouse3Genotype);
+        SP.mouse3Sex='sex unknown';
+        set(SP.mouse3Sexh, 'string', SP.mouse3Sex);
+        SP.mouse3DOB='age unknown';
+        set(SP.mouse3DOBh, 'string', SP.mouse3DOB);
+    end
+catch
+    djMessage('could not load mouse database')
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function LoadMouse4
+global SP pref
+cd (pref.root)
+try
+    mouseDB=load('mouseDB.mat');
+    if isfield(mouseDB, ['mouseID_', SP.mouse4ID])
+        try
+            str=sprintf('SP.mouse4Genotype=mouseDB.mouseID_%s.mouseGenotype;', SP.mouse4ID);
+            eval(str);
+            set(SP.mouse4Genotypeh, 'string', SP.mouse4Genotype);
+        end
+        try
+            str=sprintf('SP.mouse4DOB=mouseDB.mouseID_%s.mouseDOB;', SP.mouse4ID);
+            eval(str);
+            set(SP.mouse4DOBh, 'string', SP.mouse4DOB);
+        end
+        try
+            str=sprintf('SP.mouse4Sex=mouseDB.mouseID_%s.mouseSex;', SP.mouse4ID);
+            eval(str);
+            set(SP.mouse4Sexh, 'string', SP.mouse4Sex);
+        end
+    else
+        SP.mouse4Genotype='genotype unknown';
+        set(SP.mouse4Genotypeh, 'string', SP.mouse4Genotype);
+        SP.mouse4Sex='sex unknown';
+        set(SP.mouse4Sexh, 'string', SP.mouse4Sex);
+        SP.mouse4DOB='age unknown';
+        set(SP.mouse4DOBh, 'string', SP.mouse4DOB);
+    end
+catch
+    djMessage('could not load mouse database')
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function WriteMouseIDtoPrefs
 global SP pref
 cd (pref.root)
@@ -567,9 +812,9 @@ else
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function LoadProtocol(varargin)
-%adding capability to push files programatically
-%call dj('load', 'fullfilename')
-%where fullfilename includes the absolute path (e.g. 'D:\lab\exper2.2\protocols\Tuning Curve protocols\tuning-curve-tones-20f_1000-20000Hz-1a_80-80dB-1d_400ms-isi500ms.mat'
+% adding capability to push files programatically
+% call dj('load', 'fullfilename')
+% where fullfilename includes the absolute path (e.g. 'D:\lab\exper2.2\protocols\Tuning Curve protocols\tuning-curve-tones-20f_1000-20000Hz-1a_80-80dB-1d_400ms-isi500ms.mat'
 global pref SP
 if nargin==2
     if varargin{2}
@@ -684,16 +929,46 @@ if length(str)>255 fprintf('\n\n\n\n\n\n');warning('TrialType message string is 
 if ~isempty(SP.zhandle)
     zeroMQwrapper('Send', SP.zhandle, str)
 end
+if SP.mesoscope_mode
+    SendArduinoSoundcardtrigger
+end
 PPAdj('playsound')
 UpdateStimlog(stimulus);
 djMessage(stimulus.stimulus_description, 'append');
 status = PsychPortAudio('GetStatus', SP.PPAhandle);
+
 % if ~status.Active & status.XRuns
-     fprintf('status: %d Xruns: %d\n',status.Active,status.XRuns)
+% fprintf('status: %d Xruns: %d\n',status.Active,status.XRuns)
 % end
+
 
 % figure(100)
 % plot(samples)
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function  SendArduinoSoundcardtrigger
+global SP
+
+%the timer object is created during Init
+%here we explicitly set the timer callback to terminate the SCT pulse, and
+%then turn the pulse on and start the timer.
+SP.arduinoTimer.TimerFcn=@(~,~)writeDigitalPin(SP.arduino, SP.arduinoSCTpin, 0);
+writeDigitalPin(SP.arduino, SP.arduinoSCTpin, 1);
+start(SP.arduinoTimer)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function  SendArduinoProtocolStart
+global SP
+
+%the timer object is created during Init
+%here we explicitly set the timer callback to terminate the pulse, and
+%then turn the pulse on and start the timer.
+SP.arduinoTimer.TimerFcn=@(~,~)writeDigitalPin(SP.arduino, SP.arduinoProtocolStartpin, 0);
+writeDigitalPin(SP.arduino, SP.arduinoProtocolStartpin, 1);
+start(SP.arduinoTimer)
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function NextStimulus
@@ -740,6 +1015,8 @@ out = mfilename;
 
 function fcn=StimTypes(type)
 switch type
+    case 'square'   % Kip 9/5/24
+        fcn = 'MakeSquare';
     case 'tone'
         fcn='MakeTone';
     case 'whitenoise'
@@ -795,7 +1072,9 @@ if SP.Record
         end
     end
     
-    zeroMQwrapper('Send',SP.zhandle ,'StopRecord');
+    if ~SP.mesoscope_mode
+        zeroMQwrapper('Send',SP.zhandle ,'StopRecord');
+    end
     set(SP.Recordh,'backgroundcolor',[0 0.9 0],'String','Record');
     SP.Record=0;
     set(SP.mouseIDh, 'enable', 'on');
@@ -804,12 +1083,20 @@ if SP.Record
         set(SP.mouse2IDh, 'enable', 'on');
         set(SP.mouse2IDMenuh, 'enable', 'on');
     end
+    if isfield(SP, 'mouse3ID')
+        set(SP.mouse3IDh, 'enable', 'on');
+        set(SP.mouse3IDMenuh, 'enable', 'on');
+    end
+    if isfield(SP, 'mouse4ID')
+        set(SP.mouse4IDh, 'enable', 'on');
+        set(SP.mouse4IDMenuh, 'enable', 'on');
+    end
     if pref.camera_rec==1 %set the camera to be turned off when stopped recording
         SP.Campulse=0;
         set(SP.camerapulse, 'backgroundcolor',[0 0.9 0],'String','Camera Stopped');
         PPAdj('camerapulse_off')
     else
-        fprintf('\n camera not recording\n')
+        %fprintf('\n camera not recording\n')
     end
     
     UpdateNotebookFile
@@ -824,21 +1111,30 @@ else
     %disable play button here, to avoid delivering stimuli before notebook
     %is initialized (which could result in a skipped stimlog entry)
     set(SP.Runh, 'enable', 'off')
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%% adding in feature to find bonsai-created folder  - Nick 2/7/2021
-    destination = pref.datapath; 
-    cd(destination)
-    listoffolders = dir; thedates = arrayfun(@(x) datetime(x.date), listoffolders);
-    [~,sidx] = sort(thedates,'descend');
-    for i = 1:6 %take latest 6 (b/c sometimes '.','..',thumbs,DS,camerafiles,etc may be most recent)
-        foldername = listoffolders(sidx(i)).name;
-        if length(foldername)>15 %this will be the directory
-            break
+    if SP.mesoscope_mode
+        SendArduinoProtocolStart
+    elseif ~SP.mesoscope_mode %open-ephys/bonsai specific stuff
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %%%%%% adding in feature to find bonsai-created folder  - Nick 2/7/2021
+        destination = pref.datapath;
+        cd(destination)
+        listoffolders = dir; thedates = arrayfun(@(x) datetime(x.date), listoffolders);
+        [~,sidx] = sort(thedates,'descend');
+        for i = 1:6 %take latest 6 (b/c sometimes '.','..',thumbs,DS,camerafiles,etc may be most recent)
+            foldername = listoffolders(sidx(i)).name;
+            if length(foldername)>15 %this will be the directory
+                break
+            end
         end
     end
     RecDir = strcat(pref.remotedatapath,'\',foldername);
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%% end of feature - Nick 2/7/2021
+    if pref.local
+        SP.bonsaiFolder = strcat(pref.datahost, '\', RecDir);
+    else
+        SP.bonsaiFolder = strrep(strcat(pref.datahost, '\', RecDir), ':', '');
+    end
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%% end of feature - Nick 2/7/2021
     startstr=sprintf('StartRecord');
     if ~isfield(SP, 'mouseID')
         SP.mouseID='none';
@@ -848,14 +1144,24 @@ else
     %startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', [pref.remotedatapath,SP.user], SP.mouseID);
     %trying to fix double user name bug mw 05032018
     %startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', [pref.remotedatapath], SP.mouseID);
-    startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', [RecDir], SP.mouseID); %Nick's change 2/7/2021
+    startstr=sprintf('StartRecord CreateNewDir=1 RecDir=%s AppendText=mouse-%s', RecDir, SP.mouseID); %Nick's change 2/7/2021
+    fprintf('\nsending this message to Open Ephys:\n%s\n', startstr)
     zeroMQwrapper('Send',SP.zhandle ,startstr);
+    
     set(SP.Recordh, 'backgroundcolor',[0.9 0 0],'String','Recording...');
     set(SP.mouseIDh, 'enable', 'off');
     set(SP.mouseIDMenuh, 'enable', 'off');
     if isfield(SP, 'mouse2ID')
         set(SP.mouse2IDh, 'enable', 'off');
         set(SP.mouse2IDMenuh, 'enable', 'off');
+    end
+    if isfield(SP, 'mouse3ID')
+        set(SP.mouse3IDh, 'enable', 'off');
+        set(SP.mouse3IDMenuh, 'enable', 'off');
+    end
+    if isfield(SP, 'mouse4ID')
+        set(SP.mouse4IDh, 'enable', 'off');
+        set(SP.mouse4IDMenuh, 'enable', 'off');
     end
     SP.Record=1;
     SP.stimcounter=0;
@@ -874,135 +1180,218 @@ else
     %re-enable play button here
     set(SP.Runh, 'enable', 'on')
     
-    
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function InitNotebookFile
 global SP nb pref
 
-% find active OE data directory and cd into it
-SP.activedir='unknown';
-try
-    %    zeroMQwrapper('Send',SP.zhandle ,sprintf('ChangeDirectory %s', pref.root))
-    %    pause(.2)
-    zeroMQwrapper('Send',SP.zhandle ,'GetRecordingPath');
-    pause(1)
-    RecordingPath = zeroMQwrapper('GetReply',SP.zhandle )
+if SP.mesoscope_mode %1=mesoscope mode, save notebook locally, no OE or zmq
+    dirname=sprintf('%s_mouse-%s', datestr(now, 'yyyy-mm-dd_HH-MM-SS'), SP.mouseID);
+    SP.activedir=dirname;
+    cd(SP.datapath)
+    mkdir(SP.activedir)
+elseif ~SP.mesoscope_mode %0 = classic OpenEphys mode, use zmq to get recording directory and save notebook there
     
-    wb1=waitbar(0, 'zeroMQwrapper:GetReply did not return a reply, re-trying ...', 'visible', 'off');
-    while ~ exist('RecordingPath')
-        %sometimes it doesn't work for some reason, and we get
-        %"zmq wrapper GetReply: there is no reply available"
-        %so we can re-try and see if that helps
-        %mw 04.22.2019
-        w=0;
+    
+    % find active OE data directory and cd into it
+    SP.activedir='unknown';
+    try
+        %    zeroMQwrapper('Send',SP.zhandle ,sprintf('ChangeDirectory %s', pref.root))
+        %    pause(.2)
+        zeroMQwrapper('Send',SP.zhandle ,'GetRecordingPath');
+        pause(1)
+        RecordingPath = zeroMQwrapper('GetReply',SP.zhandle);
         
-        set(wb1, 'units', 'pixels', 'visible', 'on');
-        pos=get(wb1, 'pos');
-        set(wb1, 'pos', [pref.windowpos(1),pref.windowpos(2)+pref.windowpos(4)-2*pos(4), pos(3), pos(4)]);
-        
-        fprintf('\nzeroMQwrapper:GetReply did not return a reply, re-trying ...')
-        pause(2)
-        w=w+.1;
-        waitbar(mod(w, 1),wb1)
-        
-        RecordingPath = zeroMQwrapper('GetReply',SP.zhandle )
-    end
-    close(wb1)
-    
-    %     cd(pref.root)
-    %     fid=fopen('RecordingPath.txt', 'r');
-    %     RecordingPath=fgetl(fid);
-    %     RecordingPathSize=str2num(fgetl(fid));
-    %     fclose(fid);
-    %     %hack: on windows I am still getting extra characters -> trim to size
-    %     RecordingPath=RecordingPath(1:RecordingPathSize);
-    %     fprintf('\ndjmaus: read this Recording Path from file:%s', RecordingPath)
-    
-    %     SP.activedir=RecordingPath;
-    SP.activedir=fullfile(pref.datahost, RecordingPath); %functional 2/8/2021 Nick
-    %SP.activedir=strrep(SP.activedir, ':', ''); %commenting out to run on
-    %single-machine windows configuration - was this important for
-    %2-machine config?? mw 04.11.2017
-    
-    if strcmp(SP.activedir(1:6), 'o:\d:\') %hack mw 080217
-        SP.activedir=SP.activedir([1:3 7:end]);
-    end
-    if strcmp(SP.activedir(1:6), 'n:\e:\') %hack mw 081518
-        SP.activedir=SP.activedir([1:3 7:end]);
-    end
-    
-    if ~pref.local
-        SP.activedir=strrep(SP.activedir, ':', '');
-    end
-    
-    d=dir(SP.activedir);
-    if isempty(d)
-        w=0;
-        wb=waitbar(0, 'waiting for data directory to mount...');
-        set(wb, 'units', 'pixels');
-        pos=get(wb, 'pos');
-        set(wb, 'pos', [pref.windowpos(1),pref.windowpos(2)+pref.windowpos(4)-2*pos(4), pos(3), pos(4)]);
-        while isempty(d)
-            d=dir(SP.activedir);
-            pause(.1)
+        wb1=waitbar(0, 'zeroMQwrapper:GetReply did not return a reply, re-trying ...', 'visible', 'off');
+        while ~exist('RecordingPath','var')
+            %sometimes it doesn't work for some reason, and we get
+            %"zmq wrapper GetReply: there is no reply available"
+            %so we can re-try and see if that helps
+            %mw 04.22.2019
+            w=0;
+            
+            set(wb1, 'units', 'pixels', 'visible', 'on');
+            pos=get(wb1, 'pos');
+            set(wb1, 'pos', [pref.windowpos(1),pref.windowpos(2)+pref.windowpos(4)-2*pos(4), pos(3), pos(4)]);
+            
+            fprintf('\nzeroMQwrapper:GetReply did not return a reply, re-trying ...')
+            pause(2)
             w=w+.1;
-            waitbar(mod(w, 1),wb)
+            waitbar(mod(w, 1),wb1)
+            
+            RecordingPath = zeroMQwrapper('GetReply',SP.zhandle);
         end
-        close(wb)
+        close(wb1)
+        
+        %     cd(pref.root)
+        %     fid=fopen('RecordingPath.txt', 'r');
+        %     RecordingPath=fgetl(fid);
+        %     RecordingPathSize=str2num(fgetl(fid));
+        %     fclose(fid);
+        %     %hack: on windows I am still getting extra characters -> trim to size
+        %     RecordingPath=RecordingPath(1:RecordingPathSize);
+        %     fprintf('\ndjmaus: read this Recording Path from file:%s', RecordingPath)
+        
+        %     SP.activedir=RecordingPath;
+        SP.activedir=fullfile(pref.datahost, RecordingPath); %functional 2/8/2021 Nick
+        
+        %%%%%%%%%%%%%%%% for the new (6/23, Kip) OEphys GUI, need to add one more directory layer:
+        cd(SP.bonsaiFolder)
+        listoffolders = dir; thedates = arrayfun(@(x) datetime(x.date), listoffolders);
+        [~,sidx] = sort(thedates,'descend');
+        for i = 1:6 %take latest 6 (b/c sometimes '.','..',thumbs,DS,camerafiles,etc may be most recent)
+            OEFolder = listoffolders(sidx(i)).name;
+            if length(OEFolder)>15 %this will be the directory
+                break
+            end
+        end
+        SP.activedir = strcat(SP.bonsaiFolder,'\',OEFolder);
+        %%%%%%%%%%%%%%%
+        
+        
+        %SP.activedir=strrep(SP.activedir, ':', ''); %commenting out to run on
+        %single-machine windows configuration - was this important for
+        %2-machine config?? mw 04.11.2017
+        
+        if strcmp(SP.activedir(1:6), 'o:\d:\') %hack mw 080217
+            SP.activedir=SP.activedir([1:3 7:end]);
+        end
+        if strcmp(SP.activedir(1:6), 'n:\e:\') %hack mw 081518
+            SP.activedir=SP.activedir([1:3 7:end]);
+        end
+        
+        if ~pref.local
+            SP.activedir=strrep(SP.activedir, ':', '');
+        end
+        
+        d=dir(SP.activedir);
+        if isempty(d)
+            w=0;
+            wb=waitbar(0, 'waiting for data directory to mount...');
+            set(wb, 'units', 'pixels');
+            pos=get(wb, 'pos');
+            set(wb, 'pos', [pref.windowpos(1),pref.windowpos(2)+pref.windowpos(4)-2*pos(4), pos(3), pos(4)]);
+            while isempty(d)
+                d=dir(SP.activedir);
+                pause(.1)
+                
+                w=w+.1;
+                waitbar(mod(w, 1),wb1)
+                
+                RecordingPath = zeroMQwrapper('GetReply',SP.zhandle )
+            end
+            close(wb1)
+            
+            %     cd(pref.root)
+            %     fid=fopen('RecordingPath.txt', 'r');
+            %     RecordingPath=fgetl(fid);
+            %     RecordingPathSize=str2num(fgetl(fid));
+            %     fclose(fid);
+            %     %hack: on windows I am still getting extra characters -> trim to size
+            %     RecordingPath=RecordingPath(1:RecordingPathSize);
+            %     fprintf('\ndjmaus: read this Recording Path from file:%s', RecordingPath)
+            
+            %     SP.activedir=RecordingPath;
+            SP.activedir=fullfile(pref.datahost, RecordingPath); %functional 2/8/2021 Nick
+            %SP.activedir=strrep(SP.activedir, ':', ''); %commenting out to run on
+            %single-machine windows configuration - was this important for
+            %2-machine config?? mw 04.11.2017
+            
+            if strcmp(SP.activedir(1:6), 'o:\d:\') %hack mw 080217
+                SP.activedir=SP.activedir([1:3 7:end]);
+            end
+            if strcmp(SP.activedir(1:6), 'n:\e:\') %hack mw 081518
+                SP.activedir=SP.activedir([1:3 7:end]);
+            end
+            
+            if ~pref.local
+                SP.activedir=strrep(SP.activedir, ':', '');
+            end
+            
+            d=dir(SP.activedir);
+            if isempty(d)
+                w=0;
+                wb=waitbar(0, 'waiting for data directory to mount...');
+                set(wb, 'units', 'pixels');
+                pos=get(wb, 'pos');
+                set(wb, 'pos', [pref.windowpos(1),pref.windowpos(2)+pref.windowpos(4)-2*pos(4), pos(3), pos(4)]);
+                while isempty(d)
+                    d=dir(SP.activedir);
+                    pause(.1)
+                    w=w+.1;
+                    waitbar(mod(w, 1),wb)
+                end
+                close(wb)
+            end
+        end
+    catch
+        
+        lasterr
+        %close(wb1)
+        errordlg('Go get Mike', '', 'modal');
+        keyboard
+        
+        fprintf('\nCould not create notebook file in active data directory')
+        %ask user if they want to manually save notebook file
+        ButtonName = questdlg('Could not create notebook file in active data directory. Do you want to manually save the notebook file?');
+        switch ButtonName,
+            case 'Yes'
+                targetdir = uigetdir(SP.datapath, 'Select directory in which to save notebook file.')
+                cd(targetdir)
+                SP.activedir=pwd;
+                nb.activedir=pwd;
+            case 'No'
+            case 'Cancel'
+                return
+        end
     end
-    cd(SP.activedir)
-    
-    set(SP.pathh, 'string', {SP.datapath, [SP.activedir, ' recording...']})
-    
-    %future directions: use hdf5 files for this
-    %there aren't any easy utilities to store compound data (i.e. structures)
-    %in h5, so I'm just using .mat for now, could write utility in the future
-    
-    nb.user=SP.user;
-    nb.mouseID=SP.mouseID;
-    nb.Depth=SP.Depth;
-    nb.datapath=SP.datapath ;
-    nb.activedir=SP.activedir;
-    nb.LaserPower=SP.LaserPower;
-    nb.mouseDOB=SP.mouseDOB;
-    nb.mouseSex=SP.mouseSex;
-    nb.mouseGenotype=SP.mouseGenotype;
-    nb.Drugs=SP.Drugs;
-    nb.notes=SP.Notes;
-    nb.Reinforcement=SP.Reinforcement;
-    
-    if isfield(SP, 'mouse2ID')
-        nb.mouse2ID=SP.mouse2ID;
-        nb.mouse2DOB=SP.mouse2DOB;
-        nb.mouse2Sex=SP.mouse2Sex;
-        nb.mouse2Genotype=SP.mouse2Genotype;
-    end
-    
-    save('notebook.mat', 'nb')
-    fprintf('\ncreated notebook file in %s', nb.activedir)
-catch
-    lasterr
-    %close(wb1)
-    errordlg('Go get Mike', '', 'modal');
-    keyboard
-    
-    fprintf('\nCould not create notebook file in active data directory')
-    %ask user if they want to manually save notebook file
-    ButtonName = questdlg('Could not create notebook file in active data directory. Do you want to manually save the notebook file?');
-    switch ButtonName,
-        case 'Yes'
-            targetdir = uigetdir(SP.datapath, 'Select directory in which to save notebook file.')
-            cd(targetdir)
-            SP.activedir=pwd;
-            nb.activedir=pwd;
-            save('notebook.mat', 'nb')
-            set(SP.pathh, 'string', {SP.datapath, [SP.activedir, ' recording...']})
-        case 'No'
-        case 'Cancel'
-    end
+end %if mesoscope mode
+
+cd(SP.activedir)
+set(SP.pathh, 'string', {SP.datapath, [SP.activedir, ' recording...']})
+
+%future directions: use hdf5 files for this
+%there aren't any easy utilities to store compound data (i.e. structures)
+%in h5, so I'm just using .mat for now, could write utility in the future
+
+nb.user=SP.user;
+nb.mouseID=SP.mouseID;
+nb.Depth=SP.Depth;
+nb.datapath=SP.datapath ;
+nb.activedir=SP.activedir;
+nb.LaserPower=SP.LaserPower;
+nb.mouseDOB=SP.mouseDOB;
+nb.mouseSex=SP.mouseSex;
+nb.mouseGenotype=SP.mouseGenotype;
+nb.Drugs=SP.Drugs;
+nb.notes=SP.Notes;
+nb.Reinforcement=SP.Reinforcement;
+
+if isfield(SP, 'mouse2ID')
+    nb.mouse2ID=SP.mouse2ID;
+    nb.mouse2DOB=SP.mouse2DOB;
+    nb.mouse2Sex=SP.mouse2Sex;
+    nb.mouse2Genotype=SP.mouse2Genotype;
 end
+if isfield(SP, 'mouse3ID')
+    nb.mouse3ID=SP.mouse3ID;
+    nb.mouse3DOB=SP.mouse3DOB;
+    nb.mouse3Sex=SP.mouse3Sex;
+    nb.mouse3Genotype=SP.mouse3Genotype;
+end
+if isfield(SP, 'mouse4ID')
+    nb.mouse4ID=SP.mouse4ID;
+    nb.mouse4DOB=SP.mouse4DOB;
+    nb.mouse4Sex=SP.mouse4Sex;
+    nb.mouse4Genotype=SP.mouse4Genotype;
+end
+
+save('notebook.mat', 'nb')
+fprintf('\ncreated notebook file in %s', nb.activedir)
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function UpdateStimlog(stimulus)
 global SP
@@ -1065,6 +1454,18 @@ if isfield(SP, 'mouse2ID')
     nb.mouse2Sex=SP.mouse2Sex;
     nb.mouse2Genotype=SP.mouse2Genotype;
 end
+if isfield(SP, 'mouse3ID')
+    nb.mouse3ID=SP.mouse3ID;
+    nb.mouse3DOB=SP.mouse3DOB;
+    nb.mouse3Sex=SP.mouse3Sex;
+    nb.mouse3Genotype=SP.mouse3Genotype;
+end
+if isfield(SP, 'mouse4ID')
+    nb.mouse4ID=SP.mouse4ID;
+    nb.mouse4DOB=SP.mouse4DOB;
+    nb.mouse4Sex=SP.mouse4Sex;
+    nb.mouse4Genotype=SP.mouse4Genotype;
+end
 
 if ~isfield(SP, 'stimlog') %perhaps no stimuli were even delivered
     stimlog=[];
@@ -1072,6 +1473,7 @@ else
     stimlog=SP.stimlog;
 end
 try
+    cd(nb.datapath)
     cd(nb.activedir)
     
     %read stim log from json file and convert to stim structure
@@ -1090,6 +1492,16 @@ try
     %     end
     
     save('notebook.mat', '-append', 'nb', 'stimlog')
+    json_nb_text=jsonencode(nb);
+    json_stimlog_text=jsonencode(stimlog);
+    fid=fopen('notebook.json', 'w');
+    fprintf(fid, '%s', json_nb_text);
+    fclose(fid);
+    fid=fopen('stimlog.json', 'w');
+    fprintf(fid, '%s', json_stimlog_text);
+    fclose(fid);
+    
+    
     fprintf('\nupdated notebook file in %s', nb.activedir)
 catch
     fprintf('\nCould not update notebook file.')
@@ -1116,7 +1528,7 @@ catch
     pause(.5)
     SP.zhandle=[];
 end
-
+fprintf('\n')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function stimparam=CalibrateSound(stimparam, stimtype);
@@ -1255,6 +1667,7 @@ function InitParams
 global SP pref
 
 SP.datapath=pref.datapath;
+SP.mouseID='unknown';
 SP.CurrentStimulus=[];
 SP.stimcounter=0;
 SP.NStimuli=[];
@@ -1414,9 +1827,15 @@ H=H+e;
 laserpanel = uipanel( 'Title','Laser','units','pixels', 'Position',[4*e+2*w 3*h+3*e .9*w 7.5*h+7*e]);
 ww=.8*w;
 %laser edit boxes
+SP.LaserStart=0;
+SP.LaserWidth=100;
+SP.LaserNumPulses=10;
+SP.LaserISI=100;
+SP.LaserOnOff=0;
+
 H=2*e;
 SP.LaserISIh=uicontrol('Parent',laserpanel,'tag','LaserISI','style','edit','units','pixels',...
-    'string', '0','enable','off','horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
+    'string', num2str(SP.LaserISI),'enable','off','horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
 H=H+h;
 SP.LaserISIlabel=uicontrol('Parent', laserpanel,'tag','ISIlabel','style','text','units','pixels',...
     'string', 'ISI:', 'fontsize', labelfs,...
@@ -1424,7 +1843,7 @@ SP.LaserISIlabel=uicontrol('Parent', laserpanel,'tag','ISIlabel','style','text',
 H=H+h/2+e;
 
 SP.LaserNumPulsesh=uicontrol('Parent',laserpanel,'tag','LaserNumPulses','style','edit','units','pixels',...
-    'string', '1','horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
+    'string', num2str(SP.LaserNumPulses),'horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
 H=H+h;
 SP.LaserNumPulseslabel=uicontrol('Parent', laserpanel,'tag','NumPulseslabel','style','text','units','pixels',...
     'string', 'NumPulses:', 'fontsize', labelfs,...
@@ -1432,7 +1851,7 @@ SP.LaserNumPulseslabel=uicontrol('Parent', laserpanel,'tag','NumPulseslabel','st
 H=H+h/2+e;
 
 SP.LaserWidthh=uicontrol('Parent',laserpanel,'tag','LaserWidth','style','edit','units','pixels',...
-    'string', '100','horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
+    'string', num2str(SP.LaserWidth),'horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
 H=H+h;
 SP.LaserWidthlabel=uicontrol('Parent', laserpanel,'tag','Widthlabel','style','text','units','pixels',...
     'string', 'Width:', 'fontsize', labelfs,...
@@ -1440,7 +1859,7 @@ SP.LaserWidthlabel=uicontrol('Parent', laserpanel,'tag','Widthlabel','style','te
 H=H+h/2+e;
 
 SP.LaserStarth=uicontrol('Parent',laserpanel,'tag','LaserStart','style','edit','units','pixels',...
-    'string', '0','horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
+    'string', num2str(SP.LaserStart),'horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
 H=H+h;
 SP.LaserStartlabel=uicontrol('Parent', laserpanel,'tag','Startlabel','style','text','units','pixels',...
     'string', 'Start:', 'fontsize', labelfs,...
@@ -1450,13 +1869,6 @@ H=H+h/2+e;
 SP.LaserOnOffh=uicontrol('Parent',laserpanel,'tag','LaserOnOff','style','toggle','units','pixels',...
     'string', 'Laser is OFF','horiz','left', 'callback',[me ';'],'pos',[e  H ww h ]);
 H=H+h;
-
-SP.LaserStart=0;
-SP.LaserWidth=100;
-SP.LaserNumPulses=1;
-SP.LaserISI=0;
-SP.LaserOnOff=0;
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %notebook features
@@ -1472,8 +1884,9 @@ SP.Noteslabel=uicontrol(fig,'tag','Noteslabel','style','text','units','pixels',.
     'string', 'Notes', 'fontsize', labelfs,...
     'enable','inact','horiz','left','pos', [3*e+3*w  H w h/2]);
 
+%Notebook panel
 H=H+h/2+e;
-hp = uipanel( 'Title','Notebook','units','pixels', 'Position',[3*e+3*w H 2*w 16*h]);
+hp = uipanel( 'Title','Notebook','units','pixels', 'Position',[3*e+3*w H 2*w+2*e 16*h]);
 SP.hp=hp;
 
 % Manipulation/conditions details (anesthesia, Any other drugs, Shock, Reward, etc)
@@ -1557,7 +1970,7 @@ try
 catch
     DB_IDs=[];
 end
-    SP.allmouseIDs{1}='';
+SP.allmouseIDs{1}='';
 for i=1:length(DB_IDs)
     idname=DB_IDs(i).name;
     idname=strrep(idname, 'mouseID_', '');
@@ -1569,16 +1982,26 @@ H=H+h+e;
 
 %mouseID edit box
 SP.mouseIDh=uicontrol(fig,'Parent',hp,'tag','mouseID','style','edit','fontweight','bold','units','pixels',...
-    'string', '','horiz','left', 'callback',[me ';'],'pos',[e  H w h ]);
+    'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[e  H w h ], 'ForegroundColor', 'r');
 H=H+h+e;
 SP.mouseIDlabel=uicontrol(fig,'Parent',hp,'tag','mouseIDlabel','style','text','units','pixels',...
-    'string', 'mouseID', 'fontsize', labelfs,...
+    'string', 'mouseID', 'fontsize', 2+labelfs,...
     'enable','inact','horiz','left','pos', [e  H w h/2]);
 
 H=H+h/2;
 SP.SecondmouseIDbuttonh=uicontrol(fig,'Parent',hp,'tag','SecondmouseIDbutton',...
     'style','togglebutton','fontweight','bold','units','pixels','value', 0, ...
     'string', '+mouse','horiz','left', 'callback',[me ';'],'pos',[e+w/2  H w/2+e h ]);
+
+%H=H+h/2;
+SP.ThirdmouseIDbuttonh=uicontrol(fig,'Parent',hp,'tag','ThirdmouseIDbutton',...
+    'style','togglebutton','fontweight','bold','units','pixels','value', 0, ...
+    'string', '+mouse','horiz','left', 'callback',[me ';'],'pos',[e+w+w/2  H w/2+e h ], 'visible', 'off');
+
+%H=H+h/2;
+SP.FourthmouseIDbuttonh=uicontrol(fig,'Parent',hp,'tag','FourthmouseIDbutton',...
+    'style','togglebutton','fontweight','bold','units','pixels','value', 0, ...
+    'string', '+mouse','horiz','left', 'callback',[me ';'],'pos',[e+2*w+w/2  H w/2+e h ], 'visible', 'off');
 
 H=H+h;
 
@@ -1590,8 +2013,8 @@ if exist('mouseDB.mat')~=2
 end
 
 %%%%%%%%%%%%%%%%%%
-
 %send pi camera pulse button
+
 H=H+5*h+e;
 SP.camerapulse=uicontrol(fig,'tag','camerapulse','style','pushbutton','units','pixels',...
     'fontname','Arial', ...
@@ -1604,8 +2027,48 @@ H=H+h+e;
 %     'fontsize',12,'fontname','Arial','backgroundcolor',[0.75 0.75 0.75], ...
 %     'string', 'Play','callback', [me ';'],'enable','off','horiz','left','pos',[e H w 2*h ]);
 
-set(fig,'visible','on');
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% mesoscope mode stuff
+
+% a toggle for mescope mode that reads from prefs but allows you to override
+if ~isfield(pref, 'mesoscope_mode') %if not in prefs, default to 0=OpenEphys
+    pref.mesoscope_mode=0;
+end
+SP.mesoscope_mode=pref.mesoscope_mode; %1=meso, 0=intan/OE
+SP.MesoModeh=uicontrol(fig,'tag','mesoscope_mode','style','togglebutton','units','pixels','fontweight','bold',...
+    'string', '','enable','on','horiz','left', 'callback',[me ';'],'pos',[4*e+3*w H w h]);
+set(SP.MesoModeh, 'value', SP.mesoscope_mode);
+if SP.mesoscope_mode
+    set(SP.MesoModeh, 'String', 'Mesoscope')
+else
+    set(SP.MesoModeh, 'String', 'OpenEphys');
+end
+if SP.mesoscope_mode
+    
+    fprintf('\ninitializing arduino...')
+    djMessage('initializing arduino...', 'append')
+    try
+        clear SP.arduino
+        SP.arduino=arduino;
+        fprintf(' done\n' )
+        djMessage(' done', 'append')
+    catch
+        warning(lasterr)
+        djMessage('failed. Could not connect to arduino.', 'append')
+        fprintf(' failed. Could not connect to arduino.\n' )
+        SP.arduino=-1; %if there's no arduino connected
+    end
+    SP.arduinoProtocolStartpin='D10';
+    SP.arduinoSCTpin='D11';
+    SP.arduinoTimer=timer; %this stops the pulse after a delay without suspending execution
+    %it's single shot by default
+    SP.arduinoTimer.StartDelay=.001; %1 ms
+    SP.arduinoTimer.TimerFcn=@(~,~)writeDigitalPin(SP.arduino, SP.arduinoSCTpin, 0);
+end %if SP.mesoscope_mode
+
+
+set(fig,'visible','on');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%InitializeGui%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1627,11 +2090,14 @@ if buttonstate %add second mouse
     pos(3)=pos(3)+w+e;
     set(fig, 'pos', pos)
     set(SP.SecondmouseIDbuttonh,'string', '-mouse')
+    set(SP.ThirdmouseIDbuttonh,'visible', 'on')
+    pos=get(SP.Notesh, 'Position');
+    set(SP.Notesh, 'Position',[pos(1) pos(2) pos(3)+w pos(4)]);
     
     %mouseID menu
     H=H+10.5*h+9*e;
     warning('off', 'MATLAB:hg:uicontrol:StringMustBeNonEmpty');
-    if isfield(pref, 'allmouseIDs') SP.allmouseIDs=pref.allmouseIDs; else SP.allmouseIDs='';end
+    %    if isfield(pref, 'allmouseIDs') SP.allmouseIDs=pref.allmouseIDs; else SP.allmouseIDs='';end
     SP.mouse2IDMenuh=uicontrol(fig,'Parent',hp,'tag','mouse2IDMenu','style','popupmenu','units','pixels','fontweight','bold',...
         'string', SP.allmouseIDs,'enable','on','horiz','left','callback',[me ';'], 'pos',[e+w H w h]);
     H=H+h+e;
@@ -1641,7 +2107,7 @@ if buttonstate %add second mouse
         'string', '','horiz','left', 'callback',[me ';'],'pos',[e+w  H w h ]);
     H=H+h+e;
     SP.mouse2IDlabel=uicontrol(fig,'Parent',hp,'tag','mouse2IDlabel','style','text','units','pixels',...
-        'string', 'mouse2ID', 'fontsize', labelfs,...
+        'string', 'mouse2ID', 'fontsize', 2+labelfs,...
         'enable','inact','horiz','left','pos', [e+w  H w h/2]);
     
     H=81;
@@ -1688,8 +2154,189 @@ elseif ~buttonstate %remove second mouse
     pos(3)=pos(3)-w-e;
     set(SP.fig, 'pos', pos)
     set(SP.SecondmouseIDbuttonh,'string', '+mouse')
+    pos=get(SP.Notesh, 'Position');
+    set(SP.Notesh, 'Position',[pos(1) pos(2) pos(3)-w pos(4)]);
     
     djMessage('removed second mouse')
+end
+
+function AddThirdMouse
+global SP pref
+fig=SP.fig;
+hp=SP.hp;
+pos=get(fig, 'position');
+e=2; H=e;
+w=100; h=25;
+labelfs=8; %fontsize for labels
+
+buttonstate=get( SP.ThirdmouseIDbuttonh, 'value');
+if buttonstate %add Third mouse
+    djMessage(' adding a Third mouse...')
+    %keyboard
+    pos(3)=pos(3)+w+e;
+    set(fig, 'pos', pos)
+    set(SP.ThirdmouseIDbuttonh,'string', '-mouse')
+    set(SP.FourthmouseIDbuttonh,'visible', 'on')
+    
+    pos=get(SP.hp, 'Position');
+    set(SP.hp, 'Position',[pos(1) pos(2) pos(3)+w pos(4)]);
+    pos=get(SP.Notesh, 'Position');
+    set(SP.Notesh, 'Position',[pos(1) pos(2) pos(3)+w pos(4)]);
+    
+    %mouseID menu
+    H=H+10.5*h+9*e;
+    W=2*w;
+    warning('off', 'MATLAB:hg:uicontrol:StringMustBeNonEmpty');
+    %if isfield(pref, 'allmouseIDs') SP.allmouseIDs=pref.allmouseIDs; else SP.allmouseIDs='';end
+    SP.mouse3IDMenuh=uicontrol(fig,'Parent',hp,'tag','mouse3IDMenu','style','popupmenu','units','pixels','fontweight','bold',...
+        'string', SP.allmouseIDs,'enable','on','horiz','left','callback',[me ';'], 'pos',[e+W H w h]);
+    H=H+h+e;
+    
+    %mouseID edit box
+    SP.mouse3IDh=uicontrol(fig,'Parent',hp,'tag','mouse3ID','style','edit','fontweight','bold','units','pixels',...
+        'string', '','horiz','left', 'callback',[me ';'],'pos',[e+W  H w h ]);
+    H=H+h+e;
+    SP.mouse3IDlabel=uicontrol(fig,'Parent',hp,'tag','mouse3IDlabel','style','text','units','pixels',...
+        'string', 'mouse3ID', 'fontsize', 2+labelfs,...
+        'enable','inact','horiz','left','pos', [e+W  H w h/2]);
+    
+    H=81;
+    %mouse details
+    SP.mouse3DOBh=uicontrol(fig,'Parent',hp,'tag','mouse3DOB','style','edit','units','pixels',...
+        'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[e+W  H w h ]);
+    H=H+h;
+    SP.mouse3DOBlabel=uicontrol(fig,'Parent',hp,'tag','mouse3DOBlabel','style','text','units','pixels',...
+        'string', 'mouse3DOB:', 'fontsize', labelfs,...
+        'enable','inact','horiz','left','pos', [e+W  H w h/2]);
+    H=H+h/2+e;
+    
+    SP.mouse3Sexh=uicontrol(fig,'Parent',hp,'tag','mouse3Sex','style','edit','units','pixels',...
+        'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[e+W  H w h ]);
+    H=H+h;
+    SP.mouse3Sexlabel=uicontrol(fig,'Parent',hp,'tag','mouse3Sexlabel','style','text','units','pixels',...
+        'string', 'mouse3Sex:', 'fontsize', labelfs,...
+        'enable','inact','horiz','left','pos', [e+W  H w h/2]);
+    H=H+h/2+e;
+    SP.mouse3Genotypeh=uicontrol(fig,'Parent',hp,'tag','mouse3Genotype','style','edit','units','pixels',...
+        'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[e+W  H w h ]);
+    H=H+h;
+    SP.mouse3Genotypelabel=uicontrol(fig,'Parent',hp,'tag','mouse3Genotypelabel','style','text','units','pixels',...
+        'string', 'mouse3Genotype:', 'fontsize', labelfs,...
+        'enable','inact','horiz','left','pos', [e+W  H w h/2]);
+    H=H+h/2+e;
+    SP.mouse3Sex='unknown';
+    SP.mouse3DOB='unknown';
+    SP.mouse3Genotype='unknown';
+    
+elseif ~buttonstate %remove Third mouse
+    
+    clear SP.mouse3Sex SP.mouse3DOB SP.mouse3Genotype SP.mouse3ID
+    delete(SP.mouse3Genotypeh)
+    delete(SP.mouse3Genotypelabel)
+    delete(SP.mouse3Sexlabel)
+    delete(SP.mouse3Sexh)
+    delete(SP.mouse3DOBlabel)
+    delete(SP.mouse3DOBh)
+    delete(SP.mouse3IDMenuh)
+    delete(SP.mouse3IDh )
+    delete(SP.mouse3IDlabel)
+    
+    pos(3)=pos(3)-w-e;
+    set(SP.fig, 'pos', pos)
+    set(SP.ThirdmouseIDbuttonh,'string', '+mouse')
+    set(SP.FourthmouseIDbuttonh, 'visible', 'off')
+    pos=get(SP.Notesh, 'Position');
+    set(SP.Notesh, 'Position',[pos(1) pos(2) pos(3)-w pos(4)]);
+    
+    djMessage('removed Third mouse')
+end
+
+function AddFourthMouse
+global SP pref
+fig=SP.fig;
+hp=SP.hp;
+pos=get(fig, 'position');
+e=2; H=e;
+w=100; h=25;
+labelfs=8; %fontsize for labels
+
+buttonstate=get( SP.FourthmouseIDbuttonh, 'value');
+if buttonstate %add fourth mouse
+    djMessage(' adding a fourth mouse...')
+    %keyboard
+    pos(3)=pos(3)+w+e;
+    set(fig, 'pos', pos)
+    set(SP.FourthmouseIDbuttonh,'string', '-mouse')
+    pos=get(SP.hp, 'Position');
+    set(SP.hp, 'Position',[pos(1) pos(2) pos(3)+w pos(4)]);
+    pos=get(SP.Notesh, 'Position');
+    set(SP.Notesh, 'Position',[pos(1) pos(2) pos(3)+w pos(4)]);
+    
+    %mouseID menu
+    H=H+10.5*h+9*e;
+    W=3*w;
+    warning('off', 'MATLAB:hg:uicontrol:StringMustBeNonEmpty');
+    %if isfield(pref, 'allmouseIDs') SP.allmouseIDs=pref.allmouseIDs; else SP.allmouseIDs='';end
+    SP.mouse4IDMenuh=uicontrol(fig,'Parent',hp,'tag','mouse4IDMenu','style','popupmenu','units','pixels','fontweight','bold',...
+        'string', SP.allmouseIDs,'enable','on','horiz','left','callback',[me ';'], 'pos',[e+W H w h]);
+    H=H+h+e;
+    
+    %mouseID edit box
+    SP.mouse4IDh=uicontrol(fig,'Parent',hp,'tag','mouse4ID','style','edit','fontweight','bold','units','pixels',...
+        'string', '','horiz','left', 'callback',[me ';'],'pos',[e+W  H w h ]);
+    H=H+h+e;
+    SP.mouse4IDlabel=uicontrol(fig,'Parent',hp,'tag','mouse4IDlabel','style','text','units','pixels',...
+        'string', 'mouse4ID', 'fontsize', 2+labelfs,...
+        'enable','inact','horiz','left','pos', [e+W  H w h/2]);
+    
+    H=81;
+    %mouse details
+    SP.mouse4DOBh=uicontrol(fig,'Parent',hp,'tag','mouse4DOB','style','edit','units','pixels',...
+        'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[e+W  H w h ]);
+    H=H+h;
+    SP.mouse4DOBlabel=uicontrol(fig,'Parent',hp,'tag','mouse4DOBlabel','style','text','units','pixels',...
+        'string', 'mouse4DOB:', 'fontsize', labelfs,...
+        'enable','inact','horiz','left','pos', [e+W  H w h/2]);
+    H=H+h/2+e;
+    
+    SP.mouse4Sexh=uicontrol(fig,'Parent',hp,'tag','mouse4Sex','style','edit','units','pixels',...
+        'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[e+W  H w h ]);
+    H=H+h;
+    SP.mouse4Sexlabel=uicontrol(fig,'Parent',hp,'tag','mouse4Sexlabel','style','text','units','pixels',...
+        'string', 'mouse4Sex:', 'fontsize', labelfs,...
+        'enable','inact','horiz','left','pos', [e+W  H w h/2]);
+    H=H+h/2+e;
+    SP.mouse4Genotypeh=uicontrol(fig,'Parent',hp,'tag','mouse4Genotype','style','edit','units','pixels',...
+        'string', 'unknown','horiz','left', 'callback',[me ';'],'pos',[e+W  H w h ]);
+    H=H+h;
+    SP.mouse4Genotypelabel=uicontrol(fig,'Parent',hp,'tag','mouse4Genotypelabel','style','text','units','pixels',...
+        'string', 'mouse4Genotype:', 'fontsize', labelfs,...
+        'enable','inact','horiz','left','pos', [e+W  H w h/2]);
+    H=H+h/2+e;
+    SP.mouse4Sex='unknown';
+    SP.mouse4DOB='unknown';
+    SP.mouse4Genotype='unknown';
+    
+elseif ~buttonstate %remove fourth mouse
+    
+    clear SP.mouse4Sex SP.mouse4DOB SP.mouse4Genotype SP.mouse4ID
+    delete(SP.mouse4Genotypeh)
+    delete(SP.mouse4Genotypelabel)
+    delete(SP.mouse4Sexlabel)
+    delete(SP.mouse4Sexh)
+    delete(SP.mouse4DOBlabel)
+    delete(SP.mouse4DOBh)
+    delete(SP.mouse4IDMenuh)
+    delete(SP.mouse4IDh )
+    delete(SP.mouse4IDlabel)
+    
+    pos(3)=pos(3)-w-e;
+    set(SP.fig, 'pos', pos)
+    set(SP.FourthmouseIDbuttonh,'string', '+mouse')
+    pos=get(SP.Notesh, 'Position');
+    set(SP.Notesh, 'Position',[pos(1) pos(2) pos(3)-w pos(4)]);
+    
+    djMessage('removed fourth mouse')
 end
 
 

@@ -33,7 +33,9 @@ release = '1'
 extensions = [
   'sphinxcontrib.matlab', 
   'sphinx.ext.autodoc',
-  'sphinx.ext.napoleon'
+  'sphinx.ext.napoleon',
+  'sphinx.ext.viewcode',
+  'sphinx.ext.autosummary'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -45,13 +47,18 @@ templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 import os
-matlab_src_dir = os.path.abspath('../')
+this_dir = os.path.dirname(os.path.abspath(__file__))
+matlab_src_dir = os.path.abspath(os.path.join(this_dir, '..', '..'))
 
 primary_domain = "mat"
 
 # allow easier docstring styles
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
+
+autodoc_default_options: {
+  'undoc-members': True
+}
 
 
 # -- Options for HTML output -------------------------------------------------

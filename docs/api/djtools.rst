@@ -1,6 +1,6 @@
 DjTools
 ========
 
-.. automodule:: djtools
+.. automodule:: djmaus.djtools
    :members:
    :undoc-members:

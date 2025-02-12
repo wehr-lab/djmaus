@@ -14,9 +14,15 @@ cd(datapath)
 try
     load notebook.mat
 catch
-    fprintf('no notebook file found in %s', datapath)
-    stimparams=[];
-    return
+    try
+        d=dir('20*');
+                cd(d(1).name)
+                load notebook.mat
+    catch
+        fprintf('no notebook file found in %s', datapath)
+        stimparams=[];
+        return
+    end
 end
 
 
@@ -157,6 +163,8 @@ stimparams.SOAs=unique(allSOAs);
 stimparams.gapdelays=unique(allgapdelays);
 stimparams.gapdurs=unique(allgapdurs);
 stimparams.ISIs=unique(allISIs);
+
+stimparams.icis=unique(allicis);
 
 stimparams.prepulseamps=unique(allprepulseamps);
 stimparams.prepulsefreqs=unique(allprepulsefreqs);

@@ -15,7 +15,7 @@ hi_pass_cutoff=3000;
 lo_pass_cutoff=300;
 printtofile=1; %print figures to postscript file
 closewindows=1; %close windows as soon as you print them
-
+write_depth_textfile=1; %create or edit depth.txt file
 force_reprocess=0;
 
 if nargin==0

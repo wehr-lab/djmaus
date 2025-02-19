@@ -1,4 +1,6 @@
 % ProcessOpenEphysSession
+
+
 %
 % pre-process data recorded in new open ephys data format using Session function from open-ephys-matlab-tools
 % also processes and aligns camera and behavioral data
@@ -10,6 +12,27 @@
 % directory
 %mw 04.27.2024
 %
+% This really should be converted into a function because as a script it's
+% brittle and could be carrying over the wrong info.
+%this would require changing all calls to ProcessSession to return outputs
+% function [Bdirs, dirs, BonsaiFolder, OEsamplerate, ...
+%     BonsaiPath, OEversion, soundcardtrigger, SortedUnitsFile, ...
+%     lasertrace, stimtrace, TTL, messages, EphysPath, assimilationfilename, num_channels, timestamps, ...
+%     EphysPath_KS, behaviorfilename, nummessages, bit_volts, numsoundcardtriggers, LocalDataRoot]=ProcessSession
+%
+% these are the variables we potentially might want to return
+% Bdirs                 OEinfofilename        dirs                  session               
+% BonsaiFolder          OEsamplerate          dsky                  sessionfilename       
+% BonsaiPath            OEversion             dttl                  soundcardtrigger      
+% DLC_exists            SortedUnitsFile       lasertrace            stimtrace             
+% DataRoot              TTL                   messages              sudir                 
+% EphysPath             assimilationfilename  num_channels          timestamps            
+% EphysPath_KS          behaviorfilename      nummessages           
+% ForceReprocess        bit_volts             numsoundcardtriggers  
+% LocalDataRoot         d                     oe                    
+
+clear EphysPath
+
 ForceReprocess=0;
 
 % check to make sure we're in the bonsai folder
@@ -29,8 +52,10 @@ cd(BonsaiPath)
 [~,BonsaiFolder,~]=fileparts(BonsaiPath); %BonsaiFolder is just the timestamp-mouseID identifier of the Bonsai directory (excluding the abolute path)
 OEinfofilename=sprintf('OEinfo-%s.mat', BonsaiFolder);
 if exist(OEinfofilename)==2
-    load(OEinfofilename)
+    oe=load(OEinfofilename);
     fprintf('\nfound and loaded %s\n', OEinfofilename)
+    EphysPath=oe.EphysPath;
+    EphysPath_KS=oe.EphysPath_KS;
 else
     EphysPath_exists=1;
     % % ed=dir('2024-*'); %this will obviously only work for 2024 data

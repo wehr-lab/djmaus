@@ -69,6 +69,11 @@ end
 if exist(outfilename,'file')
     load(outfilename)
     fprintf('\nloaded outfile.')
+elseif exist('Bdirs.mat', 'file') %we're in BonsaiDir, look for outfile in EphysDir
+    load('Bdirs.mat')
+    cd(dirs{1})
+    load(outfilename)
+    fprintf('\nloaded outfile.')
 else
     fprintf('\ncould not find outfile, calling ProcessSession...')
     if exist('./notebook.mat')==2
@@ -107,8 +112,8 @@ else
 end
 
 if printtofile
-    delete figs.ps
-    delete figs.pdf
+    %delete figs.ps
+    %delete figs.pdf
     pdffilename=sprintf('%s-figs.pdf', out.BonsaiFolder);
     delete(pdffilename)
     close all
@@ -498,7 +503,7 @@ for cellnum=cells
                     end
 
                     if LaserRecorded
-                        for rep=1:nrepsON(findex, aindex, dindex)
+                        for rep=1:nrepsON(cellnum, findex, aindex, dindex)
                             Lasertrace=squeeze(M1ONLaser(findex, aindex, dindex,rep, :));
                             Lasertrace=Lasertrace -mean(Lasertrace(1:100));
                             Lasertrace=.05*diff(ylimits)*Lasertrace;
@@ -567,7 +572,7 @@ for cellnum=cells
                                 h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k');
                             end
                         end
-                        b=bar(X,N,1);
+                        b=bar(X(1:end-1), N,1);
                         set(b, 'facecolor', 'k');
                         vpos=mean(ylimits);
                         text(xlimits(1), vpos, 'SS')

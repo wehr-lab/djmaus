@@ -17,7 +17,7 @@ if ismac  windowpos=[ -1415 479 1381 680];end %mike's pref
 maxwindows=20; %raise a "continue?" box after this many windows to avoid crashing
 fs=12; %fontsize
 printtofile=1; %print figures to postscript file
-closewindows=0; %close windows as soon as you print them
+closewindows=1; %close windows as soon as you print them. Does nothing if printtofile=0.
 
 if nargin==0
     datadir=pwd;
@@ -48,6 +48,8 @@ try
 catch
     binwidth=5;
 end
+
+already_printed=[];
 
 outfilename='outPSTH.mat';
 cd(datadir)
@@ -193,7 +195,7 @@ for cellnum=cells
     fprintf('\ncell %d/%d', cellnum, cells(end))
     fprintf('\n%d spikes',  length(out.SortedUnits(cellnum).spiketimes))
 
-     if ismac %you could check this on windows, too, in case of excessive figure windows
+    if ismac %you could check this on windows, too, in case of excessive figure windows
         f=findobj('type', 'figure');
         if length(f)>maxwindows
             windowcheck=questdlg(sprintf('you''ve exceeded %d figure windows, continue?', maxwindows), 'lots of windows', 'continue', 'abort', 'continue');
@@ -203,7 +205,7 @@ for cellnum=cells
                     return
             end
         end
-     end
+    end
 
     chan=out.SortedUnits(cellnum).channel;
     if chan<=chans_per_shank
@@ -239,14 +241,14 @@ for cellnum=cells
                 end
             end
         end
-        if isempty(ymax) 
+        if isempty(ymax)
             ymax=0;
             fprintf('\nmaybe this cell never fired a spike ?');
         end
         ylimits=[-.3 ymax];
     end
     fprintf('\nusing ylimits [%.1f %.1f]', ylimits);
-    
+
 
 
     if numamps>=numdurs
@@ -438,8 +440,8 @@ for cellnum=cells
     if IL
         %plot the mean tuning curve ON
         for windex=1:numw
-        figure('position',windowpos, 'PaperOrientation', 'landscape')
-                
+            figure('position',windowpos, 'PaperOrientation', 'landscape')
+
             p=0;
             subplot1(numy,numx, 'Max', [.95 .9])
             for yindex=ystart:ystep:yend
@@ -613,10 +615,10 @@ for cellnum=cells
             end
         end
 
-          %plot OFF & ON overlayed, curves w/ no rasters
+        %plot OFF & ON overlayed, curves w/ no rasters
         for windex=1:numw
-        figure('position',windowpos, 'PaperOrientation', 'landscape')
-                
+            figure('position',windowpos, 'PaperOrientation', 'landscape')
+
             p=0;
             subplot1(numy,numx, 'Max', [.95 .9])
             for yindex=ystart:ystep:yend
@@ -639,7 +641,7 @@ for cellnum=cells
                     offset=ylimits(2);
                     yl=ylimits;
                     inc=(yl(2))/max(nrepsON(:));
-                   
+
                     Hon=plot(X(1:end-1), Non);
                     set(Hon, 'color', 'c', 'linew', 2);
                     hold on
@@ -671,13 +673,13 @@ for cellnum=cells
                         ylim(ylimits2)
                     end
 
-                       X=[xlimits(1), LaserStart, LaserStart, LaserStart+LaserWidth, LaserStart+LaserWidth, xlimits(2)];
-                        height=diff(ylimits)/10;
-                        Y=[0 0 height height 0 0];
-                        line(X,Y, 'color', 'b', 'linewidth', 2)
-                    
+                    X=[xlimits(1), LaserStart, LaserStart, LaserStart+LaserWidth, LaserStart+LaserWidth, xlimits(2)];
+                    height=diff(ylimits)/10;
+                    Y=[0 0 height height 0 0];
+                    line(X,Y, 'color', 'b', 'linewidth', 2)
 
-                   
+
+
 
                     xlim(xlimits)
                     %xlim([-50 100])
@@ -726,7 +728,7 @@ for cellnum=cells
                         offset=max(N);
                         yl=ylimits;
                         inc=(offset)/nreps_ssON(cellnum);
-                        
+
                         b=plot(x,N);
                         set(b, 'color', 'c');
                         vpos=mean(ylimits);
@@ -768,10 +770,10 @@ for cellnum=cells
             end
         end
 
-             %plot OFF & ON overlayed, curves WITH rasters
+        %plot OFF & ON overlayed, curves WITH rasters
         for windex=1:numw
-        figure('position',windowpos, 'PaperOrientation', 'landscape')
-                
+            figure('position',windowpos, 'PaperOrientation', 'landscape')
+
             p=0;
             subplot1(numy,numx, 'Max', [.95 .9])
             for yindex=ystart:ystep:yend
@@ -794,7 +796,7 @@ for cellnum=cells
                     offset=ylimits(2);
                     yl=ylimits;
                     inc=(yl(2))/max(nrepsON(:));
-                   
+
                     Hon=plot(X(1:end-1), Non);
                     set(Hon, 'color', 'c', 'linew', 2);
                     hold on
@@ -834,7 +836,7 @@ for cellnum=cells
                         ylimits2(1)=-2;
                     end
 
-                        ylimits2(2)=ylimits(2)+2+ offset;
+                    ylimits2(2)=ylimits(2)+2+ offset;
 
                     %ylimits2(2)=2*ylimits(2);
                     try
@@ -842,13 +844,13 @@ for cellnum=cells
                         ylim(ylimits2)
                     end
 
-                       X=[xlimits(1), LaserStart, LaserStart, LaserStart+LaserWidth, LaserStart+LaserWidth, xlimits(2)];
-                        height=diff(ylimits)/10;
-                        Y=[0 0 height height 0 0];
-                        line(X,Y, 'color', 'c', 'linewidth', 2)
-                    
+                    X=[xlimits(1), LaserStart, LaserStart, LaserStart+LaserWidth, LaserStart+LaserWidth, xlimits(2)];
+                    height=diff(ylimits)/10;
+                    Y=[0 0 height height 0 0];
+                    line(X,Y, 'color', 'c', 'linewidth', 2)
 
-                   
+
+
 
                     xlim(xlimits)
                     %xlim([-50 100])
@@ -887,25 +889,28 @@ for cellnum=cells
                 end
             end
         end
-                   
+
 
     end
 
-      if printtofile
-            %print figures to postscript file
-            pdffilename=sprintf('%s-figs.pdf', out.BonsaiFolder);
-            f=findobj('type', 'figure');
-            for idx=1:length(f)
-                %figure(f(idx))
-                % orient landscape
-                % % print figs -dpsc2 -append -bestfit
+    if printtofile
+        %print figures to postscript file
+        f=findobj('type', 'figure');
+        for idx=1:length(f)
+            %figure(f(idx))
+            % orient landscape
+            % % print figs -dpsc2 -append -bestfit
+            if ~any(f(idx)==already_printed) %if printtofile=1 but closewindows=0, this keeps track so as to not re-print
                 exportgraphics(f(idx),pdffilename,'Append',true)
 
                 if closewindows
                     close
+                else
+                    already_printed=[already_printed f(idx)];
                 end
             end
-      end
+        end
+    end
     fprintf('\telapsed time %.0fs', toc)
 
 end

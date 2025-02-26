@@ -1,4 +1,6 @@
 % ProcessOpenEphysSession
+
+
 %
 % pre-process data recorded in new open ephys data format using Session function from open-ephys-matlab-tools
 % also processes and aligns camera and behavioral data
@@ -10,6 +12,27 @@
 % directory
 %mw 04.27.2024
 %
+% This really should be converted into a function because as a script it's
+% brittle and could be carrying over the wrong info.
+%this would require changing all calls to ProcessSession to return outputs
+% function [Bdirs, dirs, BonsaiFolder, OEsamplerate, ...
+%     BonsaiPath, OEversion, soundcardtrigger, SortedUnitsFile, ...
+%     lasertrace, stimtrace, TTL, messages, EphysPath, assimilationfilename, num_channels, timestamps, ...
+%     EphysPath_KS, behaviorfilename, nummessages, bit_volts, numsoundcardtriggers, LocalDataRoot]=ProcessSession
+%
+% these are the variables we potentially might want to return
+% Bdirs                 OEinfofilename        dirs                  session               
+% BonsaiFolder          OEsamplerate          dsky                  sessionfilename       
+% BonsaiPath            OEversion             dttl                  soundcardtrigger      
+% DLC_exists            SortedUnitsFile       lasertrace            stimtrace             
+% DataRoot              TTL                   messages              sudir                 
+% EphysPath             assimilationfilename  num_channels          timestamps            
+% EphysPath_KS          behaviorfilename      nummessages           
+% ForceReprocess        bit_volts             numsoundcardtriggers  
+% LocalDataRoot         d                     oe                    
+
+clear EphysPath
+
 ForceReprocess=0;
 
 % check to make sure we're in the bonsai folder
@@ -21,7 +44,7 @@ cd(BonsaiPath)
 dsky=dir('Sky_mouse-*');
 dttl=dir('TTL_mouse-*');
 if isempty(dsky) | isempty(dttl)
-    error('I don''t think this is a Bonsai folder because I can''t find any Sky_mouse=* or TTL_mouse-* files')
+    warning('I don''t think this is a Bonsai folder because I can''t find any Sky_mouse=* or TTL_mouse-* files')
 end
 
 %get EphysPath
@@ -29,8 +52,10 @@ cd(BonsaiPath)
 [~,BonsaiFolder,~]=fileparts(BonsaiPath); %BonsaiFolder is just the timestamp-mouseID identifier of the Bonsai directory (excluding the abolute path)
 OEinfofilename=sprintf('OEinfo-%s.mat', BonsaiFolder);
 if exist(OEinfofilename)==2
-    load(OEinfofilename)
+    oe=load(OEinfofilename);
     fprintf('\nfound and loaded %s\n', OEinfofilename)
+    EphysPath=oe.EphysPath;
+    EphysPath_KS=oe.EphysPath_KS;
 else
     EphysPath_exists=1;
     % % ed=dir('2024-*'); %this will obviously only work for 2024 data
@@ -80,6 +105,10 @@ elseif num_channels==142 %for 128 channel diagnostic biochips probe
     stimtracech=135;
     soundcardtriggerch=136;
     lasertracech=137;
+elseif num_channels==43 %32-ch tetrode config
+    stimtracech=36;
+    soundcardtriggerch=37;
+    lasertracech=38;
 end
     stimtrace=session.recordNodes{1}.recordings{1}.continuous(key).samples(stimtracech,:);
     soundcardtrigger=session.recordNodes{1}.recordings{1}.continuous(key).samples(soundcardtriggerch,:);
@@ -206,7 +235,8 @@ OEsamplerate=session.recordNodes{1}.recordings{1}.info.continuous.sample_rate;
 cd(BonsaiPath)
 save(OEinfofilename, 'EphysPath', 'EphysPath_KS', 'EphysPath_KS', 'BonsaiPath', 'BonsaiFolder', 'OEversion', 'messages', 'OEsamplerate', 'numsoundcardtriggers', 'TTL');
 
-behaviorfilename = dir('Behavior*.mat');
+try
+    behaviorfilename = dir('Behavior*.mat');
 if isempty(behaviorfilename) | ForceReprocess
     fprintf('\nno Behavior file found, calling ProcessCams')
     behaviorfile=ProcessCams;
@@ -214,13 +244,21 @@ if isempty(behaviorfilename) | ForceReprocess
 else
     fprintf('\nBehavior file already exists, skipping ProcessCams')
 end
+catch
+        warning('\n ProcessCams failed, probably because there is no camera data')
+end
+
 
 cd(LocalDataRoot)
 cd(BonsaiPath)
-assimilationfilename = dir('Assimilation.mat');
+try
+    assimilationfilename = dir('Assimilation.mat');
 if isempty(assimilationfilename)  | ForceReprocess
     [vids,units,chans] = AssimilateSignals;
     save Assimilation vids units chans
+end
+catch
+     warning('\n AssimilateSignals failed, possibly because there is no camera data')
 end
 
 fprintf('\nProcessSession done\n')

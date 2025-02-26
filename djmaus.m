@@ -1015,6 +1015,8 @@ out = mfilename;
 
 function fcn=StimTypes(type)
 switch type
+    case 'square'   % Kip 9/5/24
+        fcn = 'MakeSquare';
     case 'tone'
         fcn='MakeTone';
     case 'whitenoise'

@@ -17,7 +17,7 @@ if ismac  windowpos=[ -1415 479 1381 680];end %mike's pref
 maxwindows=20; %raise a "continue?" box after this many windows to avoid crashing
 fs=12; %fontsize
 printtofile=1; %print figures to postscript file
-closewindows=1; %close windows as soon as you print them
+closewindows=1; %close windows as soon as you print them. Does nothing if printtofile=0.
 
 if nargin==0
     datadir=pwd;
@@ -49,6 +49,8 @@ catch
     binwidth=5;
 end
 
+already_printed=[];
+
 outfilename='outPSTH.mat';
 cd(datadir)
 
@@ -62,11 +64,16 @@ if force_reprocess
     ProcessSession
     if ~exist('SortedUnitsFile') fprintf('\nNo Sorted Units File, probably because there is no kilosort data. \nPlotTC_PSTH2 will fail.'); end
     load(SortedUnitsFile)
-    ProcessTC_PSTH2(SortedUnits, BonsaiPath, EphysPath, EphysPath_KS, xlimits,ylimits)
+    ProcessTC_PSTH2(SortedUnits, BonsaiPath, EphysPath, EphysPath_KS, xlimits,ylimits);
     load(outfilename);
 end
 
 if exist(outfilename,'file')
+    load(outfilename)
+    fprintf('\nloaded outfile.')
+elseif exist('Bdirs.mat', 'file') %we're in BonsaiDir, look for outfile in EphysDir
+    load('Bdirs.mat')
+    cd(dirs{1})
     load(outfilename)
     fprintf('\nloaded outfile.')
 else
@@ -78,7 +85,7 @@ else
     ProcessSession
     if ~exist('SortedUnitsFile') fprintf('\nNo Sorted Units File, probably because there is no kilosort data. PlotTC_PSTH2 will fail.'); end
     load(SortedUnitsFile)
-    ProcessTC_PSTH2(SortedUnits, BonsaiPath, EphysPath, EphysPath_KS, xlimits,ylimits)
+    ProcessTC_PSTH2(SortedUnits, BonsaiPath, EphysPath, EphysPath_KS, xlimits,ylimits);
     load(outfilename);
 end
 
@@ -96,7 +103,6 @@ if ~isempty(xlimits)
         load(outfilename);
     end
 end
-fprintf('\nusing xlimits [%d %d]', xlimits)
 fprintf('\nusing binwidth %d', binwidth)
 fprintf('\n%d cells',length(out.SortedUnits))
 if isempty(cells)
@@ -108,8 +114,8 @@ else
 end
 
 if printtofile
-    delete figs.ps
-    delete figs.pdf
+    %delete figs.ps
+    %delete figs.pdf
     pdffilename=sprintf('%s-figs.pdf', out.BonsaiFolder);
     delete(pdffilename)
     close all
@@ -131,6 +137,7 @@ M1OFF=out.M1OFF;
 nrepsON=out.nrepsON;
 nrepsOFF=out.nrepsOFF;
 if isempty(xlimits) xlimits=out.xlimits;end
+fprintf('\nusing xlimits [%d %d]', xlimits)
 
 LaserRecorded=out.LaserRecorded;
 StimRecorded=out.StimRecorded;
@@ -180,7 +187,7 @@ nreps_ssON=out.nreps_ssON;
 nreps_ssOFF=out.nreps_ssOFF;
 
 %hardcoding for probe P128-2
-distance=20;
+pitch=20; %distance between recording sites in µm
 chans_per_shank=64;
 
 for cellnum=cells
@@ -188,7 +195,7 @@ for cellnum=cells
     fprintf('\ncell %d/%d', cellnum, cells(end))
     fprintf('\n%d spikes',  length(out.SortedUnits(cellnum).spiketimes))
 
-     if ismac %you could check this on windows, too, in case of excessive figure windows
+    if ismac %you could check this on windows, too, in case of excessive figure windows
         f=findobj('type', 'figure');
         if length(f)>maxwindows
             windowcheck=questdlg(sprintf('you''ve exceeded %d figure windows, continue?', maxwindows), 'lots of windows', 'continue', 'abort', 'continue');
@@ -198,17 +205,17 @@ for cellnum=cells
                     return
             end
         end
-     end
-
-      chan=out.SortedUnits(cellnum).channel;
-    if chan<=chans_per_shank 
-        shank=1;
-        depth=distance*chan;
-    else 
-        shank=2;
-        depth=distance*chan-chans_per_shank;
     end
-    fprintf('\ncell %d, chan %d, shank %d, raw depth %d', cellnum, chan, shank, depth) 
+
+    chan=out.SortedUnits(cellnum).channel;
+    if chan<=chans_per_shank
+        shank=1;
+        depth=pitch*chan;
+    else
+        shank=2;
+        depth=pitch*(chan-chans_per_shank); %fixed mw 12.17.24
+    end
+    fprintf('\ncell %d, chan %d, shank %d, raw depth %d', cellnum, chan, shank, depth)
 
     % %find optimal axis limits
     if autoscale_ylimits
@@ -234,14 +241,14 @@ for cellnum=cells
                 end
             end
         end
-        if isempty(ymax) 
+        if isempty(ymax)
             ymax=0;
             fprintf('\nmaybe this cell never fired a spike ?');
         end
         ylimits=[-.3 ymax];
     end
     fprintf('\nusing ylimits [%.1f %.1f]', ylimits);
-    
+
 
 
     if numamps>=numdurs
@@ -433,8 +440,8 @@ for cellnum=cells
     if IL
         %plot the mean tuning curve ON
         for windex=1:numw
-        figure('position',windowpos, 'PaperOrientation', 'landscape')
-                
+            figure('position',windowpos, 'PaperOrientation', 'landscape')
+
             p=0;
             subplot1(numy,numx, 'Max', [.95 .9])
             for yindex=ystart:ystep:yend
@@ -498,7 +505,7 @@ for cellnum=cells
                     end
 
                     if LaserRecorded
-                        for rep=1:nrepsON(findex, aindex, dindex)
+                        for rep=1:nrepsON(cellnum, findex, aindex, dindex)
                             Lasertrace=squeeze(M1ONLaser(findex, aindex, dindex,rep, :));
                             Lasertrace=Lasertrace -mean(Lasertrace(1:100));
                             Lasertrace=.05*diff(ylimits)*Lasertrace;
@@ -519,7 +526,7 @@ for cellnum=cells
                     % set(gca, 'yticklabel', '')
 
                     subplot1(1)
-                    h=title(sprintf('%s: \ncell %d, chan %d, shank %d, raw depth %d um, %d spikes, %dms, nreps: %d-%d, ON ',datadir,cellnum, chan, shank, depth, length(out.SortedUnits(cellnum).spiketimes), durs(dindex),min(min(min(nrepsON))),max(max(max(nrepsON)))));
+                    h=title(sprintf('%s: \ncell %d, chan %d, shank %d, raw depth %d um, %d spikes, %dms, nreps: %d-%d, ON ',out.BonsaiFolder,cellnum, chan, shank, depth, length(out.SortedUnits(cellnum).spiketimes), durs(dindex),min(min(min(nrepsON))),max(max(max(nrepsON)))));
                     set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
 
                     %label amps and freqs
@@ -567,7 +574,7 @@ for cellnum=cells
                                 h=plot(spiketimes2, yl(2)+ones(size(spiketimes2))+offset, '.k');
                             end
                         end
-                        b=bar(X,N,1);
+                        b=bar(X(1:end-1), N,1);
                         set(b, 'facecolor', 'k');
                         vpos=mean(ylimits);
                         text(xlimits(1), vpos, 'SS')
@@ -608,10 +615,10 @@ for cellnum=cells
             end
         end
 
-          %plot OFF & ON overlayed, curves w/ no rasters
+        %plot OFF & ON overlayed, curves w/ no rasters
         for windex=1:numw
-        figure('position',windowpos, 'PaperOrientation', 'landscape')
-                
+            figure('position',windowpos, 'PaperOrientation', 'landscape')
+
             p=0;
             subplot1(numy,numx, 'Max', [.95 .9])
             for yindex=ystart:ystep:yend
@@ -634,7 +641,7 @@ for cellnum=cells
                     offset=ylimits(2);
                     yl=ylimits;
                     inc=(yl(2))/max(nrepsON(:));
-                   
+
                     Hon=plot(X(1:end-1), Non);
                     set(Hon, 'color', 'c', 'linew', 2);
                     hold on
@@ -666,13 +673,13 @@ for cellnum=cells
                         ylim(ylimits2)
                     end
 
-                       X=[xlimits(1), LaserStart, LaserStart, LaserStart+LaserWidth, LaserStart+LaserWidth, xlimits(2)];
-                        height=diff(ylimits)/10;
-                        Y=[0 0 height height 0 0];
-                        line(X,Y, 'color', 'b', 'linewidth', 2)
-                    
+                    X=[xlimits(1), LaserStart, LaserStart, LaserStart+LaserWidth, LaserStart+LaserWidth, xlimits(2)];
+                    height=diff(ylimits)/10;
+                    Y=[0 0 height height 0 0];
+                    line(X,Y, 'color', 'b', 'linewidth', 2)
 
-                   
+
+
 
                     xlim(xlimits)
                     %xlim([-50 100])
@@ -681,7 +688,7 @@ for cellnum=cells
                     % set(gca, 'yticklabel', '')
 
                     subplot1(1)
-                    h=title(sprintf('%s: \ncell %d, chan %d, shank %d, raw depth %d, %d spikes, %dms, nreps: %d-%d, ON & OFF ',datadir,cellnum, chan, shank, depth, length(out.SortedUnits(cellnum).spiketimes), durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
+                    h=title(sprintf('%s: \ncell %d, chan %d, shank %d, raw depth %d, %d spikes, %dms, nreps: %d-%d, ON & OFF ',out.BonsaiFolder,cellnum, chan, shank, depth, length(out.SortedUnits(cellnum).spiketimes), durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
                     set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
 
                     %label amps and freqs
@@ -721,7 +728,7 @@ for cellnum=cells
                         offset=max(N);
                         yl=ylimits;
                         inc=(offset)/nreps_ssON(cellnum);
-                        
+
                         b=plot(x,N);
                         set(b, 'color', 'c');
                         vpos=mean(ylimits);
@@ -763,23 +770,147 @@ for cellnum=cells
             end
         end
 
+        %plot OFF & ON overlayed, curves WITH rasters
+        for windex=1:numw
+            figure('position',windowpos, 'PaperOrientation', 'landscape')
+
+            p=0;
+            subplot1(numy,numx, 'Max', [.95 .9])
+            for yindex=ystart:ystep:yend
+                for findex=1:numfreqs
+                    p=p+1;
+                    subplot1(p)
+                    hold on
+                    if numamps>=numdurs, aindex=yindex; dindex=windex;
+                    else aindex=windex; dindex=yindex;
+                    end
+                    spiketimesON=mM1ON(cellnum, findex, aindex, dindex).spiketimes;
+                    spiketimesOFF=mM1OFF(cellnum, findex, aindex, dindex).spiketimes;
+                    X=xlimits(1):binwidth:xlimits(2); %specify bin centers
+                    [Non, xon]=histcounts(spiketimesON, X);
+                    [Noff, xoff]=histcounts(spiketimesOFF, X);
+                    Non=Non./nrepsON(cellnum, findex, aindex, dindex); %normalize to spike rate (averaged across trials)
+                    Non=1000*Non./binwidth; %normalize to spike rate in Hz
+                    Noff=Noff./nrepsOFF(cellnum, findex, aindex, dindex); %normalize to spike rate (averaged across trials)
+                    Noff=1000*Noff./binwidth; %normalize to spike rate in Hz
+                    offset=ylimits(2);
+                    yl=ylimits;
+                    inc=(yl(2))/max(nrepsON(:));
+
+                    Hon=plot(X(1:end-1), Non);
+                    set(Hon, 'color', 'c', 'linew', 2);
+                    hold on
+                    Hoff=plot(X(1:end-1), Noff);
+                    set(Hoff, 'color', 'k', 'linew', 2);
+                    line(xlimits, [0 0], 'color', 'k')
+                    ylimits2(2)=ylimits(2)+offset;
+
+                    f=1.5; %raster offset fudge factor
+                    if rasters==1
+                        for n=1:nrepsON(cellnum, findex, aindex, dindex)
+                            spiketimesON2=M1ON(cellnum, findex, aindex, dindex, n).spiketimes;
+                            offset=offset+inc;
+                            h=plot(spiketimesON2, f*yl(2)+ones(size(spiketimesON2))+offset, '.c');
+                        end
+                        for n=1:nrepsOFF(cellnum, findex, aindex, dindex)
+                            spiketimesOFF2=M1OFF(cellnum, findex, aindex, dindex, n).spiketimes;
+                            offset=offset+inc;
+                            h=plot(spiketimesOFF2, f*yl(2)+ones(size(spiketimesOFF2))+offset, '.k');
+                        end
+                    end
+
+                    if StimRecorded & unique(Stimtrace)
+                        Stimtrace=squeeze(mM1OFFStim(findex, aindex, dindex, :));
+                        Stimtrace=squeeze(mM1ONStim(findex, aindex, dindex, :));
+                        Stimtrace=Stimtrace -mean(Stimtrace(1:100));
+                        Stimtrace=.25*diff(ylimits)*Stimtrace;
+                        t=1:length(Stimtrace);
+                        t=1000*t/out.samprate; %convert to ms
+                        t=t+out.xlimits(1); %correct for xlim in original processing call
+                        offset=ylimits(1)+.1*diff(ylimits);
+                        stimh=plot(t, Stimtrace+offsetS, 'm');
+                        uistack(stimh, 'bottom')
+                        ylimits2(1)=0;%2*offsetS;
+                    else
+                        line([0 0+durs(dindex)], ylimits(1)+[0 0], 'color', 'm', 'linewidth', 5)
+                        ylimits2(1)=-2;
+                    end
+
+                    ylimits2(2)=ylimits(2)+2+ offset;
+
+                    %ylimits2(2)=2*ylimits(2);
+                    try
+                        ylimits(2) = max([ylimits(2) 1]);
+                        ylim(ylimits2)
+                    end
+
+                    X=[xlimits(1), LaserStart, LaserStart, LaserStart+LaserWidth, LaserStart+LaserWidth, xlimits(2)];
+                    height=diff(ylimits)/10;
+                    Y=[0 0 height height 0 0];
+                    line(X,Y, 'color', 'c', 'linewidth', 2)
+
+
+
+
+                    xlim(xlimits)
+                    %xlim([-50 100])
+                    set(gca, 'fontsize', fs)
+                    % set(gca, 'xticklabel', '')
+                    % set(gca, 'yticklabel', '')
+
+                    subplot1(1)
+                    h=title(sprintf('%s: \ncell %d, chan %d, shank %d, raw depth %d, %d spikes, %dms, nreps: %d-%d, ON & OFF ',out.BonsaiFolder,cellnum, chan, shank, depth, length(out.SortedUnits(cellnum).spiketimes), durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
+                    set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
+
+                    %label amps and freqs
+                    subplot1(p)
+                    if findex==1
+                        if numamps>=numdurs
+                            %text(xlimits(1)-diff(xlimits)/2, mean(ylimits), int2str(amps(yindex)))
+                            ylabel(sprintf('%ddB',amps(yindex)))
+                        else
+                            text(xlimits(1)+diff(xlimits)/20, mean(ylimits), int2str(durs(yindex)))
+                        end
+                    end
+                    if aindex==1
+                        if mod(findex,2) %odd freq
+                            vpos=mean(ylimits);
+                            %                        vpos=ylimits(1)-mean(ylimits);
+                        else
+                            vpos=mean(ylimits);
+                        end
+                        %text(xlimits(1), vpos, sprintf('%.1f', freqs(findex)/1000))
+                        if freqs(findex)==-1
+                            xlabel('WN')
+                        else
+                            xlabel(sprintf('%.1f', freqs(findex)/1000))
+                        end
+                    end
+                end
+            end
+        end
+
+
     end
 
-      if printtofile
-            %print figures to postscript file
-            pdffilename=sprintf('%s-figs.pdf', out.BonsaiFolder);
-            f=findobj('type', 'figure');
-            for idx=1:length(f)
-                %figure(f(idx))
-                % orient landscape
-                % % print figs -dpsc2 -append -bestfit
+    if printtofile
+        %print figures to postscript file
+        f=findobj('type', 'figure');
+        for idx=1:length(f)
+            %figure(f(idx))
+            % orient landscape
+            % % print figs -dpsc2 -append -bestfit
+            if ~any(f(idx)==already_printed) %if printtofile=1 but closewindows=0, this keeps track so as to not re-print
                 exportgraphics(f(idx),pdffilename,'Append',true)
 
                 if closewindows
                     close
+                else
+                    already_printed=[already_printed f(idx)];
                 end
             end
-      end
+        end
+    end
     fprintf('\telapsed time %.0fs', toc)
 
 end

@@ -1,4 +1,3 @@
-
 function [spiketimes, cell_ID]=readKiloSortOutput2(clust, sp, currentdir_indx, MasterDir) %output spiketimes and Kilosort ID number
 
 %reads Kilosort output, finds cell's spiking time
@@ -45,6 +44,7 @@ spiketimes=sp.st(sp.clu==cell_ID); % in seconds, start at 0
 try
     load(fullfile(MasterDir,'RecLengths.mat'))
 catch
+
     try    % load rez, which contains number of samples of each recording 1=1, 2=1+2,
         % 3=1+2+3, etc
         load(fullfile(MasterDir,'rez.mat'))

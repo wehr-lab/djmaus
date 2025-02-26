@@ -1,5 +1,6 @@
 function out = ProcessTC_PSTH2(varargin)
 
+
 %processes clustered spiking tuning curve data from djmaus
 %using new OpenEphys and kilosort file formats and hierarchy
 %creates only a single outfile per session
@@ -31,14 +32,15 @@ try
     xlimits=varargin{5};
 end
 if isempty(xlimits)
-    xlimits=[-100 200];
+    xlimits=[-100 225];
     s=GetStimParams(fullfile(BonsaiPath, EphysPath));
     if isempty(s) %in new OE format, notebook is one up from kilosorted data, so fileparts looks in ..
         s=GetStimParams(fileparts(datadir));
     end
     durs=s.durs;
     dur=max(durs);
-    xlimits=[-.5*dur 1.5*dur]; %default x limits for axis
+    % xlimits=[-.5*dur 1.5*dur]; %default x limits for axis
+    % xlimits=[-1.0*dur 3.0*dur]; %I thought the previous defaults were too narrow AW 6/26/24
 end
 try
     ylimits=varargin{6};

@@ -83,13 +83,24 @@ if numisis>1 warning('multiple isis, unsupported case');end
 samprate=out.samprate; %in Hz
 numframes=out.numframes;
 xlimits=out.xlimits;
-mM1=out.mM1;
-M1=out.M1;
+mM1dff=out.mM1dff;
+mM1f=out.mM1f;
+M1f=out.M1f;
+M1dff=out.M1dff;
 nreps=out.nreps;
 if isempty(xlimits) xlimits=out.xlimits; end
 fprintf('\nusing xlimits [%d-%d]ms', xlimits(1), xlimits(2))
 reps_to_use=[];
 fprintf('\ncells sorted by pca separately for each stimulus\n')
+
+%sort by WN pca loading
+X=squeeze(mM1dff(1, 2, 1, :, :)); 
+            %f0=median(X(:,1:15), 2); %compute f0, assuming mM1 is raw F
+            %X=(X-f0)./f0;
+             [pcs, score, latent]=pca(X);
+                [~, Iwn]=sort(score(:,1));
+                %X=X(I,:); %sort by pc1
+
 
 %plot the mean dF/F for all cells for each freq/amp 
 for dindex=1:numdurs
@@ -100,7 +111,7 @@ for dindex=1:numdurs
         for findex=1:numfreqs
             p=p+1;
             subplot1(p)
-            X=squeeze(mM1(findex, aindex, dindex, :, :));
+            X=squeeze(mM1f(findex, aindex, dindex, :, :));
             f0=median(X(:,1:15), 2); %compute f0, assuming mM1 is raw F
             X=(X-f0)./f0;
 
@@ -124,6 +135,8 @@ for dindex=1:numdurs
                 axis off
             else
                 imagesc(X)
+                cl=clim;
+                caxis([0 .25*cl(2)]) %turn up gain on colormap
 
                 xticks([(xlimits(1)/1000):samprate:numframes])
                 xticklabels([(xlimits(1)/1000):1:numframes/samprate])
@@ -150,6 +163,42 @@ set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
 pos=get(gcf, 'pos'); pos(3)=1200; pos(4)=1000;
 set(gcf, 'pos', pos)
 
+%plot dF/F tuning curve for each cell 
+%blue is louder, green is quiet
+%mean reponse for all freqs are concatenated
+dindex=1;
+numcells=length(Iwn);
+rootnumcells=ceil(sqrt(numcells));
+figure
+subplot1(rootnumcells,rootnumcells)
+for p=1:numcells
+    subplot1(p)
+    hold on
+    aindex=1;
+    x1=squeeze(mM1f(:, aindex, dindex, Iwn(p), 1:45));
+    x1=[x1 nan(6,15)];
+    x1row=reshape(x1', 1, prod(size(x1)));
+    plot(x1row, 'b')
+    aindex=2;
+    x2=squeeze(mM1f(:, aindex, dindex, Iwn(p), 1:45));
+    x2=[x2 nan(6,15)];
+    x2row=reshape(x2', 1, prod(size(x2)));
+    plot(x2row, 'color', [0 .65 0])
+    axis off
+    ylim([0 max(mM1f(:))])
+    text(1, 1, int2str(Iwn(p)))
+end
+for p=numcells+1:rootnumcells^2
+    subplot1(p)
+    axis off
+end
+
+[~,fname, ~]=fileparts(datadir);
+h=suptitle(sprintf('%s\n%dms, nreps: %d-%d',fname,1000*durs(dindex),min(nreps(:)),max(nreps(:))));
+set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
+pos=get(gcf, 'pos'); pos(3)=1200; pos(4)=1000;
+set(gcf, 'pos', pos)
+
 %plot the population mean dF/F (averaged across all cells) for each freq/amp 
 
 %get ylimits
@@ -159,7 +208,7 @@ if isempty(ylimits)
         for aindex=numamps:-1:1
             for findex=1:numfreqs
                 % trace1=nanmean(squeeze(mM1(findex, aindex, dindex, :, :)));
-                X=squeeze(mM1(findex, aindex, dindex, :, :));
+                X=squeeze(mM1f(findex, aindex, dindex, :, :));
                 f0=mean(X(:,1:15), 2); %compute f0, assuming mM1 is raw F
                 X=(X-f0)./f0;
                 trace1=nanmean(X);
@@ -180,7 +229,7 @@ for dindex=1:numdurs
         for findex=1:numfreqs
             p=p+1;
             subplot1(p)
-            X=squeeze(mM1(findex, aindex, dindex, :, :));
+            X=squeeze(mM1f(findex, aindex, dindex, :, :));
             f0=mean(X(:,1:15), 2); %compute f0, assuming mM1 is raw F
             X=(X-f0)./f0;
             trace1=nanmean(X);
@@ -229,7 +278,7 @@ set(gcf, 'pos', pos)
 % assume tones of a single duration and amplitude (should check this)
 aindex=1;
 dindex=1;
-f0=squeeze(mM1(:, aindex, dindex, :, 1:15));
+f0=squeeze(mM1f(:, aindex, dindex, :, 1:15));
 f0=mean(f0, 3);
 f=squeeze(mM1(:, aindex, dindex, :, 18:22));
 f=mean(f, 3);

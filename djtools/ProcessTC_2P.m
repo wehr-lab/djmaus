@@ -52,7 +52,7 @@ fprintf('\n%d total frames = %.1f s', numframes, numframes/sampleRate)
 % sort rows such that best cells (highest cell likelihood) are at the top
 %exclude non-cells 
 %[iscell_sorted, I]=sortrows(iscell, 2, 'descend');
-iscell_threshold=.9;
+iscell_threshold=.7;
 f=F(find(iscell(:,2)>iscell_threshold), :);
 iscell2=find(iscell(:,2)>iscell_threshold);
 %here we could impose a different probability threshold for iscell than whatever was set in suite2p, if we wanted
@@ -226,8 +226,8 @@ for i=1:length(Events)
             aindex= find(amps==amp);
             dindex= find(durs==dur);
             nreps(findex, aindex, dindex)=nreps(findex, aindex, dindex)+1;
-            %M1(findex,aindex,dindex, nreps(findex, aindex, dindex),:,:)=dff(:,region);
-            M1(findex,aindex,dindex, nreps(findex, aindex, dindex),:,:)=f(:,region);
+            M1dff(findex,aindex,dindex, nreps(findex, aindex, dindex),:,:)=dff(:,region);
+            M1f(findex,aindex,dindex, nreps(findex, aindex, dindex),:,:)=f(:,region);
             %M1 is freqs x amps x durs x reps x cells x frames
             %M1stim(findex,aindex,dindex, nreps(findex, aindex, dindex),:)=Stimtrace(region);
             
@@ -248,12 +248,14 @@ else
         for findex=1:numfreqs
             for dindex=1:numdurs
                 if nreps(findex, aindex, dindex)>0
-                    mM1(findex, aindex, dindex,:,:)=mean(M1(findex, aindex, dindex, 1:nreps(findex, aindex, dindex),:,:), 4);
+                    mM1f(findex, aindex, dindex,:,:)=mean(M1f(findex, aindex, dindex, 1:nreps(findex, aindex, dindex),:,:), 4);
+                    mM1dff(findex, aindex, dindex,:,:)=mean(M1dff(findex, aindex, dindex, 1:nreps(findex, aindex, dindex),:,:), 4);
                     %mM1 is freqs x amps x durs x cells x frames
 
                    % mM1stim(findex, aindex, dindex,:)=mean(M1stim(findex, aindex, dindex, 1:nreps(findex, aindex, dindex),:), 4);
                 else %no reps for this stim, since rep=0
-                    mM1(findex, aindex, dindex,:,:)=zeros(numcells, length(region));
+                    mM1f(findex, aindex, dindex,:,:)=zeros(numcells, length(region));
+                    mM1dff(findex, aindex, dindex,:,:)=zeros(numcells, length(region));
                     %mM1stim(findex, aindex, dindex,:)=zeros(size(region));
                 end
            
@@ -274,10 +276,12 @@ end
 out.dff=dff;
 out.f0_prctile=f0_prctile;
 out.iscell_threshold=iscell_threshold;
-out.M1=M1;
+out.M1f=M1f;
+out.M1dff=M1dff;
 % out.M1stim=M1stim;
 % out.mM1stim=mM1stim;
-out.mM1=mM1;
+out.mM1f=mM1f;
+out.mM1dff=mM1dff;
 out.datadir=datadir;
 out.sbxfilename=sbxfilename;
 out.taskcontrolfilename=taskcontrolfilename;

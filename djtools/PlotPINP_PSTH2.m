@@ -294,7 +294,9 @@ for cellnum=cells
         if ~isempty(yl) ylim(yl); end
 
         %     xlim(xlimits) %(makes less sense for silent sound)
-        xlim([-next/2 silentsounddurs(dindex)+next/2]);
+        %xlim([-next/2 silentsounddurs(dindex)+next/2]); AW changed
+        %10/18/24
+        xlim([-200 pulsewidths(pwindex)+200]);
         set(gca, 'fontsize', fs)
         
         h=title(sprintf('%s, cell %d, chan %d, shank %d, raw depth %d, \nSilent Sound no laser, nreps: %d-%d',out.BonsaiFolder, cellnum, chan, shank, depth, min(nrepsOFF(:)),max(nrepsOFF(:))));

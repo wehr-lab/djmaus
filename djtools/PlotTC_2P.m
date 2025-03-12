@@ -280,7 +280,7 @@ aindex=1;
 dindex=1;
 f0=squeeze(mM1f(:, aindex, dindex, :, 1:15));
 f0=mean(f0, 3);
-f=squeeze(mM1(:, aindex, dindex, :, 18:22));
+f=squeeze(mM1f(:, aindex, dindex, :, 18:22));
 f=mean(f, 3);
 dff=(f-f0)./f0;
 
@@ -289,6 +289,7 @@ dff=(f-f0)./f0;
 mag=mag-min(mag);
 mag=mag./max(mag);
 mag=mag.^.5;
+mag(isnan(mag))=0;
 
 for i=1:length(out.iscell)
     fprintf('\n CF %d %.1fkHz x %d y %d', CFidx(i), freqs(CFidx(i))/1000, out.stat{i}.xpix(1), out.stat{i}.ypix(1))

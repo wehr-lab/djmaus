@@ -18,6 +18,14 @@ match=0;
 cd(datadir)
 stimparams=GetStimParams(datadir); %uses stimlog
 
+if isempty(stimparams)
+    %maybe we're in the bonsai folder
+    try
+        load Bdirs
+        stimparams=GetStimParams(dirs{1}); %uses stimlog
+    end
+end
+
 if isempty(stimparams) %this will happen e.g. when the directory has no djmaus data
     PlottingFunction=[];
     return

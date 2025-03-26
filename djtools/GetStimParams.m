@@ -19,7 +19,7 @@ catch
                 cd(d(1).name)
                 load notebook.mat
     catch
-        fprintf('no notebook file found in %s', datapath)
+        %fprintf('no notebook file found in %s', datapath) 
         stimparams=[];
         return
     end

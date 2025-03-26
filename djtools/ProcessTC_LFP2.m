@@ -5,11 +5,11 @@ function ProcessTC_LFP2(varargin)
 %
 %use for LFP, WC, or other continuous data (i.e. does not extract spikes)
 %
-%usage: ProcessTC_LFP2(datapath, [xlimits], [ylimits])
-%channel is a number not a string
+%usage: ProcessTC_LFP2([datapath], [xlimits], [ylimits])
+%all inputs are optional, defaults to current directory
 %saves output in an outfile
 %
-%notes: whitenoise plotted as freq=-1 kHz, silent sound as -2 kHz
+% notes: whitenoise plotted as freq=-1 kHz, silent sound as -2 kHz
 %       data are in microvolts
 
 
@@ -45,9 +45,12 @@ catch
 end
 BonsaiPath=Bdirs{1};
 EphysPath=dirs{1};
-
+tmp=split(macifypath(BonsaiPath), '/');
+BonsaiFolder=tmp{end}; %remove absolute path
+DataRoot=macifypath(DataRoot); %does nothing if you're on windows
 try
-    cd(BonsaiPath)
+    cd(DataRoot)
+    cd(BonsaiFolder)
     cd(EphysPath)
     load notebook.mat
 
@@ -68,7 +71,8 @@ catch
 end
 
 try
-    cd(BonsaiPath)
+    cd(DataRoot)
+    cd(BonsaiFolder)
     cd(EphysPath)
     sessionfilename=['session-',EphysPath];
     load(sessionfilename)
@@ -78,7 +82,8 @@ catch
 end
 
 %read messages
-cd(BonsaiPath)
+cd(DataRoot)
+cd(BonsaiFolder)
 behavior_filename=dir('Behavior_*.mat');
 if isempty(behavior_filename)
     fprintf('\nno behavior file found, calling ProcessSession ')
@@ -87,19 +92,20 @@ if isempty(behavior_filename)
     behavior_filename=dir('Behavior_*.mat');
 end
 load(behavior_filename.name);
+fprintf('\nloaded behavior file. ')
 
 if exist('Events.mat')
     load('Events.mat')
     fprintf('\nloaded Events file \n')
 else
-    [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(Sky);
+    [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(BonsaiPath);
     save('Events.mat','Events')
     save('StartAcquisitionSec.mat','StartAcquisitionSec')
 end
 if exist('StartAcquisitionSec.mat')
     load('StartAcquisitionSec.mat')
 else
-    [~, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(Sky);
+    [~, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(BonsaiPath);
     save('StartAcquisitionSec.mat','StartAcquisitionSec')
 end
 
@@ -121,13 +127,15 @@ end
 %load OpenEphys session information
 sessionfilename=['session-',EphysPath];
 samplesfilename=['samples-',EphysPath];
-cd(BonsaiPath)
+cd(DataRoot)
+cd(BonsaiFolder)
 cd(EphysPath)
-fprintf('\nloading Open Ephys data ...\n')
+fprintf('\nloading Open Ephys data ...')
 try
     tic
     load(sessionfilename)
     load(samplesfilename)
+    fprintf(' done.  ')
     toc
 catch
     fprintf('\ndid not find saved Open Ephys session object for this directory ...')
@@ -150,6 +158,10 @@ catch
         stimtracech=135;
         soundcardtriggerch=136;
         lasertracech=137;
+    elseif num_channels==136 %for 128 channel diagnostic biochips probe where we forgot to record the 6 AUX channels
+        stimtracech=129;
+        soundcardtriggerch=130;
+        lasertracech=131;
     end
     stimtrace=session.recordNodes{1}.recordings{1}.continuous(key).samples(stimtracech,:);
     soundcardtrigger=session.recordNodes{1}.recordings{1}.continuous(key).samples(soundcardtriggerch,:);
@@ -159,7 +171,7 @@ catch
     session.recordNodes{2}.recordings{1}.spikes=[];
     fprintf('\nsaving Open Ephys session object in OpenEphys folder...')
     save(sessionfilename, 'session', 'stimtrace','soundcardtrigger','lasertrace','timestamps','num_channels', 'bit_volts')
-    save(samplesfilename, 'samples')
+    save(samplesfilename, 'samples', '-v7.3')
     fprintf(' done. ')
     toc
 end
@@ -286,7 +298,7 @@ if num_channels==78 %for 64 channel neuronexus probe
     % ch  = A1_AUX channels 1-3
     % ch  = A2_AUX channels 1-3
     % ch  =  ADC channels ADC1-ADC8
-elseif num_channels==142 %for 128 channel diagnostic biochips probe
+elseif num_channels==142 | num_channels==136 %for 128 channel diagnostic biochips probe
     probe='P128-2';
     % ch 1-128 = headstage channels
     % ch 129-131 = A1_AUX channels 1-3
@@ -296,11 +308,19 @@ elseif num_channels==142 %for 128 channel diagnostic biochips probe
         load(fullfile(DataRoot, 'chanMap128.mat'))
         chans=1:128;
         channelorder=chanMap;
+        out.channelmap_file=fullfile(DataRoot, 'chanMap128.mat');
+        fprintf('\nusing channelmap %s', out.channelmap_file)
     catch
         warning('could not load channel map, defaulting to wrong order 1-128')
         chans=1:128;
         channelorder=1:128;
+        out.channelmap_warning='could not load channel map, defaulting to wrong order 1-128';
     end
+else
+    warning(['unrecognized number of channels', int2str(num_channels)])
+    warning('could not load channel map, defaulting to wrong order 1-128')
+    out.channelmap_warning='could not load channel map, defaulting to wrong order 1-128';
+
 end
 
 %extract the traces into a big matrix M

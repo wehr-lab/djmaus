@@ -21,15 +21,15 @@
 %     EphysPath_KS, behaviorfilename, nummessages, bit_volts, numsoundcardtriggers, LocalDataRoot]=ProcessSession
 %
 % these are the variables we potentially might want to return
-% Bdirs                 OEinfofilename        dirs                  session               
-% BonsaiFolder          OEsamplerate          dsky                  sessionfilename       
-% BonsaiPath            OEversion             dttl                  soundcardtrigger      
-% DLC_exists            SortedUnitsFile       lasertrace            stimtrace             
-% DataRoot              TTL                   messages              sudir                 
-% EphysPath             assimilationfilename  num_channels          timestamps            
-% EphysPath_KS          behaviorfilename      nummessages           
-% ForceReprocess        bit_volts             numsoundcardtriggers  
-% LocalDataRoot         d                     oe                    
+% Bdirs                 OEinfofilename        dirs                  session
+% BonsaiFolder          OEsamplerate          dsky                  sessionfilename
+% BonsaiPath            OEversion             dttl                  soundcardtrigger
+% DLC_exists            SortedUnitsFile       lasertrace            stimtrace
+% DataRoot              TTL                   messages              sudir
+% EphysPath             assimilationfilename  num_channels          timestamps
+% EphysPath_KS          behaviorfilename      nummessages
+% ForceReprocess        bit_volts             numsoundcardtriggers
+% LocalDataRoot         d                     oe
 
 clear EphysPath
 
@@ -89,27 +89,31 @@ catch
     fprintf('\nloading Open Ephys data (this will take a couple minutes) ...\n')
     session = Session(pwd); %open-ephys-matlab-tools function
 
-num_channels=session.recordNodes{1}.recordings{1}.info.continuous.num_channels;
-for ch=1:num_channels
-    bit_volts(ch)=session.recordNodes{1}.recordings{1}.info.continuous.channels(ch).bit_volts;
-end
-keys=session.recordNodes{1}.recordings{1}.continuous.keys();
-key=keys{1};
-timestamps=session.recordNodes{1}.recordings{1}.continuous(key).timestamps;
-samples=session.recordNodes{1}.recordings{1}.continuous(key).samples(:,:);
-if num_channels==78 %for 64 channel neuronexus probe
-    stimtracech=71;
-    soundcardtriggerch=72;
-    lasertracech=73;
-elseif num_channels==142 %for 128 channel diagnostic biochips probe
-    stimtracech=135;
-    soundcardtriggerch=136;
-    lasertracech=137;
-elseif num_channels==43 %32-ch tetrode config
-    stimtracech=36;
-    soundcardtriggerch=37;
-    lasertracech=38;
-end
+    num_channels=session.recordNodes{1}.recordings{1}.info.continuous.num_channels;
+    for ch=1:num_channels
+        bit_volts(ch)=session.recordNodes{1}.recordings{1}.info.continuous.channels(ch).bit_volts;
+    end
+    keys=session.recordNodes{1}.recordings{1}.continuous.keys();
+    key=keys{1};
+    timestamps=session.recordNodes{1}.recordings{1}.continuous(key).timestamps;
+    samples=session.recordNodes{1}.recordings{1}.continuous(key).samples(:,:);
+    if num_channels==78 %for 64 channel neuronexus probe
+        stimtracech=71;
+        soundcardtriggerch=72;
+        lasertracech=73;
+    elseif num_channels==142 %for 128 channel diagnostic biochips probe
+        stimtracech=135;
+        soundcardtriggerch=136;
+        lasertracech=137;
+    elseif num_channels==136 %for 128 channel diagnostic biochips probe where we forgot to record the 6 AUX channels
+        stimtracech=129;
+        soundcardtriggerch=130;
+        lasertracech=131;
+    elseif num_channels==43 %32-ch tetrode config
+        stimtracech=36;
+        soundcardtriggerch=37;
+        lasertracech=38;
+    end
     stimtrace=session.recordNodes{1}.recordings{1}.continuous(key).samples(stimtracech,:);
     soundcardtrigger=session.recordNodes{1}.recordings{1}.continuous(key).samples(soundcardtriggerch,:);
     lasertrace=session.recordNodes{1}.recordings{1}.continuous(key).samples(lasertracech,:);
@@ -172,15 +176,15 @@ if ~exist('EphysPath_KS') | isempty(EphysPath_KS)
     cd(BonsaiPath)
     fprintf('\nsearching for kilosort folder...')
     tic
-    d=dir('**/phy.log');
-    if isempty(d)
+    ksd=dir('**/phy.log');
+    if isempty(ksd)
         warning('could not find kilosort data')
         EphysPath_KS=[];
         fprintf('\nProcess Spikes will fail because there is no kilosort data')
 
-    elseif length(d)==1
+    elseif length(ksd)==1
         fprintf('\tfound it. (took %.0fs to find)', toc)
-        EphysPath_KS=d.folder;
+        EphysPath_KS=ksd.folder;
         fprintf('\nfound EphysPath_KS kilosort folder: \n%s\n', EphysPath_KS)
     else error('more than one candidate KS folder found')
     end
@@ -211,7 +215,7 @@ try
     cd(BonsaiPath)
     cd(EphysPath)
     sudir=dir('./SortedUnits_*.mat'); %check if SortedUnits file output from ProcessSpikes already exists
-    
+
     if isempty(sudir)
         %    [SortedUnitsFile] = ProcessSpikes(EphysPath_KS,BonsaiPath, LocalDataRoot); %Process the spikes
         % [SortedUnitsFile] = ProcessSpikes(EphysPath_KS, LocalDataRoot); %Process the spikes
@@ -224,7 +228,7 @@ try
 catch
     warning('ProcessSpikes failed')
     if isempty(EphysPath_KS) warning('ProcessSpikes failed. Probably because there is no kilosort data.'); end
-    
+
 end
 
 % these are the things I will want to add to Sky
@@ -237,15 +241,15 @@ save(OEinfofilename, 'EphysPath', 'EphysPath_KS', 'EphysPath_KS', 'BonsaiPath', 
 
 try
     behaviorfilename = dir('Behavior*.mat');
-if isempty(behaviorfilename) | ForceReprocess
-    fprintf('\nno Behavior file found, calling ProcessCams')
-    behaviorfile=ProcessCams;
-    fprintf('done\n')
-else
-    fprintf('\nBehavior file already exists, skipping ProcessCams')
-end
+    if isempty(behaviorfilename) | ForceReprocess
+        fprintf('\nno Behavior file found, calling ProcessCams')
+        behaviorfile=ProcessCams;
+        fprintf('done\n')
+    else
+        fprintf('\nBehavior file already exists, skipping ProcessCams')
+    end
 catch
-        warning('\n ProcessCams failed, probably because there is no camera data')
+    warning('\n ProcessCams failed, probably because there is no camera data')
 end
 
 
@@ -253,12 +257,12 @@ cd(LocalDataRoot)
 cd(BonsaiPath)
 try
     assimilationfilename = dir('Assimilation.mat');
-if isempty(assimilationfilename)  | ForceReprocess
-    [vids,units,chans] = AssimilateSignals;
-    save Assimilation vids units chans
-end
+    if isempty(assimilationfilename)  | ForceReprocess
+        [vids,units,chans] = AssimilateSignals;
+        save Assimilation vids units chans
+    end
 catch
-     warning('\n AssimilateSignals failed, possibly because there is no camera data')
+    warning('\n AssimilateSignals failed, possibly because there is no camera data')
 end
 
 fprintf('\nProcessSession done\n')

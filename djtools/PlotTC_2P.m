@@ -3,13 +3,14 @@ function PlotTC_2P(varargin)
 % plots 2P mesoscope tuning curve data from djmaus
 % plots all cells
 %
-% usage: PlotTC_2P([datapath], [xlimits],[ylimits])
-% (xlimits & ylimits are optional)
+% usage: PlotTC_2P([datapath],[cells], [xlimits],[ylimits])
+% (all args are optional)
 % datapath should be the path to an outfile (out2P.mat)
-%
+% cells is a list of cells you want to plot, [] to plot all 
 % Processes data if outfile is not found;
 
 force_reprocess=0;
+cells2plot=[];
 
 if nargin==0
     if exist('./out2P.mat')==2
@@ -37,12 +38,17 @@ else
     datadir=varargin{1};
     outfilename=sprintf('out2P.mat');
     try
-        xlimits=varargin{2};
+        cells2plot=varargin{2};
+    catch
+        cells2plot=[];
+    end
+      try
+        xlimits=varargin{3};
     catch
         xlimits=[];
     end
     try
-        ylimits=varargin{3};
+        ylimits=varargin{4};
     catch
         ylimits=[];
     end
@@ -70,6 +76,7 @@ end
 
 % M1stim=out.M1stim;
 
+fprintf('\n%d cells', out.numcells)
 freqs=out.freqs;
 amps=out.amps;
 durs=out.durs;
@@ -91,15 +98,19 @@ nreps=out.nreps;
 if isempty(xlimits) xlimits=out.xlimits; end
 fprintf('\nusing xlimits [%d-%d]ms', xlimits(1), xlimits(2))
 reps_to_use=[];
-fprintf('\ncells sorted by pca separately for each stimulus\n')
+fprintf('\nfreqs= ')
+fprintf('%.1f ', freqs/1000)
 
-%sort by WN pca loading
-X=squeeze(mM1dff(1, 2, 1, :, :)); 
-            %f0=median(X(:,1:15), 2); %compute f0, assuming mM1 is raw F
-            %X=(X-f0)./f0;
-             [pcs, score, latent]=pca(X);
-                [~, Iwn]=sort(score(:,1));
-                %X=X(I,:); %sort by pc1
+
+% % fprintf('\ncells sorted by pca separately for each stimulus\n')
+% % 
+% % %sort by WN pca loading
+% % X=squeeze(mM1dff(1, 2, 1, :, :)); 
+% %             %f0=median(X(:,1:15), 2); %compute f0, assuming mM1 is raw F
+% %             %X=(X-f0)./f0;
+% %              [pcs, score, latent]=pca(X);
+% %                 [~, Iwn]=sort(score(:,1));
+% %                 %X=X(I,:); %sort by pc1
 
 
 %plot the mean dF/F for all cells for each freq/amp 
@@ -167,26 +178,28 @@ set(gcf, 'pos', pos)
 %blue is louder, green is quiet
 %mean reponse for all freqs are concatenated
 dindex=1;
-numcells=length(Iwn);
+if isempty(cells2plot)
+    cells2plot=1:out.numcells;
+end
+numcells=length(cells2plot);
 rootnumcells=ceil(sqrt(numcells));
 figure
 subplot1(rootnumcells,rootnumcells)
-for p=1:numcells
-    subplot1(p)
+p=0;
+offset=.1*max(mM1f(:));
+for j=cells2plot
+p=p+1;
+subplot1(p)
     hold on
-    aindex=1;
-    x1=squeeze(mM1f(:, aindex, dindex, Iwn(p), 1:45));
-    x1=[x1 nan(6,15)];
+    for aindex=1:numamps
+    x1=squeeze(mM1f(:, aindex, dindex, j, 1:40));
+    x1=[x1 nan(numfreqs,15)];
     x1row=reshape(x1', 1, prod(size(x1)));
-    plot(x1row, 'b')
-    aindex=2;
-    x2=squeeze(mM1f(:, aindex, dindex, Iwn(p), 1:45));
-    x2=[x2 nan(6,15)];
-    x2row=reshape(x2', 1, prod(size(x2)));
-    plot(x2row, 'color', [0 .65 0])
+    plot(x1row + offset*aindex)
     axis off
     ylim([0 max(mM1f(:))])
-    text(1, 1, int2str(Iwn(p)))
+    text(1, 1, int2str(j))
+    end
 end
 for p=numcells+1:rootnumcells^2
     subplot1(p)
@@ -292,7 +305,7 @@ mag=mag.^.5;
 mag(isnan(mag))=0;
 
 for i=1:length(out.iscell)
-    fprintf('\n CF %d %.1fkHz x %d y %d', CFidx(i), freqs(CFidx(i))/1000, out.stat{i}.xpix(1), out.stat{i}.ypix(1))
+    fprintf('\ncell %d CF %d %.1fkHz x %d y %d', i, CFidx(i), freqs(CFidx(i))/1000, out.stat{i}.xpix(1), out.stat{i}.ypix(1))
 end
 cmap=jet(numfreqs);
 figure

@@ -4,6 +4,7 @@ function ProcessTC_2P(varargin)
 %
 %usage: ProcessTC_2P([datapath], [xlimits], [ylimits])
 %datapath is the directory containing the .sbx file, the taskcontrol .h5 file, and a suite2p output folder 
+%if it's a track2p folder, it is the session folder that contains the suite2p folder
 %datapath defaults to current directory
 %saves output in an outfile
 %
@@ -45,14 +46,27 @@ end
 cd suite2p
 cd plane0
 iscell=0; %initialize because iscell is a built-in function
-load Fall
+if exist('Fall.mat', 'file')==2
+    load Fall
+else
+      F = readNPY('F.npy');
+        % Fneu = readNPY(fullfile(datadir, Sessions{iDir}, '/suite2p/plane0/Fneu.npy'));
+        iscell = readNPY('iscell.npy');
+        % spks = readNPY(fullfile(datadir, Sessions{iDir}, '/suite2p/plane0/spks.npy'));
+        % !python ops2mat.py
+        %if pyenv shows matlab is not configured to use python, ("Python commands require a supported version of CPython") try something like pyenv(Version="/Users/wehr/opt/miniconda3/bin/python")
+        pyrunfile('ops2mat.py')
+        pyrunfile('stat2mat.py')
+        load ops 
+        load stat
+end
 numframes=size(F, 2);
 sampleRate=ops.fs; %2P scope framerate in Hz
 fprintf('\n%d total frames = %.1f s', numframes, numframes/sampleRate)
 % sort rows such that best cells (highest cell likelihood) are at the top
 %exclude non-cells 
 %[iscell_sorted, I]=sortrows(iscell, 2, 'descend');
-iscell_threshold=.7;
+iscell_threshold=0%.7;
 f=F(find(iscell(:,2)>iscell_threshold), :);
 iscell2=find(iscell(:,2)>iscell_threshold);
 %here we could impose a different probability threshold for iscell than whatever was set in suite2p, if we wanted
@@ -75,33 +89,59 @@ fprintf('\n%d cells (using iscell_threshold=%.1f)', numcells, iscell_threshold)
 % of the histogram of F, and dff is computed as usual, (F-F0)/F0
 
 %sort by pca
-[pcs, score, latent]=pca(dff_unsorted);
-[~, I]=sort(score(:,1));
-dff=(dff_unsorted(I,:));
-fprintf('\nsorted cells by pca (without regard to stimuli)')
+% [pcs, score, latent]=pca(dff_unsorted);
+% [~, I]=sort(score(:,1));
+% dff=(dff_unsorted(I,:));
+% fprintf('\nsorted cells by pca (without regard to stimuli)')
 %(if you want to see pca of stim-aligned responses, we have to align to
 %stimuli first)
+
+dff=dff_unsorted;
 
 %load stim framestamps from scanbox mat file 
 cd(datadir)
 d=dir('*.sbx');
-if length(d)<1 error('no sbx file found')
+if length(d)<1
+    try
+        if contains(datadir, 'track2p') %with track2p we have to go find the sbx file
+            datapathparts = strsplit(datadir, '/');
+            mouseID = datapathparts{6}; %this is brittle as hell
+            session = datapathparts{10};
+            basedir = '/Volumes/Projects/2P5XFAD/JarascopeData/'; % full data directory path to build subsequent filepaths from
+            d=dir(fullfile(basedir, mouseID, session, '*.sbx'));
+            sbxfilename=fullfile(basedir, mouseID, session, replace(d.name, '.sbx', '.mat'));
+            fprintf('\nthis is a track2p directory, loading sbx file from %s', sbxfilename)
+        end
+    catch
+        error('no sbx file found')
+    end
 elseif length(d)>1
     warning('multiple sbx files found, using the first one')
+elseif length(d)==1
+    sbxfilename=replace(d(1).name, '.sbx', '.mat');
 end
-sbxfilename=replace(d(1).name, '.sbx', '.mat');
-load(sbxfilename)
+    load(sbxfilename)
 % frames = info.frame(1:2:(end-2)); unclear whether we need to discard last 2 triggers or not
 frames = info.frame(1:2:end);
 numtriggers=length(frames);
 
 %load stimlog from taskcontrol h5 file
 d=dir('*.h5');
-if length(d)<1 error('no taskcontrol h5 file found')
+if length(d)<1 
+ try
+        if contains(datadir, 'track2p') %with track2p we have to go find the h5 file
+            d=dir(fullfile(basedir, mouseID, session, '*.h5'));
+            taskcontrolfilename=fullfile(basedir, mouseID, session, d(1).name);
+            fprintf('\nthis is a track2p directory, loading h5 file from %s', taskcontrolfilename)
+        end
+    catch
+        error('could not find h5 file ')
+ end
 elseif length(d)>1
     warning('multiple taskcontrol h5 files found, using the first one')
+elseif length(d)==1
+    taskcontrolfilename=d(1).name;
 end
-taskcontrolfilename=d(1).name;
 allfreqs=h5read(taskcontrolfilename, '/resultsData/currentFreq/');
 allamps=h5read(taskcontrolfilename, '/resultsData/currentIntensity/');
 allisis=h5read(taskcontrolfilename, '/resultsData/isi/');

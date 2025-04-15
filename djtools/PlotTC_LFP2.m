@@ -373,7 +373,38 @@ for dindex=1:numdurs
 end
 set(gcf, 'pos', [ 998         198         660        1100])
 
+%plot heatmap to look for bad channels
+for dindex=1:numdurs
+    figure
+    p=0;
+    subplot1(numamps,numfreqs)
+    for aindex=numamps:-1:1
+        for findex=1:numfreqs
+            p=p+1;
+            subplot1(p)
+            traces=squeeze(mM1OFF(:,findex, aindex, dindex, :));
+            traces=traces -mean(traces(:,1:100), 2);
+            traces=traces(out.channelorder,:); %re-order to be in probe channel order
 
+            pcolor(traces)
+            shading interp
+            %label channels and shanks
+            for i=1:128
+                str{i}=sprintf('ch%d', i);
+                if i<=64 sh{i}=1;
+                elseif i>64 sh{i}=2;
+                end
+            end
+            text(repmat(-15, 1, 128), 1:128, str, 'fontsize', 6)
+            text(repmat(-19, 1, 128), 1:128, sh, 'fontsize', 6)
+        end
+    end
+    subplot1(1)
+    h=title(sprintf('OFF %s: %dms, nreps: %d-%d\nno channel replacement or smoothing',datadir,durs(dindex),min(nrepsOFF(:)),max(nrepsOFF(:))));
+    set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
+    set(h,  'interpreter', 'none')
+    set(gcf, 'pos', [ 330         198         660        1100])
+end
 
 % plot on
 if IL

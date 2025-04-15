@@ -12,7 +12,7 @@ function [bad_channels, magnitude, channel, shank]=ReadImpedanceTestXML
 %usage:
 %  [bad_channels, magnitude, channel, shank]=ReadImpedanceTestXML
 %  looks in current directory and loads the first xml file it finds
-
+bad_channels=[];
 
 d=dir('*.xml');
 if isempty(d) fprintf('\n%s: could not find impedance test file', mfilename), return, end

@@ -2,12 +2,20 @@ function [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(BonsaiPath)
 global pref
 if isempty(pref); djPrefs;end
 
+%usage [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(BonsaiPath)
+%
 %updated to work with new OE file formats and file hierarchy with version 0.6 and open-ephys-matlab-tools
 % -mike 9.2023
-
+%
 %I stored OE info in Sky, but sometimes we want to run without a camera, so
-%I'm changin it to pull from OEinfo instead
-%-mike 2.12.25'
+%I'm changing it to pull from OEinfo instead
+%that is, it used to be called with GetEventsAndSCT_Timestamps2(Sky) but
+%now we use GetEventsAndSCT_Timestamps2(BonsaiPath) instead
+
+
+%-mike 2.12.25
+
+
 [~,BonsaiFolder,~]=fileparts(BonsaiPath);
 OEinfofilename=sprintf('OEinfo-%s', BonsaiFolder);
 load(OEinfofilename)

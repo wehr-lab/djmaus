@@ -95,14 +95,14 @@ if exist('Events.mat')
     load('Events.mat')
     fprintf('\nloaded Events file \n')
 else
-    [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(Sky);
+    [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(BonsaiPath);
     save('Events.mat','Events')
     save('StartAcquisitionSec.mat','StartAcquisitionSec')
 end
 if exist('StartAcquisitionSec.mat')
     load('StartAcquisitionSec.mat')
 else
-    [~, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(Sky);
+    [~, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(BonsaiPath);
     save('StartAcquisitionSec.mat','StartAcquisitionSec')
 end
 

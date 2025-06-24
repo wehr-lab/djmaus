@@ -3,9 +3,13 @@ function PlotTC_LFP2(varargin)
 % plots continuous tuning curve data from djmaus
 % detects bad channels based on impedance test or manually, and replaces with
 % means of neighboring channels
-% plots CSDs vs depth assuming 128-2 probe and channel map stored in outfile 
+% plots CSDs vs depth assuming 128-2 probe and channel map stored in outfile
 %   note that channels 1 and 65 are at the bottom, and 64 and 128 at the
 %   surface.
+% asks you to select the L3/4 sink, and the L5/6 sink, and writes it to sink_chans.txt
+% calculates corrected depths and writes to file depths.mat
+%   corrected_depth is depth along the shank, corrected so that the L3/4 sink is at 400 µm
+%   depths.mat also contains corrected_depth sink_chans
 %
 % using new OpenEphys and kilosort file formats and hierarchy
 %
@@ -19,10 +23,17 @@ function PlotTC_LFP2(varargin)
 flag.filt = 0;
 hi_pass_cutoff=3000;
 lo_pass_cutoff=300;
-printtofile=1; %print figures to postscript file
-closewindows=1; %close windows as soon as you print them
+printtofile=0; %print figures to postscript file
+closewindows=0; %close windows as soon as you print them
 %write_depth_textfile=1; %create or edit depth.txt file
 force_reprocess=0;
+interactive=1; %1 asks user to confirm bad channels and impedance file, asks user to
+%     select sinks, and saves bad channels, sinks, and depths files.
+%if you set interactive=0, it will run without any user input, and save an
+%     outfile, but will not save bad_channels or calculate corrected depth. This
+%     is just to precompute the outfile to save time when later plotting it
+%     interactively to select the sinks. It saves about 4-5 minutes.
+
 
 if nargin==0
     datadir=pwd;
@@ -555,51 +566,58 @@ try
     fprintf('\nfound and loaded local bad_channels.txt file')
 
 catch
-    ButtonName = questdlg('Could not find bad_channels.txt, do you want to locate the file, manually enter bad channels, or cancel? ', ...
-        'bad_channels.txt', ...
-        'choose file', 'enter manually', 'cancel', 'cancel');
-    switch ButtonName
-        case 'choose file'
-            [filename, pathname] = uigetfile('bad_channels.txt', 'choose bad_channels.txt file appropriate for this recording session')
-            if filename==0     error('user cancelled, no bad_channels.txt file '), end
-            load(fullfile(pathname, filename));
-            ButtonName = questdlg('save this bad_channels.txt to this session folder?', ...
-                int2str(bad_channels), 'yes', 'no', 'no');
-            switch ButtonName
-                case 'yes'
-                    bad_channels=bad_channels(:);
-                    save bad_channels.txt bad_channels -ascii
-                    fprintf('\nsaved bad channels to local bad_channels.txt file')
-            end
+    if interactive
+        ButtonName = questdlg('Could not find bad_channels.txt, do you want to locate the file, manually enter bad channels, or cancel? ', ...
+            'bad_channels.txt', ...
+            'choose file', 'enter manually', 'cancel', 'cancel');
+        switch ButtonName
+            case 'choose file'
+                [filename, pathname] = uigetfile('bad_channels.txt', 'choose bad_channels.txt file appropriate for this recording session')
+                if filename==0     error('user cancelled, no bad_channels.txt file '), end
+                load(fullfile(pathname, filename));
+                ButtonName = questdlg('save this bad_channels.txt to this session folder?', ...
+                    int2str(bad_channels), 'yes', 'no', 'no');
+                switch ButtonName
+                    case 'yes'
+                        bad_channels=bad_channels(:);
+                        save bad_channels.txt bad_channels -ascii
+                        fprintf('\nsaved bad channels to local bad_channels.txt file')
+                end
 
-        case 'enter manually'
-            prompt={sprintf('Enter bad channels:\ndefault channels are populated from ReadImpedanceTestXML \n(separated by space,comma,return,etc.)')};
-            name='bad channels input';
-            numlines=10+ length(bad_channels_from_xml);
+            case 'enter manually'
+                prompt={sprintf('Enter bad channels:\ndefault channels are populated from ReadImpedanceTestXML \n(separated by space,comma,return,etc.)')};
+                name='bad channels input';
+                numlines=10+ length(bad_channels_from_xml);
 
-            str=inputdlg(prompt,name,numlines, {int2str(bad_channels_from_xml)});
-            if isempty(str)   error('user cancelled, no bad_channels.txt file '), end
-            bad_channels=str2num(str{:});
-            ButtonName = questdlg('save these to bad_channels.txt file in this session folder?', ...
-                int2str(bad_channels), 'yes', 'no', 'no');
-            switch ButtonName
-                case 'yes'
-                    bad_channels=bad_channels(:);
-                    save bad_channels.txt bad_channels -ascii
-                    fprintf('\nsaved manually entered bad channels to bad_channels.txt file')
-            end
+                str=inputdlg(prompt,name,numlines, {int2str(bad_channels_from_xml)});
+                if isempty(str)   error('user cancelled, no bad_channels.txt file '), end
+                bad_channels=str2num(str{:});
+                ButtonName = questdlg('save these to bad_channels.txt file in this session folder?', ...
+                    int2str(bad_channels), 'yes', 'no', 'no');
+                switch ButtonName
+                    case 'yes'
+                        bad_channels=bad_channels(:);
+                        save bad_channels.txt bad_channels -ascii
+                        fprintf('\nsaved manually entered bad channels to bad_channels.txt file')
+                end
 
-        case 'cancel'
-            abort = questdlg('Abort, or Skip bad channel entry and proceed as if there were no bad channels?', ...
-                'Abort or Skip?', 'Abort', 'Skip', 'Skip');
-            switch abort
-                case 'Abort'
-                    error('user cancelled ')
-                case 'Skip'
-                    fprintf('\nskip bad channel entry, pretending there are no bad channels')
-                    bad_channels=[];
-            end
-    end % switch
+            case 'cancel'
+                abort = questdlg('Abort, or Skip bad channel entry and proceed as if there were no bad channels?', ...
+                    'Abort or Skip?', 'Abort', 'Skip', 'Skip');
+                switch abort
+                    case 'Abort'
+                        error('user cancelled ')
+                    case 'Skip'
+                        fprintf('\nskip bad channel entry, pretending there are no bad channels')
+                        bad_channels=[];
+                end
+        end % switch
+    else %if not interactive
+        if ~isempty(bad_channels_from_xml)
+            fprintf('\nnon-interactive mode, using bad channels from xml impedance file');
+        end
+        bad_channels=bad_channels_from_xml; %will be empty if no xml
+    end %if interactive
 end
 
 
@@ -830,10 +848,17 @@ axis off
 % CSD(1,62,1:100)=.05; %check depth
 % CSD(2,62,1:100)=-.05; %check depth
 
+%caxis limits excluding bad chans and edges (combined across both shanks)
 cmin=min( min(min(min(CSD(1,setdiff(1:62, bad_channels_sh1_trim-1),:)))), ...
     min(min(min(CSD(2,setdiff(1:62, bad_channels_sh2_trim-1),:)))));
 cmax=max( max(max(max(CSD(1,setdiff(1:62, bad_channels_sh1_trim-1),:)))), ...
     max(max(max(CSD(2, setdiff(1:62, bad_channels_sh2_trim-1),:)))));
+
+%caxis limits for each shank individually, if that looks better
+cmin1=min( min(min(min(CSD(1,setdiff(1:62, bad_channels_sh1_trim-1),:)))));
+cmax1=max( max(max(max(CSD(1,setdiff(1:62, bad_channels_sh1_trim-1),:)))));
+cmin2= min(min(min(CSD(2,setdiff(1:62, bad_channels_sh2_trim-1),:))));
+cmax2= max(max(max(CSD(2, setdiff(1:62, bad_channels_sh2_trim-1),:))));
 
 
 numxticks=7;
@@ -876,8 +901,10 @@ set(gcf, 'pos', [93 141 895 1156])
 try
     fid=fopen('sink_chans.txt', 'r');
     fgetl(fid);
-    sink_chans(1)=str2num(extractAfter(fgetl(fid),':'));
-    sink_chans(2)=str2num(extractAfter(fgetl(fid),':'));
+    sink_chans.shank1L34=str2num(extractAfter(fgetl(fid),'shank1 L3/4:'));
+    sink_chans.shank1L56=str2num(extractAfter(fgetl(fid),'shank1 L5/6:'));
+    sink_chans.shank2L34=str2num(extractAfter(fgetl(fid),'shank2 L3/4:'));
+    sink_chans.shank2L56=str2num(extractAfter(fgetl(fid),'shank2 L5/6:'));
     fclose(fid);
     fprintf('\nfound and loaded sink channels from local sink_chans.txt file')
     %expecting this txt file to have the following structure:
@@ -886,51 +913,67 @@ try
     % shank2: 108 % (a number between 65-127)
 
 catch
-    ButtonName = questdlg('        did not find sink_chans.txt file, would you like to identify the channels with shortest-latency current sink? ', ...
-        'locate sink channel?', ...
-        'Sure', 'Not now', 'Not now');
-    switch ButtonName
-        case 'Sure'
-            prompt={'Enter the channel number for shank 1','Enter the channel number for shank 2'};
-            name='Identify the channels with shortest-latency positive-going current sink';
-            numlines=1;
+    if interactive
+        ButtonName = questdlg('        did not find sink_chans.txt file, would you like to identify the channels with shortest-latency current sink? ', ...
+            'locate sink channel?', ...
+            'Sure', 'Not now', 'Not now');
+        switch ButtonName
+            case 'Sure'
+                prompt={'Enter the channel number for shank 1 L3/4 sink',...
+                    'Enter the channel number for shank 1 L5/6 sink';...
+                    'Enter the channel number for shank 2 L3/4 sink',...
+                    'Enter the channel number for shank 2 L5/6 sink',...
+                    };
+                name='Identify the channels with shortest-latency positive-going current sink';
+                numlines=1;
 
-            sink_chans_str=inputdlg(prompt,name,numlines);
+                sink_chans_str=inputdlg(prompt,name,numlines);
 
-            if isempty(sink_chans_str)   warning('user cancelled, no depth.txt file written'), end
-            sink_chans(1)=str2num(sink_chans_str{1});
-            sink_chans(2)=str2num(sink_chans_str{2});
-            if sink_chans(1)<2 | sink_chans(1)>63 | sink_chans(2)<66 | sink_chans(2)>127
-                warning('invalid channels entered, must be 2-63/65-127, no sink_chans.txt file written')
-                clear sink_chans
-            else
+                if isempty(sink_chans_str)   warning('user cancelled, no depth.txt file written'), end
+                sink_chans.shank1L34=str2num(sink_chans_str{1});
+                sink_chans.shank1L56=str2num(sink_chans_str{2});
+                sink_chans.shank2L34=str2num(sink_chans_str{3});
+                sink_chans.shank2L56=str2num(sink_chans_str{4});
+                if sink_chans.shank1L34<2 | sink_chans.shank1L34>63 | sink_chans.shank1L56<2 | sink_chans.shank1L56>63 | ...
+                   sink_chans.shank2L34<66 | sink_chans.shank2L34>127 | sink_chans.shank2L56<66 | sink_chans.shank2L56>127
+                    warning('invalid channels entered, must be 2-63/65-127, no sink_chans.txt file written')
+                    clear sink_chans
+                else
 
-            %write out sink_chans.txt file
-            fid=fopen('sink_chans.txt', 'w');
-            fprintf(fid, 'channel of shortest-latency positive-going CSD sink');
-            fprintf(fid, '\nshank1: %d', sink_chans(1));
-            fprintf(fid, '\nshank2: %d', sink_chans(2));
-            fclose(fid);
-            end
-        case 'Not now'
-            %do nothing
-    end % switch
+                    %write out sink_chans.txt file
+                    fid=fopen('sink_chans.txt', 'w');
+                    fprintf(fid, 'channel of shortest-latency positive-going CSD sink');
+                    fprintf(fid, '\nshank1 L3/4: %d', sink_chans.shank1L34);
+                    fprintf(fid, '\nshank1 L5/6: %d', sink_chans.shank1L56);
+                    fprintf(fid, '\nshank2 L3/4: %d', sink_chans.shank2L34);
+                    fprintf(fid, '\nshank2 L5/6: %d', sink_chans.shank2L56);
+                    fclose(fid);
+                end
+            case 'Not now'
+                %do nothing
+        end % switch
+    else %if non-interactive
+        %do nothing
+        fprintf('\nnon-interactive mode, skipping user selection of sink channels')
+    end
 end
 
 if exist('sink_chans', 'var')
-        for j=1:64
-            corrected_depth(j)=-pitch*j+pitch*sink_chans(1)+400;
-        end
-        for j=65:128
-            corrected_depth(j)=-pitch*j+pitch*sink_chans(2)+400;
-        end
+    for j=1:64
+        corrected_depth(j)=-pitch*j+pitch*sink_chans.shank1L34+400;
+    end
+    for j=65:128
+        corrected_depth(j)=-pitch*j+pitch*sink_chans.shank2L34+400;
+    end
+    angle_corrected_depth = 'not implemented yet';
 
-        generated_on=datestr(now);
-        generated_by=mfilename;
-        save depths.mat corrected_depth sink_chans BonsaiFolder generated_on generated_by
-       
+    generated_on=datestr(now);
+    generated_by=mfilename;
+    readme='corrected_depth = subtracted so that L3/4 sink is at 400µm, ignoring L5/6 sink. angle_corrected_depth = subtracted and scaled so that L3/4 sink is at 400µm and L5/6 sink is at ??? µm (not implemented yet)';
+    save depths.mat readme corrected_depth angle_corrected_depth sink_chans BonsaiFolder generated_on generated_by
 
-    
+
+
 
     %replot with corrected depth labels
     figure
@@ -940,7 +983,7 @@ if exist('sink_chans', 'var')
     ylim([0 1.1*max(offsets2)])
     title('CSD')
     text(repmat(-30, 1, 62), offsets2, int2str(corrected_depth([2:63])'), 'fontsize', 6)
-    text(0*sink_chans(1)-10, offsets2(sink_chans(1)-1), '*', 'fontsize', 18, 'color', 'g')
+    text(0*sink_chans.shank1L34-10, offsets2(sink_chans.shank1L34-1), '*', 'fontsize', 18, 'color', 'g')
     text(0*bad_channels_sh1_trim-15, offsets2(bad_channels_sh1_trim), 'X', 'fontsize', 12, 'color', 'r')
     axis off
     h=title(sprintf('CSD shank 1 %s \nwith corrected depths',BonsaiFolder));
@@ -951,7 +994,7 @@ if exist('sink_chans', 'var')
     plot(t, squeeze(CSD(2,:,:))+offsets2, 'k');
     ylim([0 1.1*max(offsets2)])
     text(repmat(-30, 1, 62), offsets2, int2str(corrected_depth([66:127])'), 'fontsize', 6)
-    text(0*sink_chans(2)-10, offsets2(sink_chans(2)-65), '*', 'fontsize', 18, 'color', 'g')
+    text(0*sink_chans.shank2L34-10, offsets2(sink_chans.shank2L34-65), '*', 'fontsize', 18, 'color', 'g')
     text(0*bad_channels_sh2_trim-15, offsets2(bad_channels_sh2_trim-1), 'X', 'fontsize', 12, 'color', 'r')
     set(gcf, 'pos', [ 998         198         660        1100])
     axis off
@@ -970,10 +1013,10 @@ if exist('sink_chans', 'var')
     %shank1
     imagesc(squeeze(CSD(1,:,:)));
     set(gca, 'ydir', 'normal')
-    caxis(.5*[cmin cmax])
+    caxis(.5*[cmin1 cmax1])
     xticks(linspace(1, size(CSD,3), numxticks))
     xticklabels(linspace(xlimits(1), xlimits(2), numxticks))
-    yt=[(sink_chans(1)-50-1):10:(sink_chans(1)+50)];
+    yt=[(sink_chans.shank1L34-50-1):10:(sink_chans.shank1L34+50)];
     yt=yt(find(yt>1 & yt<64));
     yticks(yt)
     yticklabels(corrected_depth(round(yticks)+1))
@@ -982,18 +1025,20 @@ if exist('sink_chans', 'var')
     h=title(sprintf('CSD shank 1 %s \nwith corrected depths',BonsaiFolder));
     set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none')
     text(0*bad_channels_sh1-20, bad_channels_sh1, 'X', 'fontsize', 12, 'color', 'r')
-    text(0*sink_chans(1)-10, sink_chans(1)-1, '*', 'fontsize', 18, 'color', 'g')
+    text(0*sink_chans.shank1L34-10, sink_chans.shank1L34-1, '*', 'fontsize', 18, 'color', 'g')
+    text(0*sink_chans.shank1L56-10, sink_chans.shank1L56-1, '*', 'fontsize', 18, 'color', 'w')
+
 
     subplot(122)
     %shank2
     imagesc(squeeze(CSD(2,:,:)));
     set(gca, 'ydir', 'normal')
-    caxis(.5*[cmin cmax])
+    caxis(.5*[cmin2 cmax2])
     colorbar
     colormap(parula)
     xticks(linspace(1, size(CSD,3), numxticks))
     xticklabels(linspace(xlimits(1), xlimits(2), numxticks))
-    yt=[(sink_chans(2)-50-0):10:(sink_chans(2)+50)];
+    yt=[(sink_chans.shank2L34-50-0):10:(sink_chans.shank2L34+50)];
     yt=yt(find(yt>65 & yt<128));
     yticks(yt-65)
     yticklabels(corrected_depth(yt))
@@ -1001,8 +1046,10 @@ if exist('sink_chans', 'var')
     ylabel('depth, um')
     title('shank 2')
     text(0*bad_channels_sh2-20, bad_channels_sh2, 'X', 'fontsize', 12, 'color', 'r')
-    text(0*sink_chans(2)-10, sink_chans(2)-65, '*', 'fontsize', 18, 'color', 'g')
+    text(0*sink_chans.shank2L34-10, sink_chans.shank2L34-65, '*', 'fontsize', 18, 'color', 'g')
+    text(0*sink_chans.shank2L56-10, sink_chans.shank2L56-65, '*', 'fontsize', 18, 'color', 'w')
     set(gca, 'pos', [ 0.5300    0.1100    0.3347    0.8150])
+
 
 end %if exist sink chans
 

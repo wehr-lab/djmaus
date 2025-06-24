@@ -341,7 +341,8 @@ out.ylimits=ylimits;
 out.numframes=numframes;
 out.samprate=samprate;
 out.numcells=numcells;
-out.iscell=iscell2;
+out.iscell2=iscell2;
+out.iscell=iscell;
 out.stat=stat(iscell2);
 out.readme={'M1 is freqs x amps x durs x reps x cells x frames', ...
     'mM1 is freqs x amps x durs x cells x frames'};

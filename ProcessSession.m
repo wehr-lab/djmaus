@@ -250,6 +250,7 @@ try
     end
 catch
     warning('\n ProcessCams failed, probably because there is no camera data')
+    lasterr
 end
 
 

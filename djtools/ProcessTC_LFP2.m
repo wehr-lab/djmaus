@@ -91,6 +91,7 @@ if isempty(behavior_filename)
     ProcessSession
     behavior_filename=dir('Behavior_*.mat');
 end
+if isempty(behavior_filename) error('could not find behavior file even after running ProcessSession'), end
 load(behavior_filename.name);
 fprintf('\nloaded behavior file. ')
 
@@ -125,8 +126,8 @@ end
 
 
 %load OpenEphys session information
-sessionfilename=['session-',EphysPath];
-samplesfilename=['samples-',EphysPath];
+sessionfilename=['session-',EphysPath, '.mat'];
+samplesfilename=['samples-',EphysPath, '.mat'];
 cd(DataRoot)
 cd(BonsaiFolder)
 cd(EphysPath)
@@ -134,11 +135,19 @@ fprintf('\nloading Open Ephys data ...')
 try
     tic
     load(sessionfilename)
+    fprintf('\nfound and loaded Open Ephys session object.')
+
     load(samplesfilename)
+    fprintf('\nfound and loaded Open Ephys samples file.')
     fprintf(' done.  ')
     toc
 catch
-    fprintf('\ndid not find saved Open Ephys session object for this directory ...')
+    if ~exist(sessionfilename)
+        fprintf('\ndid not find saved Open Ephys session object for this directory ...')
+    end
+    if ~exist(samplesfilename)
+        fprintf('\ndid not find saved Open Ephys samples file for this directory ...')
+    end
     fprintf('\nloading Open Ephys data (this will take a couple minutes) ...\n')
     tic
     session = Session(pwd); %open-ephys-matlab-tools function

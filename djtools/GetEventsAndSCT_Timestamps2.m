@@ -146,7 +146,11 @@ for i=1:height(messages)
         Events(sound_index).message_timestamp_samples=sample_number - StartAcquisitionSamples;
         Events(sound_index).message_timestamp_sec=timestamp - StartAcquisitionSec;
         if ~isempty(all_SCTs) %the normal case, we have digital TTL soundcard triggers
-        SCTtime_sec=all_SCTs(sound_index);
+       try
+           SCTtime_sec=all_SCTs(sound_index);
+       catch
+       warning('SCTtime_sec=all_SCTs(sound_index); failed probably because sound_index exceeded length of all_SCT')
+       end
         else
             %the digital TTL soundcard triggers are missing, so we try to
             %recover using the message timestamp (very suboptimal!)
@@ -190,7 +194,7 @@ if length(Events) ~=  length(all_SCTs)
    fprintf('\n%d Events but %d SCTs, calling ResolveEventMismatch...',length(Events),length(all_SCTs)) 
 warning('\ncommenting out ResolveEventMismatch this is a HACK and needs to be investigated!!!!') 
 
-%     [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog);
+     [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog);
 end
 
 if exist('check1', 'var') & exist('check2', 'var')

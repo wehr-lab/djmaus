@@ -23,11 +23,11 @@ function PlotTC_LFP2(varargin)
 flag.filt = 0;
 hi_pass_cutoff=3000;
 lo_pass_cutoff=300;
-printtofile=0; %print figures to postscript file
-closewindows=0; %close windows as soon as you print them
+printtofile=1; %print figures to postscript file
+closewindows=1; %close windows as soon as you print them
 %write_depth_textfile=1; %create or edit depth.txt file
 force_reprocess=0;
-interactive=1; %1 asks user to confirm bad channels and impedance file, asks user to
+interactive=0; %1 asks user to confirm bad channels and impedance file, asks user to
 %     select sinks, and saves bad channels, sinks, and depths files.
 %if you set interactive=0, it will run without any user input, and save an
 %     outfile, but will not save bad_channels or calculate corrected depth. This
@@ -1054,6 +1054,7 @@ if exist('sink_chans', 'var')
 end %if exist sink chans
 
 if printtofile
+    fprintf('\nprinting figs to pdf...')
     cd(Bdirs{1}) %go to Bonsai Folder
     pdffilename=sprintf('%s-LFP-figs.pdf', BonsaiFolder);
     %print figures to postscript file
@@ -1070,5 +1071,6 @@ if printtofile
             close
         end
     end
+        fprintf('\t done')
 end
 

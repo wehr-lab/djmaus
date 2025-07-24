@@ -226,6 +226,7 @@ try
     end
 
 catch
+    lasterr
     warning('ProcessSpikes failed')
     if isempty(EphysPath_KS) warning('ProcessSpikes failed. Probably because there is no kilosort data.'); end
 

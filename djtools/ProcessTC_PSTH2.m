@@ -352,7 +352,6 @@ nreps_ssON=zeros(numcells);
 nreps_ssOFF=zeros(numcells);
 %extract the traces into a big matrix M
 j=0;
-inRange=0;
 
 M1ONLaser=[];
 M1ONStim=[];
@@ -368,11 +367,11 @@ SilentSoundOFFLaser=[];
 
 for cellnum=1:length(SortedUnits);
     spiketimes=[];
-    fprintf('\nreading SortedUnits cell %d', cellnum)
+    inRange=0;
+    fprintf('\n\nreading SortedUnits cell %d', cellnum)
     spiketimes= SortedUnits(cellnum).spiketimes;
-
     totalnumspikes=length(spiketimes);
-    fprintf('\nsuccessfully loaded spike data with %d spikes\n',totalnumspikes)
+    fprintf('\nsuccessfully loaded spike data with %d spikes',totalnumspikes)
 
     for i=1:length(Events)
         if strcmp(Events(i).type, 'tone') | strcmp(Events(i).type, 'whitenoise') | ...
@@ -624,7 +623,7 @@ for cellnum=1:length(SortedUnits);
             semM1spontOFF=[];
         end
     end
-
+    fprintf('\ncomputed tuning curve for cell %d', cellnum)
 end % for cellnum=1:length(SortedUnits);
 
 

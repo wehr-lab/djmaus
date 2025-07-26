@@ -78,7 +78,7 @@ elseif exist('Bdirs.mat', 'file') %we're in BonsaiDir, look for outfile in Ephys
         load(outfilename)
         fprintf('\nloaded outfile.')
     catch
-        cd(Bdirs{1})
+        cd .. %cd(Bdirs{1})
         ProcessSession
         if ~exist('SortedUnitsFile') fprintf('\nNo Sorted Units File, probably because there is no kilosort data. PlotTC_PSTH2 will fail.'); end
         load(SortedUnitsFile)

@@ -31,9 +31,6 @@ end
 if isempty(xlimits)
     xlimits=[-100 200];
     s=GetStimParams(datadir);
-    if isempty(s) %in new OE format, notebook is one up from kilosorted data, so fileparts looks in .. 
-        s=GetStimParams(fileparts(datadir));
-    end
     durs=s.durs;
     dur=max(durs);
    % xlimits=[-.5*dur 1.5*dur]; %default x limits for axis

@@ -5,7 +5,6 @@ Should work on mac, linux, windows.
 1. Install matlab.
 2. Install psych toolbox. Download from www.psychtoolbox.org 
     -if psychtoolbox is already downloaded, you can just run SetupPsychtoolbox
-    NOTE - use the old version (XXXXX) of psychtoolbox (no longer available oline) - the newer ones don't have asio control
 3. Download djmaus from https://github.com/wehr-lab/djmaus and put anywhere. Add that folder to matlab path (with subfolders).
 	-Pro tip: if you expect to do any code development, clone it instead (using the github desktop or command-line). Then you can commit changes.
 	-to clone from the command line, use:

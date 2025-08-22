@@ -1,6 +1,5 @@
 function [pathname] = uigetfile_n_dir(start_path, dialog_title)
 % Pick multiple directories and/or files
-% usage: [pathname] = uigetfile_n_dir(start_path, dialog_title)
 
 import javax.swing.JFileChooser;
 

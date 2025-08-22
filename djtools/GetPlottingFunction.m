@@ -18,20 +18,7 @@ match=0;
 cd(datadir)
 stimparams=GetStimParams(datadir); %uses stimlog
 
-if isempty(stimparams)
-    %maybe we're in the bonsai folder
-    try
-        load Bdirs
-        stimparams=GetStimParams(dirs{1}); %uses stimlog
-    end
-end
-
-if isempty(stimparams) %this will happen e.g. when the directory has no djmaus data
-    PlottingFunction=[];
-    return
-end
-
-%first check if stimulus protocol is new enough to contain the
+%firsst check if stimulus protocol is new enough to contain the
 %PlottingFunction field
 if isfield(stimparams(1), 'PlottingFunction')
     PlottingFunction=stimparams(1).PlottingFunction;

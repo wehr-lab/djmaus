@@ -1,6 +1,6 @@
 function deviceID=GetPreSonusDevice
 %looks in Windows soundcard device list and 
-%returns the deviceID of the PreSonus adaptor
+%returns the deviceID of the FocusRite adaptor
 %
 %modified from PrintDevices
 %mw 01-24-2012

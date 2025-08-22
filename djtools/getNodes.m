@@ -1,7 +1,7 @@
 function NodeIds = getNodes( datadir )
 %reads settings.xml in datadir to figure out which nodes are being used
-% cd(datadir)
-settings=djxml2struct(fullfile(datadir,'settings.xml'));
+cd(datadir)
+settings=djxml2struct('settings.xml');
 
 k=0;
 NodeIds={};
@@ -23,3 +23,4 @@ for i=1:length(signalchain)
         end
     end
 end
+

@@ -41,8 +41,8 @@ cd ..
 LocalDataRoot=pwd; %parent directory of BonsaiPath
 cd(BonsaiPath)
 
-dsky=dir('Sky_mouse-*');
-dttl=dir('TTL_mouse-*');
+dsky=dir('Sky_*.csv');
+dttl=dir('TTL_*.csv');
 if isempty(dsky) | isempty(dttl)
     warning('I don''t think this is a Bonsai folder because I can''t find any Sky_mouse=* or TTL_mouse-* files')
 end
@@ -91,9 +91,14 @@ catch
 
     num_channels=session.recordNodes{1}.recordings{1}.info.continuous.num_channels;
     for ch=1:num_channels
-        bit_volts(ch)=session.recordNodes{1}.recordings{1}.info.continuous.channels(ch).bit_volts;
+        %bit_volts(ch)=session.recordNodes{1}.recordings{1}.info.continuous.channels(ch).bit_volts;
+        bit_volts(ch)=session.recordNodes{1}.recordings{1}.info.continuous(1).channels(ch).bit_volts; %changed because gap detection behavior data on rig2 with new OE has 2 continuous nodes. (1) should be the data at 30kHz, (2) is some memory usage stream
     end
-    keys=session.recordNodes{1}.recordings{1}.continuous.keys();
+    % double-check samplerate to make sure we're getting the right continuous node 
+    OEsamplerate=session.recordNodes{1}.recordings{1}.info.continuous(1).sample_rate;
+    if OEsamplerate~= 30000, error('wrong samplerate, check which OE continuous node we''re extracting from'), end
+
+keys=session.recordNodes{1}.recordings{1}.continuous.keys();
     key=keys{1};
     timestamps=session.recordNodes{1}.recordings{1}.continuous(key).timestamps;
     samples=session.recordNodes{1}.recordings{1}.continuous(key).samples(:,:);
@@ -113,6 +118,11 @@ catch
         stimtracech=36;
         soundcardtriggerch=37;
         lasertracech=38;
+    elseif num_channels==11 %Rig2 gap detection behavior config
+        stimtracech=4;
+        soundcardtriggerch=5;
+        lasertracech=6; %I think, but haven't confirmed
+        %piezo data from mice 1-4 are on chans 8,9,10,11. Chans 1-3 are empty
     end
     stimtrace=session.recordNodes{1}.recordings{1}.continuous(key).samples(stimtracech,:);
     soundcardtrigger=session.recordNodes{1}.recordings{1}.continuous(key).samples(soundcardtriggerch,:);
@@ -236,7 +246,7 @@ end
 % I'm saving them here for convenience, because sometimes we want to re-add them if we regenerate Sky in the future
 [~,BonsaiFolder,~]=fileparts(BonsaiPath); %BonsaiFolder is just the timestamp-mouseID identifier of the Bonsai directory (excluding the abolute path)
 OEinfofilename=sprintf('OEinfo-%s', BonsaiFolder);
-OEsamplerate=session.recordNodes{1}.recordings{1}.info.continuous.sample_rate;
+OEsamplerate=session.recordNodes{1}.recordings{1}.info.continuous(1).sample_rate;
 cd(BonsaiPath)
 save(OEinfofilename, 'EphysPath', 'EphysPath_KS', 'EphysPath_KS', 'BonsaiPath', 'BonsaiFolder', 'OEversion', 'messages', 'OEsamplerate', 'numsoundcardtriggers', 'TTL');
 

@@ -246,8 +246,9 @@ MtON=[];MtOFF=[];MtONStim=[];MtOFFStim=[];
 
 % %find optimal axis limits
 if isempty(xlimits)
-    xlimits(1)=-.5*max(durs);
-    xlimits(2)=1.5*max(durs);
+    xlimits=[-150 2600];
+    % xlimits(1)=-.5*max(durs);
+    % xlimits(2)=1.5*max(durs);
 end
 fprintf('\nprocessing with xlimits [%d-%d]', xlimits(1), xlimits(2))
 

@@ -9,7 +9,7 @@ function [filename,path]=MakeSquaredjProtocol(Amplitudes, Durations, Duties, isi
 % INPUTS:
 % Amplitudes: vector of amplitudes in dB SPL 
 %    (requires system to be calibrated) (can be single amplitude)
-% Durations: vector of different square wave durations (in us) (can be a single duration)
+% Durations: vector of different square wave durations (in ms) (can be a single duration)
 % Duties: vector of duty cycles (in percent positive) (can be a single value)
 % isi: inter stimulus interval (onset-to-onset) in ms
 % nrepeats: number of repetitions (different pseudorandom orders)
@@ -18,7 +18,7 @@ function [filename,path]=MakeSquaredjProtocol(Amplitudes, Durations, Duties, isi
 %       - returns name & path to protocol
 % ------------------------------------------------------------------------
 %
-% example call: MakeSquaredjProtocol([20 40 60 80], [.5 1], 50, 500, 10)
+% example call: MakeSquaredjProtocol([20 40 60 80], [5 1], 50, 500, 10)
 % gives 4 amplitudes, 2 durations, 1 duty and 10 repeats of these
 %
 
@@ -36,11 +36,11 @@ duty=zeros(size(neworder));
 
 StimPerRepeat=length(neworder);
 TotalNumStim=StimPerRepeat*nrepeats;
-DurationPerRepeatSecs=StimPerRepeat*(mean(Durations)+isi)/1000000; %approx. duration per repeat
+DurationPerRepeatSecs=StimPerRepeat*(mean(Durations)+isi)/1000; %approx. duration per repeat
 TotalDurationSecs=DurationPerRepeatSecs*nrepeats;
 
 ampstring=sprintf('%d-', Amplitudes);ampstring=ampstring(1:end-1);
-durstring=sprintf('%d-', Durations);durstring=durstring(1:end-1);
+durstring=sprintf('%.2f-', Durations*1);durstring=durstring(1:end-1);    %%%%%%%%
 dutystring=sprintf('%d-', Duties);dutystring=dutystring(1:end-1);
 
 %put into stimuli structure
@@ -49,7 +49,7 @@ name= sprintf('Square-wave %da(%s),/%ddur(%s)/%dduty(%s)/%dmsisi/%d reps', ...
 description=sprintf('repeatingSquareWaves, %d amplitudes (%s dB SPL), %d durations (%sms),%d duties (%spercent), %d ms isi,%d stim per rep, %d repeats, %d total stimuli, %ds per rep, %d s total dur (%.1f min)',...
     numamplitudes,ampstring, numdurations, durstring, numduties, dutystring,...
     isi, StimPerRepeat, nrepeats,TotalNumStim, round(DurationPerRepeatSecs), round(TotalDurationSecs), TotalDurationSecs/60);
-filename=sprintf('repeatingSquareWaves_%da-%s_%ddur-%s_%dduty-%s_%dms-%dreps',...
+filename=sprintf('repeatingSquareWaves_%da-%s_%ddur-%s_%dduty-%s_%dms-%dreps.mat',...
     numamplitudes,ampstring, numdurations, durstring, numduties, dutystring, isi, nrepeats);
 
 %%% not well randomized here

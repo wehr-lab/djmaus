@@ -135,6 +135,7 @@ for i=1:length(Events)
         allpulsedurs(j)=Events(i).pulsedur;
         allnoiseamps(j)=Events(i).amplitude;
     elseif strcmp(Events(i).type, 'gapinnoise')
+                j=j+1;
         allsoas(j)=Events(i).soa;
         allgapdurs(j)=Events(i).gapdur;
         allgapdelays(j)=Events(i).gapdelay;

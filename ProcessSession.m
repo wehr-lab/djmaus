@@ -143,17 +143,22 @@ keys=session.recordNodes{1}.recordings{1}.continuous.keys();
 end
 OEversion = session.recordNodes{1}.recordings{1}.info.GUIVersion;
 messages=session.recordNodes{1}.recordings{1}.messages('MessageCenter');
-try
-    %this ttl map key works for Rig4
-    TTL=session.recordNodes{1}.recordings{1}.ttlEvents('Acquisition_Board-100.Rhythm Data-A');
-catch
-    %this ttl map key works for Rig3
-    TTL=session.recordNodes{1}.recordings{1}.ttlEvents('OE_FPGA_Acquisition_Board-100.Rhythm Data');
-    if isempty(TTL)
-        error('empty TTL, what is wrong?')
-    end
-    %if this fails we might need to add another try...catch block
-end
+
+%better way: get folder_name from session info 
+folder_name=session.recordNodes{1}.recordings{1}.info.continuous.folder_name;
+folder_name=erase(folder_name, '/');
+TTL=session.recordNodes{1}.recordings{1}.ttlEvents(folder_name);
+% try
+%     %this ttl map key works for Rig4
+%     TTL=session.recordNodes{1}.recordings{1}.ttlEvents('Acquisition_Board-100.Rhythm Data-A');
+% catch
+%     %this ttl map key works for Rig3
+%     TTL=session.recordNodes{1}.recordings{1}.ttlEvents('OE_FPGA_Acquisition_Board-100.Rhythm Data');
+%     if isempty(TTL)
+%         error('empty TTL, what is wrong?')
+%     end
+%     %if this fails we might need to add another try...catch block
+% end
 % TTL has both the rising and falling times
 % messages includes GetRecordingPath
 % so height(TTL)==2*(height(messages)-1)

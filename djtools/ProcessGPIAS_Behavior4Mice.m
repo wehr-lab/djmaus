@@ -1,12 +1,16 @@
-function ProcessGPIAS_Behavior4Mice2(BonsaiPath, EphysPath, flag_accel)
+function ProcessGPIAS_Behavior4Mice2(BonsaiPath, EphysFolder, flag_accel)
 
 %processes gap detection behavioral data from djmaus
 %
-% usage: ProcessGPIAS_Behavior4Mice2(BonsaiPath, EphysPath, flag_accel))
+% usage: ProcessGPIAS_Behavior4Mice2(BonsaiPath, EphysFolder, flag_accel))
 % saves to separate outfiles for each mouse
 % Use this code for 4 mouse simultaneous gap detection on rig 2
 %
 % using new OpenEphys and kilosort file formats and hierarchy -mike 08.21.25
+% I deleted or commented out ACC code because I don't think we're using the
+% headstage accelerometer channels to compute startle responses at all
+% anymore. I also changed it to write all 4 outfiles as
+% outGPIAS_BehaviorMouse#.mat whereas before the 1 was omitted for mouse1 
 
 if nargin < 2 || isempty(flag_accel)
     flag.accel = 4;
@@ -19,9 +23,13 @@ flag.unwrap = 0;
 flag.plot = 1;
 
 if nargin==0
-    BonsaiPath = pwd;
-    load Bdirs
-    EphysPath=dirs{1};
+    try
+        load dirs.mat
+    catch
+        load bdirs.mat
+    end
+    BonsaiPath=Bdirs{1};
+    EphysFolder=dirs{1};
 end
 
 % djPrefs;
@@ -31,7 +39,7 @@ end
 
 try
     cd(BonsaiPath)
-    cd(EphysPath)
+    cd(EphysFolder)
     load notebook.mat
 
         %check if nb and stimlog are actually there
@@ -59,8 +67,8 @@ end
 
 try
     cd(BonsaiPath)
-    cd(EphysPath)
-    sessionfilename=['session-',EphysPath];
+    cd(EphysFolder)
+    sessionfilename=['session-',EphysFolder];
     load(sessionfilename)
     fprintf('\nloaded session object')
 catch
@@ -101,7 +109,7 @@ catch
 end
 
 %check if this is an appropriate stimulus protocol
-if ~strcmp(GetPlottingFunction(datadir), 'PlotGPIAS_PSTH')
+if ~strcmp(GetPlottingFunction(BonsaiPath), 'PlotGPIAS_PSTH')
     error('This does not appear to be a GPIAS stimulus protcol');
 end
 
@@ -111,42 +119,114 @@ load(fullfile(BonsaiPath, OEinfofilename))
 
 samprate=OEsamplerate;
 
-% get tilt-table recording from ADC4 for mouse 1
-filename4=sprintf('%s_ADC4.continuous', node);
-if exist(filename4, 'file')~=2 %couldn't find it
-    error(sprintf('could not find ADC4 file %s in datadir %s', filename4, datadir))
-end
-[scaledtrace4, datatimestamps, datainfo] =load_open_ephys_data(filename4);
-scaledtrace4 = scaledtrace4 - mean(scaledtrace4);
 
+%load OpenEphys session information
+sessionfilename=['session-',EphysFolder, '.mat'];
+samplesfilename=['samples-',EphysFolder, '.mat'];
+cd(DataRoot)
+cd(BonsaiFolder)
+cd(EphysFolder)
+fprintf('\nloading Open Ephys data ...')
+try
+    tic
+    load(sessionfilename)
+    fprintf('\nfound and loaded Open Ephys session object.')
 
-    fprintf('\nPlotting full (unrectified) traces\n')
-    scaledtraceACC = scaledtrace1 + scaledtrace2 + scaledtrace3;
-    switch flag.accel
-        case 1
-            scaledtrace = scaledtrace1;
-            fprintf('\nUsing ACCELEROMETER #1 ONLY\n')
-        case 2
-            scaledtrace = scaledtrace2;
-            fprintf('\nUsing ACCELEROMETER #2 ONLY\n')
-        case 3
-            scaledtrace = scaledtrace3;
-            fprintf('\nUsing ACCELEROMETER #3 ONLY\n')
-        case 4
-            scaledtrace = scaledtrace4;
-            fprintf('\nUsing TILT PLATFORM\n')
-        otherwise
-            scaledtrace = scaledtrace1 + scaledtrace2 + scaledtrace3;
-            fprintf('\nUsing ALL ACCELEROMETERS\n')
+    load(samplesfilename)
+    fprintf('\nfound and loaded Open Ephys samples file.')
+    fprintf(' done.  ')
+    toc
+catch
+    if ~exist(sessionfilename)
+        fprintf('\ndid not find saved Open Ephys session object for this directory ...')
     end
+    if ~exist(samplesfilename)
+        fprintf('\ndid not find saved Open Ephys samples file for this directory ...')
+    end
+    fprintf('\nloading Open Ephys data (this will take a couple minutes) ...\n')
+    tic
+    session = Session(pwd); %open-ephys-matlab-tools function
+    num_channels=session.recordNodes{1}.recordings{1}.info.continuous.num_channels;
+    for ch=1:num_channels
+        bit_volts(ch)=session.recordNodes{1}.recordings{1}.info.continuous(1).channels(ch).bit_volts;
+    end
+    keys=session.recordNodes{1}.recordings{1}.continuous.keys();
+    key=keys{1};
+    timestamps=session.recordNodes{1}.recordings{1}.continuous(key).timestamps;
+    samples=session.recordNodes{1}.recordings{1}.continuous(key).samples(:,:);
+    if num_channels==78 %for 64 channel neuronexus probe
+        stimtracech=71;
+        soundcardtriggerch=72;
+        lasertracech=73;
+    elseif num_channels==142 %for 128 channel diagnostic biochips probe
+        stimtracech=135;
+        soundcardtriggerch=136;
+        lasertracech=137;
+    elseif num_channels==136 %for 128 channel diagnostic biochips probe where we forgot to record the 6 AUX channels
+        stimtracech=129;
+        soundcardtriggerch=130;
+        lasertracech=131;
+    elseif num_channels==11 %Rig2 gap detection behavior, one config
+        stimtracech=4;
+        soundcardtriggerch=5;
+        lasertracech=6; %I think, but haven't confirmed
+        %piezo data from mice 1-4 are on chans 8,9,10,11. Chans 1-3 are empty
+    elseif num_channels==27 %Rig2 gap detection behavior, another config
+        stimtracech=20;
+        soundcardtriggerch=21;
+        lasertracech=22; %I think, but haven't confirmed
+        %piezo data from mice 1-4 should be on chans 24,25,26,27. Chans 1-3 are empty
+        mouse1ch=24;
+        mouse2ch=25;
+        mouse3ch=26;
+        mouse4ch=27;
+    end
+    stimtrace=session.recordNodes{1}.recordings{1}.continuous(key).samples(stimtracech,:);
+    soundcardtrigger=session.recordNodes{1}.recordings{1}.continuous(key).samples(soundcardtriggerch,:);
+    lasertrace=session.recordNodes{1}.recordings{1}.continuous(key).samples(lasertracech,:);
+    session.recordNodes{1}.recordings{1}.continuous=[];
+    session.recordNodes{2}.recordings{1}.continuous=[];
+    session.recordNodes{2}.recordings{1}.spikes=[];
+    fprintf('\nsaving Open Ephys session object and samples in OpenEphys folder...')
+    save(sessionfilename, 'session', 'stimtrace','soundcardtrigger','lasertrace',...
+        'timestamps','num_channels', 'bit_volts', '*ch')
+    save(samplesfilename, 'samples', '-v7.3')
+    fprintf(' done. ')
+    toc
+end
 
+%try to load laser and stimulus monitor
+if exist('lasertrace')==1
+    %we loaded lasertrace from open ephys Session object
+    LaserRecorded=1;
+else    LaserRecorded=0;
+    warning('Laser monitor channel not recorded')
+end
+if exist('stimtrace')==1
+    %we loaded stimtrace from open ephys Session object
+    StimRecorded=1;
+else
+    StimRecorded=0;
+    warning('Stimulus monitor channel not recorded')
+end
 
-% SCTfname=getSCTfile(datadir);
-% stimfile=sprintf('%s_ADC1.continuous', node);
-% [stim, stimtimestamps, stiminfo] =load_open_ephys_data(stimfile);
+if LaserRecorded
+    Lasertimestamps=timestamps-timestamps(1);
+    Lasertrace=lasertrace./max(abs(lasertrace));
+else
+    fprintf('\nLaser trace not recorded')
+end
+if StimRecorded
+    Stimtimestamps=timestamps-timestamps(1);
+    stimtrace=stimtrace./max(abs(stimtrace));
+else
+    fprintf('\nSound stimulus trace not recorded')
+end
 
-%uncomment this to run some sanity checks
-%SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
+mouse1scaledtrace=double(samples(mouse1ch, :))*bit_volts(mouse1ch);
+mouse2scaledtrace=double(samples(mouse2ch, :))*bit_volts(mouse1ch);
+mouse3scaledtrace=double(samples(mouse3ch, :))*bit_volts(mouse1ch);
+mouse4scaledtrace=double(samples(mouse4ch, :))*bit_volts(mouse1ch);
 
 
 %get freqs/amps
@@ -299,12 +379,12 @@ for i=1:length(Events)
             if isempty(find(region<1))
                 if laser
                     nrepsON(gdindex,paindex)=nrepsON(gdindex,paindex)+1;
-                    M1ON(gdindex,paindex, nrepsON(gdindex,paindex),:)=scaledtrace(region);
-                    M1ONACC(gdindex,paindex, nrepsON(gdindex,paindex),:)=scaledtraceACC(region);
-                    M1ONstim(gdindex, paindex, nrepsON(gdindex, paindex),:)=stim(region);
+                    M1ON(gdindex,paindex, nrepsON(gdindex,paindex),:)=mouse1scaledtrace(region);
+                    %M1ONACC(gdindex,paindex, nrepsON(gdindex,paindex),:)=mouse1scaledtraceACC(region);
+                    M1ONstim(gdindex, paindex, nrepsON(gdindex, paindex),:)=stimtrace(region);
                 else
                     if flag.unwrap
-                        temp = scaledtrace(region);
+                        temp = mouse1scaledtrace(region);
                         tempD = [0; diff(temp)];
                         indUp = find(tempD>2);
                         indDown = find(tempD<-2)-1;
@@ -312,18 +392,18 @@ for i=1:length(Events)
                         for ijump = 1:njumps
                             temp(indUp(ijump):indDown(ijump)) = temp(indUp(ijump):indDown(ijump)) - (10-.4096);
                         end
-                        scaledtrace(region) = temp;
+                        mouse1scaledtrace(region) = temp;
                     end
                     
                     nrepsOFF(gdindex,paindex)=nrepsOFF(gdindex,paindex)+1;
-                    M1OFF(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=scaledtrace(region);
-                    M1OFFACC(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=scaledtraceACC(region);
-                    M1OFFstim(gdindex, paindex, nrepsOFF(gdindex, paindex),:)=stim(region);
+                    M1OFF(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=mouse1scaledtrace(region);
+                    % M1OFFACC(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=mouse1scaledtraceACC(region);
+                    M1OFFstim(gdindex, paindex, nrepsOFF(gdindex, paindex),:)=stimtrace(region);
                     
                     if flag.plot
                         figure(Hfig(gdindex))
                         t=region; t = t-t(1);t=t/samprate;
-                        plot(t, scaledtrace(region), 'color',hsv2rgb([gdindex/length(gapdurs),1,1]))
+                        plot(t, mouse1scaledtrace(region), 'color',hsv2rgb([gdindex/length(gapdurs),1,1]))
                     end
                     if flag.plot
                         %some sanity check to see if the stimulus played
@@ -332,7 +412,7 @@ for i=1:length(Events)
                         hold on
                         offset=i*.1;
                         t=region;t=t/samprate; t=t-t(1);
-                        plot(t, stim(region)-stim(1)+offset, 'm', t, scaledtrace(region)-scaledtrace(1)+offset, 'b')
+                        plot(t, stimtrace(region)-stimtrace(1)+offset, 'm', t, mouse1scaledtrace(region)-mouse1scaledtrace(1)+offset, 'b')
                         gap_termination=pos+gapdelay/1000;
                         gap_onset=pos+gapdelay/1000-gapdur/1000;
 %                         plot(gap_onset, 0, '^', gap_termination,0, 'v')
@@ -457,20 +537,20 @@ for paindex=1:numpulseamps
                 bl_SumOFF(gdindex, paindex, k) = nan;
                 SumOFF(gdindex, paindex, k) = nan;
             end
-            temp = squeeze(M1OFFACC(gdindex,paindex, k, 1:10000));
-            if abs(mean(temp)) <.01 & std(temp) < .1
-                traceOFF=squeeze(M1OFFACC(gdindex,paindex, k, start:stop));
-                PeakOFFACC(gdindex, paindex, k) = max(abs(traceOFF));
-                SumOFFACC(gdindex, paindex, k) = sum(abs(traceOFF));
-            elseif flag.includeALL
-                traceOFF=squeeze(M1OFFACC(gdindex,paindex, k, start:stop));
-                PeakOFFACC(gdindex, paindex, k) = max(abs(traceOFF));
-                SumOFFACC(gdindex, paindex, k) = sum(abs(traceOFF));
-            else
-                fprintf('Throwing out ACC trial#%d of gapdur#%d\n',k,gdindex)
-                PeakOFFACC (gdindex, paindex, k) = nan;
-                SumOFFACC (gdindex, paindex, k) = nan;
-            end
+            % temp = squeeze(M1OFFACC(gdindex,paindex, k, 1:10000));
+            % if abs(mean(temp)) <.01 & std(temp) < .1
+            %     traceOFF=squeeze(M1OFFACC(gdindex,paindex, k, start:stop));
+            %     PeakOFFACC(gdindex, paindex, k) = max(abs(traceOFF));
+            %     SumOFFACC(gdindex, paindex, k) = sum(abs(traceOFF));
+            % elseif flag.includeALL
+            %     traceOFF=squeeze(M1OFFACC(gdindex,paindex, k, start:stop));
+            %     PeakOFFACC(gdindex, paindex, k) = max(abs(traceOFF));
+            %     SumOFFACC(gdindex, paindex, k) = sum(abs(traceOFF));
+            % else
+            %     fprintf('Throwing out ACC trial#%d of gapdur#%d\n',k,gdindex)
+            %     PeakOFFACC (gdindex, paindex, k) = nan;
+            %     SumOFFACC (gdindex, paindex, k) = nan;
+            % end
         end
         if isempty(PeakON)
             mPeakON=[];
@@ -623,13 +703,20 @@ end
 
 
 %save to outfiles
+[~,BonsaiFolder,~]=fileparts(BonsaiPath);
+out.BonsaiFolder=BonsaiFolder;
+out.BonsaiPath=BonsaiPath;
+out.EphysFolder=EphysFolder;
+out.generated_by=mfilename;
+out.generated_on=datestr(now);
+
 out.IL=IL;
 out.flag=flag;
 
-out.M1ON=M1ON;    % scaledtrace (depends on flag.accel)
-out.M1OFF=M1OFF;    % scaledtrace
-out.mM1ON=mM1ON;    % scaledtrace
-out.mM1OFF=mM1OFF;    % scaledtrace
+out.M1ON=M1ON;    % mouse1scaledtrace (depends on flag.accel)
+out.M1OFF=M1OFF;    % mouse1scaledtrace
+out.mM1ON=mM1ON;    % mouse1scaledtrace
+out.mM1OFF=mM1OFF;    % mouse1scaledtrace
 % out.M1ONACC=M1ONACC;
 % out.M1OFFACC=M1OFFACC;
 % out.mM1ONACC=mM1ONACC;
@@ -651,7 +738,6 @@ out.mSumON=mSumON;
 out.mSumOFF=mSumOFF;
 out.semSumON=semSumON;
 out.semSumOFF=semSumOFF;
-out.datadir=datadir;
 out.nrepsON=nrepsON;
 out.nrepsOFF=nrepsOFF;
 out.Events=Events;
@@ -685,7 +771,6 @@ out.soaflag=soaflag;
 out.xlimits=xlimits;
 out.startle_window=startle_window;
 out.samprate=samprate;
-out.datadir=datadir;
 try
     out.nb=nb;
     out.stimlog=stimlog;
@@ -697,8 +782,9 @@ catch
     out.user='unknown';
     out.mouseID='unknown';
 end
-outfilename=sprintf('outGPIAS_Behavior.mat');
+outfilename=sprintf('outGPIAS_BehaviorMouse1.mat');
 out.outfilename=outfilename;
+
 save (outfilename, 'out')
 fprintf('\nsaved outfile %s \nin directory %s\n', outfilename, pwd)
 
@@ -707,279 +793,9 @@ close all
 
 
 
-
 %%%%Here is the non-looping code for mouse 2.
 
-
-
-if nargin < 2 || isempty(flag_accel)
-    flag.accel = 4;
-else
-    flag.accel = flag_accel;
-end
-
-flag.includeALL = 1;     % 0) eliminate traces with too much activity before trial
-flag.unwrap = 0;
-flag.plot = 1;
-
-if nargin==0
-    datadir = pwd;
-end
-
-djPrefs;
-global pref
-cd (pref.datapath);
-cd(datadir)
-
-try
-    load notebook.mat
-catch
-    warning('could not find notebook file')
-end
-
-if flag.includeALL
-    fprintf('using all traces\n')
-else
-    fprintf('eliminating traces with too much activity before test\n')
-end
-
-
-%read messages
-messagesfilename='messages.events';
-[messages] = GetNetworkEvents(messagesfilename);
-
-
-%read digital Events
-Eventsfilename='all_channels.events';
-[all_channels_data, all_channels_timestamps, all_channels_info] = load_open_ephys_data(Eventsfilename);
-sampleRate=all_channels_info.header.sampleRate; %in Hz
-
-if 0
-    fprintf('\nrunning SCT_Monitor to examine soundcard triggers, timestamps, and network messages...')
-    
-    %   I'm running the soundcard trigger (SCT) into ai1 as another sanity check.
-    SCTfname=getSCTfile(datadir);
-    Stimfname = getStimfile(datadir);
-    if isempty(SCTfname)
-        warning('could not find soundcard trigger file')
-    else
-        [SCTtrace, SCTtimestamps, SCTinfo] =load_open_ephys_data(SCTfname);
-        ind0 = find(SCTtrace>0);
-        ind1 = find(diff(SCTtimestamps(ind0))>1);
-        ind1 = [1; ind1+1];
-        SCTtimes = SCTtimestamps(ind0(ind1));
-        
-        [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(Stimfname);
-        ind0 = find(Stimtrace>-4.5);
-        ind1 = find(diff(Stimtimestamps(ind0))>1);
-        ind1 = [1; ind1+1];
-        Stimtimes = Stimtimestamps(ind0(ind1));
-        
-        StimtimesCorr = Stimtimes-1.04905;
-        indNearest = nearest_index(SCTtimes,StimtimesCorr);
-        indNearest = indNearest(indNearest>1);
-        
-    end
-end
-    
-
-%get Events and soundcard trigger timestamps
-[Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
-%there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
-
-%check if this is an appropriate stimulus protocol
-if ~strcmp(GetPlottingFunction(datadir), 'PlotGPIAS_PSTH')
-    error('This does not appear to be a GPIAS stimulus protcol');
-end
-
-%accelerometer channels are 33, 34, 35
-node='';
-NodeIds=getNodes(pwd);
-for i=1:length(NodeIds)
-    filename=sprintf('%s_AUX2.continuous', NodeIds{i});
-    if exist(filename,'file')
-        node=NodeIds{i};
-    end
-end
-filename1=sprintf('%s_AUX1.continuous', node);
-filename2=sprintf('%s_AUX2.continuous', node);
-filename3=sprintf('%s_AUX3.continuous', node);
-
-fprintf('\n')
-if exist(filename1, 'file')~=2 %couldn't find it
-    fprintf('could not find AUX1 file %s in datadir %s', filename1, datadir)
-else
-    [scaledtrace1, datatimestamps, datainfo] =load_open_ephys_data(filename1);
-    scaledtrace1 = scaledtrace1 - mean(scaledtrace1);
-end
-if exist(filename2, 'file')~=2 %couldn't find it
-    fprintf('could not find AUX2 file %s in datadir %s', filename2, datadir)
-else
-    [scaledtrace2, datatimestamps, datainfo] =load_open_ephys_data(filename2);
-    scaledtrace2 = scaledtrace2 - mean(scaledtrace2);
-end
-if exist(filename3, 'file')~=2 %couldn't find it
-    fprintf('could not find AUX3 file %s in datadir %s', filename3, datadir)
-else
-    [scaledtrace3, datatimestamps, datainfo] =load_open_ephys_data(filename3);
-    scaledtrace3 = scaledtrace3 - mean(scaledtrace3);
-end
-
-% get tilt-table recording from ADC5 for Mouse2
-filename4=sprintf('%s_ADC5.continuous', node);
-if exist(filename4, 'file')~=2 %couldn't find it
-    error(sprintf('could not find ADC5 file %s in datadir %s', filename4, datadir))
-end
-[scaledtrace4, datatimestamps, datainfo] =load_open_ephys_data(filename4);
-scaledtrace4 = scaledtrace4 - mean(scaledtrace4);
-
-if 0
-    fprintf('\nPlotting rectified traces\n')
-    switch flag.accel
-        case 1
-            scaledtrace = sqrt( scaledtrace1.^2);
-            fprintf('\nUsing ACCELEROMETER #1 ONLY\n')
-        case 2
-            scaledtrace = sqrt( scaledtrace2.^2);
-            fprintf('\nUsing ACCELEROMETER #2 ONLY\n')
-        case 3
-            scaledtrace = sqrt( scaledtrace3.^2);
-            fprintf('\nUsing ACCELEROMETER #3 ONLY\n')
-        case 4
-            scaledtrace = sqrt(scaledtrace4.^2);
-            fprintf('\nUsing TILT PLATFORM\n')
-        otherwise
-            scaledtrace = sqrt( scaledtrace1.^2 + scaledtrace2.^2 + scaledtrace3.^2 );
-            fprintf('\nUsing ALL ACCELEROMETERS\n')
-    end
-else
-    fprintf('\nPlotting full (unrectified) traces\n')
-    scaledtraceACC = scaledtrace1 + scaledtrace2 + scaledtrace3;
-    switch flag.accel
-        case 1
-            scaledtrace = scaledtrace1;
-            fprintf('\nUsing ACCELEROMETER #1 ONLY\n')
-        case 2
-            scaledtrace = scaledtrace2;
-            fprintf('\nUsing ACCELEROMETER #2 ONLY\n')
-        case 3
-            scaledtrace = scaledtrace3;
-            fprintf('\nUsing ACCELEROMETER #3 ONLY\n')
-        case 4
-            scaledtrace = scaledtrace4;
-            fprintf('\nUsing TILT PLATFORM\n')
-        otherwise
-            scaledtrace = scaledtrace1 + scaledtrace2 + scaledtrace3;
-            fprintf('\nUsing ALL ACCELEROMETERS\n')
-    end
-end
-
-SCTfname=getSCTfile(datadir);
-stimfile=sprintf('%s_ADC1.continuous', node);
-[stim, stimtimestamps, stiminfo] =load_open_ephys_data(stimfile);
-
-%uncomment this to run some sanity checks
-%SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
-
-fprintf('\ncomputing tuning curve...');
-
-samprate=sampleRate;
-
-%get freqs/amps
-j=0;
-for i=1:length(Events)
-    if strcmp(Events(i).type, 'GPIAS') | strcmp(Events(i).type, 'toneGPIAS')
-        j=j+1;
-        allsoas(j)=Events(i).soa;
-        allsoaflags{j}=Events(i).soaflag;
-        allgapdurs(j)=Events(i).gapdur;
-        allgapdelays(j)=Events(i).gapdelay;
-        allpulseamps(j)=Events(i).pulseamp;
-        allpulsedurs(j)=Events(i).pulsedur;
-        allnoiseamps(j)=Events(i).amplitude;
-    end
-    
-end
-gapdurs=unique(allgapdurs);
-pulsedurs=unique(allpulsedurs);
-soas=unique(allsoas);
-soaflags=unique(allsoaflags);
-gapdelays=unique(allgapdelays);
-pulseamps=unique(allpulseamps);
-noiseamps=unique(allnoiseamps);
-numgapdurs=length(gapdurs);
-numpulseamps=length(pulseamps);
-nrepsON=zeros( numgapdurs, numpulseamps);
-nrepsOFF=zeros( numgapdurs, numpulseamps);
-
-if length(noiseamps)~=1
-    error('not able to handle multiple noiseamps')
-end
-if length(gapdelays)~=1
-    error('not able to handle multiple gapdelays')
-end
-if length(pulsedurs)~=1
-    error('not able to handle multiple pulsedurs')
-end
-if length(soas)~=1
-    error('not able to handle multiple soas')
-end
-if length(soaflags)~=1
-    error('not able to handle multiple soaflags')
-end
-noiseamp=noiseamps;
-soa=soas;
-pulsedur=pulsedurs;
-gapdelay=gapdelays;
-soaflag=soaflags{:};
-
-
-%check for laser in Events
-for i=1:length(Events)
-    if isfield(Events(i), 'laser') & isfield(Events(i), 'LaserOnOff')
-        if isempty(Events(i).laser)
-            Events(i).laser=0;
-        end
-        LaserScheduled(i)=Events(i).laser; %whether the stim protocol scheduled a laser for this stim
-        LaserOnOffButton(i)=Events(i).LaserOnOff; %whether the laser button was turned on
-        LaserTrials(i)=LaserScheduled(i) & LaserOnOffButton(i);
-        if isempty(stimlog(i).LaserStart)
-            LaserStart(i)=nan;
-            LaserWidth(i)=nan;
-            LaserNumPulses(i)=nan;
-            LaserISI(i)=nan;
-        else
-            LaserStart(i)=stimlog(i).LaserStart;
-            LaserWidth(i)=stimlog(i).LaserWidth;
-            LaserNumPulses(i)=stimlog(i).LaserNumPulses;
-            LaserISI(i)=stimlog(i).LaserISI;
-        end
-        
-    elseif isfield(Events(i), 'laser') & ~isfield(Events(i), 'LaserOnOff')
-        %Not sure about this one. Assume no laser for now, but investigate.
-        warning('ProcessGPIAS_Behavior: Cannot tell if laser button was turned on in djmaus GUI');
-        LaserTrials(i)=0;
-        Events(i).laser=0;
-    elseif ~isfield(Events(i), 'laser') & ~isfield(Events(i), 'LaserOnOff')
-        %if neither of the right fields are there, assume no laser
-        LaserTrials(i)=0;
-        Events(i).laser=0;
-    else
-        error('wtf?')
-    end
-end
-fprintf('\n%d laser pulses in this Events file', sum(LaserTrials))
-try
-    if sum(LaserOnOffButton)==0
-        fprintf('\nLaser On/Off button remained off for entire file.')
-    end
-end
-if sum(LaserTrials)>0
-    IL=1;
-else
-    IL=0;
-end
-%if lasers were used, we'll un-interleave them and save ON and OFF data
+fprintf('\ncomputing mouse 2...');
 
 M1ON=[];M1OFF=[];
 M1ONACC=[];M1OFFACC=[];
@@ -1034,12 +850,12 @@ for i=1:length(Events)
             if isempty(find(region<1))
                 if laser
                     nrepsON(gdindex,paindex)=nrepsON(gdindex,paindex)+1;
-                    M1ON(gdindex,paindex, nrepsON(gdindex,paindex),:)=scaledtrace(region);
-                    M1ONACC(gdindex,paindex, nrepsON(gdindex,paindex),:)=scaledtraceACC(region);
-                    M1ONstim(gdindex, paindex, nrepsON(gdindex, paindex),:)=stim(region);
+                    M1ON(gdindex,paindex, nrepsON(gdindex,paindex),:)=mouse2scaledtrace(region);
+                    M1ONACC(gdindex,paindex, nrepsON(gdindex,paindex),:)=mouse2scaledtraceACC(region);
+                    M1ONstim(gdindex, paindex, nrepsON(gdindex, paindex),:)=stimtrace(region);
                 else
                     if flag.unwrap
-                        temp = scaledtrace(region);
+                        temp = mouse2scaledtrace(region);
                         tempD = [0; diff(temp)];
                         indUp = find(tempD>2);
                         indDown = find(tempD<-2)-1;
@@ -1047,18 +863,18 @@ for i=1:length(Events)
                         for ijump = 1:njumps
                             temp(indUp(ijump):indDown(ijump)) = temp(indUp(ijump):indDown(ijump)) - (10-.4096);
                         end
-                        scaledtrace(region) = temp;
+                        mouse2scaledtrace(region) = temp;
                     end
                     
                     nrepsOFF(gdindex,paindex)=nrepsOFF(gdindex,paindex)+1;
-                    M1OFF(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=scaledtrace(region);
-                    M1OFFACC(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=scaledtraceACC(region);
-                    M1OFFstim(gdindex, paindex, nrepsOFF(gdindex, paindex),:)=stim(region);
+                    M1OFF(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=mouse2scaledtrace(region);
+                    % M1OFFACC(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=mouse2scaledtraceACC(region);
+                    M1OFFstim(gdindex, paindex, nrepsOFF(gdindex, paindex),:)=stimtrace(region);
                     
                     if flag.plot
                         figure(Hfig(gdindex))
                         t=region; t = t-t(1);t=t/samprate;
-                        plot(t, scaledtrace(region), 'color',hsv2rgb([gdindex/length(gapdurs),1,1]))
+                        plot(t, mouse2scaledtrace(region), 'color',hsv2rgb([gdindex/length(gapdurs),1,1]))
                     end
                     if flag.plot
                         %some sanity check to see if the stimulus played
@@ -1067,7 +883,7 @@ for i=1:length(Events)
                         hold on
                         offset=i*.1;
                         t=region;t=t/samprate; t=t-t(1);
-                        plot(t, stim(region)-stim(1)+offset, 'm', t, scaledtrace(region)-scaledtrace(1)+offset, 'b')
+                        plot(t, stimtrace(region)-stimtrace(1)+offset, 'm', t, mouse2scaledtrace(region)-mouse2scaledtrace(1)+offset, 'b')
                         gap_termination=pos+gapdelay/1000;
                         gap_onset=pos+gapdelay/1000-gapdur/1000;
 %                         plot(gap_onset, 0, '^', gap_termination,0, 'v')
@@ -1192,20 +1008,20 @@ for paindex=1:numpulseamps
                 bl_SumOFF(gdindex, paindex, k) = nan;
                 SumOFF(gdindex, paindex, k) = nan;
             end
-            temp = squeeze(M1OFFACC(gdindex,paindex, k, 1:10000));
-            if abs(mean(temp)) <.01 & std(temp) < .1
-                traceOFF=squeeze(M1OFFACC(gdindex,paindex, k, start:stop));
-                PeakOFFACC(gdindex, paindex, k) = max(abs(traceOFF));
-                SumOFFACC(gdindex, paindex, k) = sum(abs(traceOFF));
-            elseif flag.includeALL
-                traceOFF=squeeze(M1OFFACC(gdindex,paindex, k, start:stop));
-                PeakOFFACC(gdindex, paindex, k) = max(abs(traceOFF));
-                SumOFFACC(gdindex, paindex, k) = sum(abs(traceOFF));
-            else
-                fprintf('Throwing out ACC trial#%d of gapdur#%d\n',k,gdindex)
-                PeakOFFACC (gdindex, paindex, k) = nan;
-                SumOFFACC (gdindex, paindex, k) = nan;
-            end
+            % temp = squeeze(M1OFFACC(gdindex,paindex, k, 1:10000));
+            % if abs(mean(temp)) <.01 & std(temp) < .1
+            %     traceOFF=squeeze(M1OFFACC(gdindex,paindex, k, start:stop));
+            %     PeakOFFACC(gdindex, paindex, k) = max(abs(traceOFF));
+            %     SumOFFACC(gdindex, paindex, k) = sum(abs(traceOFF));
+            % elseif flag.includeALL
+            %     traceOFF=squeeze(M1OFFACC(gdindex,paindex, k, start:stop));
+            %     PeakOFFACC(gdindex, paindex, k) = max(abs(traceOFF));
+            %     SumOFFACC(gdindex, paindex, k) = sum(abs(traceOFF));
+            % else
+            %     fprintf('Throwing out ACC trial#%d of gapdur#%d\n',k,gdindex)
+            %     PeakOFFACC (gdindex, paindex, k) = nan;
+            %     SumOFFACC (gdindex, paindex, k) = nan;
+            % end
         end
         if isempty(PeakON)
             mPeakON=[];
@@ -1358,13 +1174,20 @@ end
 
 
 %save to outfiles
+[~,BonsaiFolder,~]=fileparts(BonsaiPath);
+out.BonsaiFolder=BonsaiFolder;
+out.BonsaiPath=BonsaiPath;
+out.EphysFolder=EphysFolder;
+out.generated_by=mfilename;
+out.generated_on=datestr(now);
+
 out.IL=IL;
 out.flag=flag;
 
-out.M1ON=M1ON;    % scaledtrace (depends on flag.accel)
-out.M1OFF=M1OFF;    % scaledtrace
-out.mM1ON=mM1ON;    % scaledtrace
-out.mM1OFF=mM1OFF;    % scaledtrace
+out.M1ON=M1ON;    % mouse2scaledtrace (depends on flag.accel)
+out.M1OFF=M1OFF;    % mouse2scaledtrace
+out.mM1ON=mM1ON;    % mouse2scaledtrace
+out.mM1OFF=mM1OFF;    % mouse2scaledtrace
 % out.M1ONACC=M1ONACC;
 % out.M1OFFACC=M1OFFACC;
 % out.mM1ONACC=mM1ONACC;
@@ -1386,7 +1209,6 @@ out.mSumON=mSumON;
 out.mSumOFF=mSumOFF;
 out.semSumON=semSumON;
 out.semSumOFF=semSumOFF;
-out.datadir=datadir;
 out.nrepsON=nrepsON;
 out.nrepsOFF=nrepsOFF;
 out.Events=Events;
@@ -1421,7 +1243,6 @@ out.soaflag=soaflag;
 out.xlimits=xlimits;
 out.startle_window=startle_window;
 out.samprate=samprate;
-out.datadir=datadir;
 try
     out.nb=nb;
     out.stimlog=stimlog;
@@ -1442,279 +1263,9 @@ fprintf('\nsaved outfile %s \nin directory %s\n', outfilename, pwd)
 
 close all
 
-
 %%%%Here is the non-looping code for mouse 3.
 
-
-
-if nargin < 2 || isempty(flag_accel)
-    flag.accel = 4;
-else
-    flag.accel = flag_accel;
-end
-
-flag.includeALL = 1;     % 0) eliminate traces with too much activity before trial
-flag.unwrap = 0;
-flag.plot = 1;
-
-if nargin==0
-    datadir = pwd;
-end
-
-djPrefs;
-global pref
-cd (pref.datapath);
-cd(datadir)
-
-try
-    load notebook.mat
-catch
-    warning('could not find notebook file')
-end
-
-if flag.includeALL
-    fprintf('using all traces\n')
-else
-    fprintf('eliminating traces with too much activity before test\n')
-end
-
-
-%read messages
-messagesfilename='messages.events';
-[messages] = GetNetworkEvents(messagesfilename);
-
-
-%read digital Events
-Eventsfilename='all_channels.events';
-[all_channels_data, all_channels_timestamps, all_channels_info] = load_open_ephys_data(Eventsfilename);
-sampleRate=all_channels_info.header.sampleRate; %in Hz
-
-if 0
-    fprintf('\nrunning SCT_Monitor to examine soundcard triggers, timestamps, and network messages...')
-    
-    %   I'm running the soundcard trigger (SCT) into ai1 as another sanity check.
-    SCTfname=getSCTfile(datadir);
-    Stimfname = getStimfile(datadir);
-    if isempty(SCTfname)
-        warning('could not find soundcard trigger file')
-    else
-        [SCTtrace, SCTtimestamps, SCTinfo] =load_open_ephys_data(SCTfname);
-        ind0 = find(SCTtrace>0);
-        ind1 = find(diff(SCTtimestamps(ind0))>1);
-        ind1 = [1; ind1+1];
-        SCTtimes = SCTtimestamps(ind0(ind1));
-        
-        [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(Stimfname);
-        ind0 = find(Stimtrace>-4.5);
-        ind1 = find(diff(Stimtimestamps(ind0))>1);
-        ind1 = [1; ind1+1];
-        Stimtimes = Stimtimestamps(ind0(ind1));
-        
-        StimtimesCorr = Stimtimes-1.04905;
-        indNearest = nearest_index(SCTtimes,StimtimesCorr);
-        indNearest = indNearest(indNearest>1);
-        
-    end
-end
-    
-
-%get Events and soundcard trigger timestamps
-[Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
-%there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
-
-%check if this is an appropriate stimulus protocol
-if ~strcmp(GetPlottingFunction(datadir), 'PlotGPIAS_PSTH')
-    error('This does not appear to be a GPIAS stimulus protcol');
-end
-
-%accelerometer channels are 33, 34, 35
-node='';
-NodeIds=getNodes(pwd);
-for i=1:length(NodeIds)
-    filename=sprintf('%s_AUX2.continuous', NodeIds{i});
-    if exist(filename,'file')
-        node=NodeIds{i};
-    end
-end
-filename1=sprintf('%s_AUX1.continuous', node);
-filename2=sprintf('%s_AUX2.continuous', node);
-filename3=sprintf('%s_AUX3.continuous', node);
-
-fprintf('\n')
-if exist(filename1, 'file')~=2 %couldn't find it
-    fprintf('could not find AUX1 file %s in datadir %s', filename1, datadir)
-else
-    [scaledtrace1, datatimestamps, datainfo] =load_open_ephys_data(filename1);
-    scaledtrace1 = scaledtrace1 - mean(scaledtrace1);
-end
-if exist(filename2, 'file')~=2 %couldn't find it
-    fprintf('could not find AUX2 file %s in datadir %s', filename2, datadir)
-else
-    [scaledtrace2, datatimestamps, datainfo] =load_open_ephys_data(filename2);
-    scaledtrace2 = scaledtrace2 - mean(scaledtrace2);
-end
-if exist(filename3, 'file')~=2 %couldn't find it
-    fprintf('could not find AUX3 file %s in datadir %s', filename3, datadir)
-else
-    [scaledtrace3, datatimestamps, datainfo] =load_open_ephys_data(filename3);
-    scaledtrace3 = scaledtrace3 - mean(scaledtrace3);
-end
-
-% get tilt-table recording from ADC6 for Mouse3
-filename4=sprintf('%s_ADC6.continuous', node);
-if exist(filename4, 'file')~=2 %couldn't find it
-    error(sprintf('could not find ADC6 file %s in datadir %s', filename4, datadir))
-end
-[scaledtrace4, datatimestamps, datainfo] =load_open_ephys_data(filename4);
-scaledtrace4 = scaledtrace4 - mean(scaledtrace4);
-
-if 0
-    fprintf('\nPlotting rectified traces\n')
-    switch flag.accel
-        case 1
-            scaledtrace = sqrt( scaledtrace1.^2);
-            fprintf('\nUsing ACCELEROMETER #1 ONLY\n')
-        case 2
-            scaledtrace = sqrt( scaledtrace2.^2);
-            fprintf('\nUsing ACCELEROMETER #2 ONLY\n')
-        case 3
-            scaledtrace = sqrt( scaledtrace3.^2);
-            fprintf('\nUsing ACCELEROMETER #3 ONLY\n')
-        case 4
-            scaledtrace = sqrt(scaledtrace4.^2);
-            fprintf('\nUsing TILT PLATFORM\n')
-        otherwise
-            scaledtrace = sqrt( scaledtrace1.^2 + scaledtrace2.^2 + scaledtrace3.^2 );
-            fprintf('\nUsing ALL ACCELEROMETERS\n')
-    end
-else
-    fprintf('\nPlotting full (unrectified) traces\n')
-    scaledtraceACC = scaledtrace1 + scaledtrace2 + scaledtrace3;
-    switch flag.accel
-        case 1
-            scaledtrace = scaledtrace1;
-            fprintf('\nUsing ACCELEROMETER #1 ONLY\n')
-        case 2
-            scaledtrace = scaledtrace2;
-            fprintf('\nUsing ACCELEROMETER #2 ONLY\n')
-        case 3
-            scaledtrace = scaledtrace3;
-            fprintf('\nUsing ACCELEROMETER #3 ONLY\n')
-        case 4
-            scaledtrace = scaledtrace4;
-            fprintf('\nUsing TILT PLATFORM\n')
-        otherwise
-            scaledtrace = scaledtrace1 + scaledtrace2 + scaledtrace3;
-            fprintf('\nUsing ALL ACCELEROMETERS\n')
-    end
-end
-
-SCTfname=getSCTfile(datadir);
-stimfile=sprintf('%s_ADC1.continuous', node);
-[stim, stimtimestamps, stiminfo] =load_open_ephys_data(stimfile);
-
-%uncomment this to run some sanity checks
-%SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
-
-fprintf('\ncomputing tuning curve...');
-
-samprate=sampleRate;
-
-%get freqs/amps
-j=0;
-for i=1:length(Events)
-    if strcmp(Events(i).type, 'GPIAS') | strcmp(Events(i).type, 'toneGPIAS')
-        j=j+1;
-        allsoas(j)=Events(i).soa;
-        allsoaflags{j}=Events(i).soaflag;
-        allgapdurs(j)=Events(i).gapdur;
-        allgapdelays(j)=Events(i).gapdelay;
-        allpulseamps(j)=Events(i).pulseamp;
-        allpulsedurs(j)=Events(i).pulsedur;
-        allnoiseamps(j)=Events(i).amplitude;
-    end
-    
-end
-gapdurs=unique(allgapdurs);
-pulsedurs=unique(allpulsedurs);
-soas=unique(allsoas);
-soaflags=unique(allsoaflags);
-gapdelays=unique(allgapdelays);
-pulseamps=unique(allpulseamps);
-noiseamps=unique(allnoiseamps);
-numgapdurs=length(gapdurs);
-numpulseamps=length(pulseamps);
-nrepsON=zeros( numgapdurs, numpulseamps);
-nrepsOFF=zeros( numgapdurs, numpulseamps);
-
-if length(noiseamps)~=1
-    error('not able to handle multiple noiseamps')
-end
-if length(gapdelays)~=1
-    error('not able to handle multiple gapdelays')
-end
-if length(pulsedurs)~=1
-    error('not able to handle multiple pulsedurs')
-end
-if length(soas)~=1
-    error('not able to handle multiple soas')
-end
-if length(soaflags)~=1
-    error('not able to handle multiple soaflags')
-end
-noiseamp=noiseamps;
-soa=soas;
-pulsedur=pulsedurs;
-gapdelay=gapdelays;
-soaflag=soaflags{:};
-
-
-%check for laser in Events
-for i=1:length(Events)
-    if isfield(Events(i), 'laser') & isfield(Events(i), 'LaserOnOff')
-        if isempty(Events(i).laser)
-            Events(i).laser=0;
-        end
-        LaserScheduled(i)=Events(i).laser; %whether the stim protocol scheduled a laser for this stim
-        LaserOnOffButton(i)=Events(i).LaserOnOff; %whether the laser button was turned on
-        LaserTrials(i)=LaserScheduled(i) & LaserOnOffButton(i);
-        if isempty(stimlog(i).LaserStart)
-            LaserStart(i)=nan;
-            LaserWidth(i)=nan;
-            LaserNumPulses(i)=nan;
-            LaserISI(i)=nan;
-        else
-            LaserStart(i)=stimlog(i).LaserStart;
-            LaserWidth(i)=stimlog(i).LaserWidth;
-            LaserNumPulses(i)=stimlog(i).LaserNumPulses;
-            LaserISI(i)=stimlog(i).LaserISI;
-        end
-        
-    elseif isfield(Events(i), 'laser') & ~isfield(Events(i), 'LaserOnOff')
-        %Not sure about this one. Assume no laser for now, but investigate.
-        warning('ProcessGPIAS_Behavior: Cannot tell if laser button was turned on in djmaus GUI');
-        LaserTrials(i)=0;
-        Events(i).laser=0;
-    elseif ~isfield(Events(i), 'laser') & ~isfield(Events(i), 'LaserOnOff')
-        %if neither of the right fields are there, assume no laser
-        LaserTrials(i)=0;
-        Events(i).laser=0;
-    else
-        error('wtf?')
-    end
-end
-fprintf('\n%d laser pulses in this Events file', sum(LaserTrials))
-try
-    if sum(LaserOnOffButton)==0
-        fprintf('\nLaser On/Off button remained off for entire file.')
-    end
-end
-if sum(LaserTrials)>0
-    IL=1;
-else
-    IL=0;
-end
-%if lasers were used, we'll un-interleave them and save ON and OFF data
+fprintf('\ncomputing mouse 3 ...');
 
 M1ON=[];M1OFF=[];
 M1ONACC=[];M1OFFACC=[];
@@ -1769,12 +1320,12 @@ for i=1:length(Events)
             if isempty(find(region<1))
                 if laser
                     nrepsON(gdindex,paindex)=nrepsON(gdindex,paindex)+1;
-                    M1ON(gdindex,paindex, nrepsON(gdindex,paindex),:)=scaledtrace(region);
-                    M1ONACC(gdindex,paindex, nrepsON(gdindex,paindex),:)=scaledtraceACC(region);
-                    M1ONstim(gdindex, paindex, nrepsON(gdindex, paindex),:)=stim(region);
+                    M1ON(gdindex,paindex, nrepsON(gdindex,paindex),:)=mouse3scaledtrace(region);
+                    M1ONACC(gdindex,paindex, nrepsON(gdindex,paindex),:)=mouse3scaledtraceACC(region);
+                    M1ONstim(gdindex, paindex, nrepsON(gdindex, paindex),:)=stimtrace(region);
                 else
                     if flag.unwrap
-                        temp = scaledtrace(region);
+                        temp = mouse3scaledtrace(region);
                         tempD = [0; diff(temp)];
                         indUp = find(tempD>2);
                         indDown = find(tempD<-2)-1;
@@ -1782,18 +1333,18 @@ for i=1:length(Events)
                         for ijump = 1:njumps
                             temp(indUp(ijump):indDown(ijump)) = temp(indUp(ijump):indDown(ijump)) - (10-.4096);
                         end
-                        scaledtrace(region) = temp;
+                        mouse3scaledtrace(region) = temp;
                     end
                     
                     nrepsOFF(gdindex,paindex)=nrepsOFF(gdindex,paindex)+1;
-                    M1OFF(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=scaledtrace(region);
-                    M1OFFACC(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=scaledtraceACC(region);
-                    M1OFFstim(gdindex, paindex, nrepsOFF(gdindex, paindex),:)=stim(region);
+                    M1OFF(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=mouse3scaledtrace(region);
+                    % M1OFFACC(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=mouse3scaledtraceACC(region);
+                    M1OFFstim(gdindex, paindex, nrepsOFF(gdindex, paindex),:)=stimtrace(region);
                     
                     if flag.plot
                         figure(Hfig(gdindex))
                         t=region; t = t-t(1);t=t/samprate;
-                        plot(t, scaledtrace(region), 'color',hsv2rgb([gdindex/length(gapdurs),1,1]))
+                        plot(t, mouse3scaledtrace(region), 'color',hsv2rgb([gdindex/length(gapdurs),1,1]))
                     end
                     if flag.plot
                         %some sanity check to see if the stimulus played
@@ -1802,7 +1353,7 @@ for i=1:length(Events)
                         hold on
                         offset=i*.1;
                         t=region;t=t/samprate; t=t-t(1);
-                        plot(t, stim(region)-stim(1)+offset, 'm', t, scaledtrace(region)-scaledtrace(1)+offset, 'b')
+                        plot(t, stimtrace(region)-stimtrace(1)+offset, 'm', t, mouse3scaledtrace(region)-mouse3scaledtrace(1)+offset, 'b')
                         gap_termination=pos+gapdelay/1000;
                         gap_onset=pos+gapdelay/1000-gapdur/1000;
 %                         plot(gap_onset, 0, '^', gap_termination,0, 'v')
@@ -1927,20 +1478,20 @@ for paindex=1:numpulseamps
                 bl_SumOFF(gdindex, paindex, k) = nan;
                 SumOFF(gdindex, paindex, k) = nan;
             end
-            temp = squeeze(M1OFFACC(gdindex,paindex, k, 1:10000));
-            if abs(mean(temp)) <.01 & std(temp) < .1
-                traceOFF=squeeze(M1OFFACC(gdindex,paindex, k, start:stop));
-                PeakOFFACC(gdindex, paindex, k) = max(abs(traceOFF));
-                SumOFFACC(gdindex, paindex, k) = sum(abs(traceOFF));
-            elseif flag.includeALL
-                traceOFF=squeeze(M1OFFACC(gdindex,paindex, k, start:stop));
-                PeakOFFACC(gdindex, paindex, k) = max(abs(traceOFF));
-                SumOFFACC(gdindex, paindex, k) = sum(abs(traceOFF));
-            else
-                fprintf('Throwing out ACC trial#%d of gapdur#%d\n',k,gdindex)
-                PeakOFFACC (gdindex, paindex, k) = nan;
-                SumOFFACC (gdindex, paindex, k) = nan;
-            end
+            % temp = squeeze(M1OFFACC(gdindex,paindex, k, 1:10000));
+            % if abs(mean(temp)) <.01 & std(temp) < .1
+            %     traceOFF=squeeze(M1OFFACC(gdindex,paindex, k, start:stop));
+            %     PeakOFFACC(gdindex, paindex, k) = max(abs(traceOFF));
+            %     SumOFFACC(gdindex, paindex, k) = sum(abs(traceOFF));
+            % elseif flag.includeALL
+            %     traceOFF=squeeze(M1OFFACC(gdindex,paindex, k, start:stop));
+            %     PeakOFFACC(gdindex, paindex, k) = max(abs(traceOFF));
+            %     SumOFFACC(gdindex, paindex, k) = sum(abs(traceOFF));
+            % else
+            %     fprintf('Throwing out ACC trial#%d of gapdur#%d\n',k,gdindex)
+            %     PeakOFFACC (gdindex, paindex, k) = nan;
+            %     SumOFFACC (gdindex, paindex, k) = nan;
+            % end
         end
         if isempty(PeakON)
             mPeakON=[];
@@ -2093,13 +1644,20 @@ end
 
 
 %save to outfiles
+[~,BonsaiFolder,~]=fileparts(BonsaiPath);
+out.BonsaiFolder=BonsaiFolder;
+out.BonsaiPath=BonsaiPath;
+out.EphysFolder=EphysFolder;
+out.generated_by=mfilename;
+out.generated_on=datestr(now);
+
 out.IL=IL;
 out.flag=flag;
 
-out.M1ON=M1ON;    % scaledtrace (depends on flag.accel)
-out.M1OFF=M1OFF;    % scaledtrace
-out.mM1ON=mM1ON;    % scaledtrace
-out.mM1OFF=mM1OFF;    % scaledtrace
+out.M1ON=M1ON;    % mouse3scaledtrace (depends on flag.accel)
+out.M1OFF=M1OFF;    % mouse3scaledtrace
+out.mM1ON=mM1ON;    % mouse3scaledtrace
+out.mM1OFF=mM1OFF;    % mouse3scaledtrace
 % out.M1ONACC=M1ONACC;
 % out.M1OFFACC=M1OFFACC;
 % out.mM1ONACC=mM1ONACC;
@@ -2121,7 +1679,6 @@ out.mSumON=mSumON;
 out.mSumOFF=mSumOFF;
 out.semSumON=semSumON;
 out.semSumOFF=semSumOFF;
-out.datadir=datadir;
 out.nrepsON=nrepsON;
 out.nrepsOFF=nrepsOFF;
 out.Events=Events;
@@ -2156,12 +1713,11 @@ out.soaflag=soaflag;
 out.xlimits=xlimits;
 out.startle_window=startle_window;
 out.samprate=samprate;
-out.datadir=datadir;
 try
     out.nb=nb;
     out.stimlog=stimlog;
     out.user=nb.user;
-    out.mouseID=nb.mouse3ID;
+    out.mouseID=nb.mouse2ID;
 catch
     out.nb='notebook file missing';
     out.stimlog='notebook file missing';
@@ -2175,278 +1731,11 @@ fprintf('\nsaved outfile %s \nin directory %s\n', outfilename, pwd)
 
 
 
+close all
+
 %%%%Here is the non-looping code for mouse 4.
 
-
-
-if nargin < 2 || isempty(flag_accel)
-    flag.accel = 4;
-else
-    flag.accel = flag_accel;
-end
-
-flag.includeALL = 1;     % 0) eliminate traces with too much activity before trial
-flag.unwrap = 0;
-flag.plot = 1;
-
-if nargin==0
-    datadir = pwd;
-end
-
-djPrefs;
-global pref
-cd (pref.datapath);
-cd(datadir)
-
-try
-    load notebook.mat
-catch
-    warning('could not find notebook file')
-end
-
-if flag.includeALL
-    fprintf('using all traces\n')
-else
-    fprintf('eliminating traces with too much activity before test\n')
-end
-
-
-%read messages
-messagesfilename='messages.events';
-[messages] = GetNetworkEvents(messagesfilename);
-
-
-%read digital Events
-Eventsfilename='all_channels.events';
-[all_channels_data, all_channels_timestamps, all_channels_info] = load_open_ephys_data(Eventsfilename);
-sampleRate=all_channels_info.header.sampleRate; %in Hz
-
-if 0
-    fprintf('\nrunning SCT_Monitor to examine soundcard triggers, timestamps, and network messages...')
-    
-    %   I'm running the soundcard trigger (SCT) into ai1 as another sanity check.
-    SCTfname=getSCTfile(datadir);
-    Stimfname = getStimfile(datadir);
-    if isempty(SCTfname)
-        warning('could not find soundcard trigger file')
-    else
-        [SCTtrace, SCTtimestamps, SCTinfo] =load_open_ephys_data(SCTfname);
-        ind0 = find(SCTtrace>0);
-        ind1 = find(diff(SCTtimestamps(ind0))>1);
-        ind1 = [1; ind1+1];
-        SCTtimes = SCTtimestamps(ind0(ind1));
-        
-        [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(Stimfname);
-        ind0 = find(Stimtrace>-4.5);
-        ind1 = find(diff(Stimtimestamps(ind0))>1);
-        ind1 = [1; ind1+1];
-        Stimtimes = Stimtimestamps(ind0(ind1));
-        
-        StimtimesCorr = Stimtimes-1.04905;
-        indNearest = nearest_index(SCTtimes,StimtimesCorr);
-        indNearest = indNearest(indNearest>1);
-        
-    end
-end
-    
-
-%get Events and soundcard trigger timestamps
-[Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
-%there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
-
-%check if this is an appropriate stimulus protocol
-if ~strcmp(GetPlottingFunction(datadir), 'PlotGPIAS_PSTH')
-    error('This does not appear to be a GPIAS stimulus protcol');
-end
-
-%accelerometer channels are 33, 34, 35
-node='';
-NodeIds=getNodes(pwd);
-for i=1:length(NodeIds)
-    filename=sprintf('%s_AUX2.continuous', NodeIds{i});
-    if exist(filename,'file')
-        node=NodeIds{i};
-    end
-end
-filename1=sprintf('%s_AUX1.continuous', node);
-filename2=sprintf('%s_AUX2.continuous', node);
-filename3=sprintf('%s_AUX3.continuous', node);
-
-fprintf('\n')
-if exist(filename1, 'file')~=2 %couldn't find it
-    fprintf('could not find AUX1 file %s in datadir %s', filename1, datadir)
-else
-    [scaledtrace1, datatimestamps, datainfo] =load_open_ephys_data(filename1);
-    scaledtrace1 = scaledtrace1 - mean(scaledtrace1);
-end
-if exist(filename2, 'file')~=2 %couldn't find it
-    fprintf('could not find AUX2 file %s in datadir %s', filename2, datadir)
-else
-    [scaledtrace2, datatimestamps, datainfo] =load_open_ephys_data(filename2);
-    scaledtrace2 = scaledtrace2 - mean(scaledtrace2);
-end
-if exist(filename3, 'file')~=2 %couldn't find it
-    fprintf('could not find AUX3 file %s in datadir %s', filename3, datadir)
-else
-    [scaledtrace3, datatimestamps, datainfo] =load_open_ephys_data(filename3);
-    scaledtrace3 = scaledtrace3 - mean(scaledtrace3);
-end
-
-% get tilt-table recording from ADC6 for Mouse3
-filename4=sprintf('%s_ADC7.continuous', node);
-if exist(filename4, 'file')~=2 %couldn't find it
-    error(sprintf('could not find ADC7 file %s in datadir %s', filename4, datadir))
-end
-[scaledtrace4, datatimestamps, datainfo] =load_open_ephys_data(filename4);
-scaledtrace4 = scaledtrace4 - mean(scaledtrace4);
-
-if 0
-    fprintf('\nPlotting rectified traces\n')
-    switch flag.accel
-        case 1
-            scaledtrace = sqrt( scaledtrace1.^2);
-            fprintf('\nUsing ACCELEROMETER #1 ONLY\n')
-        case 2
-            scaledtrace = sqrt( scaledtrace2.^2);
-            fprintf('\nUsing ACCELEROMETER #2 ONLY\n')
-        case 3
-            scaledtrace = sqrt( scaledtrace3.^2);
-            fprintf('\nUsing ACCELEROMETER #3 ONLY\n')
-        case 4
-            scaledtrace = sqrt(scaledtrace4.^2);
-            fprintf('\nUsing TILT PLATFORM\n')
-        otherwise
-            scaledtrace = sqrt( scaledtrace1.^2 + scaledtrace2.^2 + scaledtrace3.^2 );
-            fprintf('\nUsing ALL ACCELEROMETERS\n')
-    end
-else
-    fprintf('\nPlotting full (unrectified) traces\n')
-    scaledtraceACC = scaledtrace1 + scaledtrace2 + scaledtrace3;
-    switch flag.accel
-        case 1
-            scaledtrace = scaledtrace1;
-            fprintf('\nUsing ACCELEROMETER #1 ONLY\n')
-        case 2
-            scaledtrace = scaledtrace2;
-            fprintf('\nUsing ACCELEROMETER #2 ONLY\n')
-        case 3
-            scaledtrace = scaledtrace3;
-            fprintf('\nUsing ACCELEROMETER #3 ONLY\n')
-        case 4
-            scaledtrace = scaledtrace4;
-            fprintf('\nUsing TILT PLATFORM\n')
-        otherwise
-            scaledtrace = scaledtrace1 + scaledtrace2 + scaledtrace3;
-            fprintf('\nUsing ALL ACCELEROMETERS\n')
-    end
-end
-
-SCTfname=getSCTfile(datadir);
-stimfile=sprintf('%s_ADC1.continuous', node);
-[stim, stimtimestamps, stiminfo] =load_open_ephys_data(stimfile);
-
-%uncomment this to run some sanity checks
-%SCT_Monitor(datadir, StartAcquisitionSec, Events, all_channels_data, all_channels_timestamps, all_channels_info)
-
-fprintf('\ncomputing tuning curve...');
-
-samprate=sampleRate;
-
-%get freqs/amps
-j=0;
-for i=1:length(Events)
-    if strcmp(Events(i).type, 'GPIAS') | strcmp(Events(i).type, 'toneGPIAS')
-        j=j+1;
-        allsoas(j)=Events(i).soa;
-        allsoaflags{j}=Events(i).soaflag;
-        allgapdurs(j)=Events(i).gapdur;
-        allgapdelays(j)=Events(i).gapdelay;
-        allpulseamps(j)=Events(i).pulseamp;
-        allpulsedurs(j)=Events(i).pulsedur;
-        allnoiseamps(j)=Events(i).amplitude;
-    end
-    
-end
-gapdurs=unique(allgapdurs);
-pulsedurs=unique(allpulsedurs);
-soas=unique(allsoas);
-soaflags=unique(allsoaflags);
-gapdelays=unique(allgapdelays);
-pulseamps=unique(allpulseamps);
-noiseamps=unique(allnoiseamps);
-numgapdurs=length(gapdurs);
-numpulseamps=length(pulseamps);
-nrepsON=zeros( numgapdurs, numpulseamps);
-nrepsOFF=zeros( numgapdurs, numpulseamps);
-
-if length(noiseamps)~=1
-    error('not able to handle multiple noiseamps')
-end
-if length(gapdelays)~=1
-    error('not able to handle multiple gapdelays')
-end
-if length(pulsedurs)~=1
-    error('not able to handle multiple pulsedurs')
-end
-if length(soas)~=1
-    error('not able to handle multiple soas')
-end
-if length(soaflags)~=1
-    error('not able to handle multiple soaflags')
-end
-noiseamp=noiseamps;
-soa=soas;
-pulsedur=pulsedurs;
-gapdelay=gapdelays;
-soaflag=soaflags{:};
-
-
-%check for laser in Events
-for i=1:length(Events)
-    if isfield(Events(i), 'laser') & isfield(Events(i), 'LaserOnOff')
-        if isempty(Events(i).laser)
-            Events(i).laser=0;
-        end
-        LaserScheduled(i)=Events(i).laser; %whether the stim protocol scheduled a laser for this stim
-        LaserOnOffButton(i)=Events(i).LaserOnOff; %whether the laser button was turned on
-        LaserTrials(i)=LaserScheduled(i) & LaserOnOffButton(i);
-        if isempty(stimlog(i).LaserStart)
-            LaserStart(i)=nan;
-            LaserWidth(i)=nan;
-            LaserNumPulses(i)=nan;
-            LaserISI(i)=nan;
-        else
-            LaserStart(i)=stimlog(i).LaserStart;
-            LaserWidth(i)=stimlog(i).LaserWidth;
-            LaserNumPulses(i)=stimlog(i).LaserNumPulses;
-            LaserISI(i)=stimlog(i).LaserISI;
-        end
-        
-    elseif isfield(Events(i), 'laser') & ~isfield(Events(i), 'LaserOnOff')
-        %Not sure about this one. Assume no laser for now, but investigate.
-        warning('ProcessGPIAS_Behavior: Cannot tell if laser button was turned on in djmaus GUI');
-        LaserTrials(i)=0;
-        Events(i).laser=0;
-    elseif ~isfield(Events(i), 'laser') & ~isfield(Events(i), 'LaserOnOff')
-        %if neither of the right fields are there, assume no laser
-        LaserTrials(i)=0;
-        Events(i).laser=0;
-    else
-        error('wtf?')
-    end
-end
-fprintf('\n%d laser pulses in this Events file', sum(LaserTrials))
-try
-    if sum(LaserOnOffButton)==0
-        fprintf('\nLaser On/Off button remained off for entire file.')
-    end
-end
-if sum(LaserTrials)>0
-    IL=1;
-else
-    IL=0;
-end
-%if lasers were used, we'll un-interleave them and save ON and OFF data
+fprintf('\ncomputing mouse 4...');
 
 M1ON=[];M1OFF=[];
 M1ONACC=[];M1OFFACC=[];
@@ -2501,12 +1790,12 @@ for i=1:length(Events)
             if isempty(find(region<1))
                 if laser
                     nrepsON(gdindex,paindex)=nrepsON(gdindex,paindex)+1;
-                    M1ON(gdindex,paindex, nrepsON(gdindex,paindex),:)=scaledtrace(region);
-                    M1ONACC(gdindex,paindex, nrepsON(gdindex,paindex),:)=scaledtraceACC(region);
-                    M1ONstim(gdindex, paindex, nrepsON(gdindex, paindex),:)=stim(region);
+                    M1ON(gdindex,paindex, nrepsON(gdindex,paindex),:)=mouse4scaledtrace(region);
+                    M1ONACC(gdindex,paindex, nrepsON(gdindex,paindex),:)=mouse4scaledtraceACC(region);
+                    M1ONstim(gdindex, paindex, nrepsON(gdindex, paindex),:)=stimtrace(region);
                 else
                     if flag.unwrap
-                        temp = scaledtrace(region);
+                        temp = mouse4scaledtrace(region);
                         tempD = [0; diff(temp)];
                         indUp = find(tempD>2);
                         indDown = find(tempD<-2)-1;
@@ -2514,18 +1803,18 @@ for i=1:length(Events)
                         for ijump = 1:njumps
                             temp(indUp(ijump):indDown(ijump)) = temp(indUp(ijump):indDown(ijump)) - (10-.4096);
                         end
-                        scaledtrace(region) = temp;
+                        mouse4scaledtrace(region) = temp;
                     end
                     
                     nrepsOFF(gdindex,paindex)=nrepsOFF(gdindex,paindex)+1;
-                    M1OFF(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=scaledtrace(region);
-                    M1OFFACC(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=scaledtraceACC(region);
-                    M1OFFstim(gdindex, paindex, nrepsOFF(gdindex, paindex),:)=stim(region);
+                    M1OFF(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=mouse4scaledtrace(region);
+                    % M1OFFACC(gdindex,paindex, nrepsOFF(gdindex,paindex),:)=mouse4scaledtraceACC(region);
+                    M1OFFstim(gdindex, paindex, nrepsOFF(gdindex, paindex),:)=stimtrace(region);
                     
                     if flag.plot
                         figure(Hfig(gdindex))
                         t=region; t = t-t(1);t=t/samprate;
-                        plot(t, scaledtrace(region), 'color',hsv2rgb([gdindex/length(gapdurs),1,1]))
+                        plot(t, mouse4scaledtrace(region), 'color',hsv2rgb([gdindex/length(gapdurs),1,1]))
                     end
                     if flag.plot
                         %some sanity check to see if the stimulus played
@@ -2534,7 +1823,7 @@ for i=1:length(Events)
                         hold on
                         offset=i*.1;
                         t=region;t=t/samprate; t=t-t(1);
-                        plot(t, stim(region)-stim(1)+offset, 'm', t, scaledtrace(region)-scaledtrace(1)+offset, 'b')
+                        plot(t, stimtrace(region)-stimtrace(1)+offset, 'm', t, mouse4scaledtrace(region)-mouse4scaledtrace(1)+offset, 'b')
                         gap_termination=pos+gapdelay/1000;
                         gap_onset=pos+gapdelay/1000-gapdur/1000;
 %                         plot(gap_onset, 0, '^', gap_termination,0, 'v')
@@ -2659,20 +1948,20 @@ for paindex=1:numpulseamps
                 bl_SumOFF(gdindex, paindex, k) = nan;
                 SumOFF(gdindex, paindex, k) = nan;
             end
-            temp = squeeze(M1OFFACC(gdindex,paindex, k, 1:10000));
-            if abs(mean(temp)) <.01 & std(temp) < .1
-                traceOFF=squeeze(M1OFFACC(gdindex,paindex, k, start:stop));
-                PeakOFFACC(gdindex, paindex, k) = max(abs(traceOFF));
-                SumOFFACC(gdindex, paindex, k) = sum(abs(traceOFF));
-            elseif flag.includeALL
-                traceOFF=squeeze(M1OFFACC(gdindex,paindex, k, start:stop));
-                PeakOFFACC(gdindex, paindex, k) = max(abs(traceOFF));
-                SumOFFACC(gdindex, paindex, k) = sum(abs(traceOFF));
-            else
-                fprintf('Throwing out ACC trial#%d of gapdur#%d\n',k,gdindex)
-                PeakOFFACC (gdindex, paindex, k) = nan;
-                SumOFFACC (gdindex, paindex, k) = nan;
-            end
+            % temp = squeeze(M1OFFACC(gdindex,paindex, k, 1:10000));
+            % if abs(mean(temp)) <.01 & std(temp) < .1
+            %     traceOFF=squeeze(M1OFFACC(gdindex,paindex, k, start:stop));
+            %     PeakOFFACC(gdindex, paindex, k) = max(abs(traceOFF));
+            %     SumOFFACC(gdindex, paindex, k) = sum(abs(traceOFF));
+            % elseif flag.includeALL
+            %     traceOFF=squeeze(M1OFFACC(gdindex,paindex, k, start:stop));
+            %     PeakOFFACC(gdindex, paindex, k) = max(abs(traceOFF));
+            %     SumOFFACC(gdindex, paindex, k) = sum(abs(traceOFF));
+            % else
+            %     fprintf('Throwing out ACC trial#%d of gapdur#%d\n',k,gdindex)
+            %     PeakOFFACC (gdindex, paindex, k) = nan;
+            %     SumOFFACC (gdindex, paindex, k) = nan;
+            % end
         end
         if isempty(PeakON)
             mPeakON=[];
@@ -2825,13 +2114,20 @@ end
 
 
 %save to outfiles
+[~,BonsaiFolder,~]=fileparts(BonsaiPath);
+out.BonsaiFolder=BonsaiFolder;
+out.BonsaiPath=BonsaiPath;
+out.EphysFolder=EphysFolder;
+out.generated_by=mfilename;
+out.generated_on=datestr(now);
+
 out.IL=IL;
 out.flag=flag;
 
-out.M1ON=M1ON;    % scaledtrace (depends on flag.accel)
-out.M1OFF=M1OFF;    % scaledtrace
-out.mM1ON=mM1ON;    % scaledtrace
-out.mM1OFF=mM1OFF;    % scaledtrace
+out.M1ON=M1ON;    % mouse4scaledtrace (depends on flag.accel)
+out.M1OFF=M1OFF;    % mouse4scaledtrace
+out.mM1ON=mM1ON;    % mouse4scaledtrace
+out.mM1OFF=mM1OFF;    % mouse4scaledtrace
 % out.M1ONACC=M1ONACC;
 % out.M1OFFACC=M1OFFACC;
 % out.mM1ONACC=mM1ONACC;
@@ -2853,7 +2149,6 @@ out.mSumON=mSumON;
 out.mSumOFF=mSumOFF;
 out.semSumON=semSumON;
 out.semSumOFF=semSumOFF;
-out.datadir=datadir;
 out.nrepsON=nrepsON;
 out.nrepsOFF=nrepsOFF;
 out.Events=Events;
@@ -2888,12 +2183,11 @@ out.soaflag=soaflag;
 out.xlimits=xlimits;
 out.startle_window=startle_window;
 out.samprate=samprate;
-out.datadir=datadir;
 try
     out.nb=nb;
     out.stimlog=stimlog;
     out.user=nb.user;
-    out.mouseID=nb.mouse4ID;
+    out.mouseID=nb.mouse2ID;
 catch
     out.nb='notebook file missing';
     out.stimlog='notebook file missing';
@@ -2904,6 +2198,11 @@ outfilename=sprintf('outGPIAS_BehaviorMouse4.mat');
 out.outfilename=outfilename;
 save (outfilename, 'out')
 fprintf('\nsaved outfile %s \nin directory %s\n', outfilename, pwd)
+
+
+
+close all
+
 
 
 

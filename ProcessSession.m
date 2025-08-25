@@ -118,11 +118,16 @@ keys=session.recordNodes{1}.recordings{1}.continuous.keys();
         stimtracech=36;
         soundcardtriggerch=37;
         lasertracech=38;
-    elseif num_channels==11 %Rig2 gap detection behavior config
+    elseif num_channels==11 %Rig2 gap detection behavior, one config
         stimtracech=4;
         soundcardtriggerch=5;
         lasertracech=6; %I think, but haven't confirmed
         %piezo data from mice 1-4 are on chans 8,9,10,11. Chans 1-3 are empty
+    elseif num_channels==27 %Rig2 gap detection behavior, another config
+        stimtracech=20;
+        soundcardtriggerch=21;
+        lasertracech=22; %I think, but haven't confirmed
+        %piezo data from mice 1-4 should be on chans 24,25,26,27. Chans 1-3 are empty
     end
     stimtrace=session.recordNodes{1}.recordings{1}.continuous(key).samples(stimtracech,:);
     soundcardtrigger=session.recordNodes{1}.recordings{1}.continuous(key).samples(soundcardtriggerch,:);

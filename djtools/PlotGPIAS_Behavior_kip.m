@@ -23,14 +23,16 @@ FNtemp=FNtemp(1:19); %trim mouseID from dirname
 force_reprocess=0;
 if force_reprocess
     fprintf('\nForce re-process\n')
-    ProcessGPIAS_BehaviorTilt(datadir,4);
+    % ProcessGPIAS_BehaviorTilt(datadir,4);
+    ProcessGPIAS_Behavior4Mice %mike 8-2025
 end
 
 cd(datadir)
 % d=dir('outGPIAS_Behavior_combined.mat');
-d=dir('outGPIAS_Behavior.mat');
+d=dir('outGPIAS_Behavior*.mat');
 if isempty(d)
-    ProcessGPIAS_BehaviorTilt(datadir,4);
+    % ProcessGPIAS_BehaviorTilt(datadir,4);
+    ProcessGPIAS_Behavior4Mice %mike 8-2025
 end
 
 % d=dir('outGPIAS_Behavior_combined.mat');
@@ -78,11 +80,10 @@ for outindex=1:length(d)
     mM1OFFstim=out.mM1OFFstim;
     xlimits=out.xlimits;
 
-    if isfield(out, 'mouseID') & strcmp(out.outfilename, 'outGPIAS_Behavior.mat')
+    try
         mouseID=out.mouseID;
-    elseif isfield(out, 'mouse2ID') & strcmp(out.outfilename, 'outGPIAS_BehaviorMouse2.mat')  
-        mouseID=out.mouse2ID;
-    else mouseID='???';
+    catch
+        mouseID='???';
     end
     % %find optimal axis limits
     if ~isempty(mM1OFF)

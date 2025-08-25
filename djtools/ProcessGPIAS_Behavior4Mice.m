@@ -1,4 +1,4 @@
-function ProcessGPIAS_Behavior4Mice2(BonsaiPath, EphysFolder, flag_accel)
+function ProcessGPIAS_Behavior4Mice(BonsaiPath, EphysFolder, flag_accel)
 
 %processes gap detection behavioral data from djmaus
 %
@@ -26,8 +26,14 @@ if nargin==0
     try
         load dirs.mat
     catch
-        load bdirs.mat
+        try
+            load bdirs.mat
+        catch
+            ProcessSession
+            load bdirs.mat
+        end
     end
+
     BonsaiPath=Bdirs{1};
     EphysFolder=dirs{1};
 end
@@ -146,7 +152,7 @@ catch
     fprintf('\nloading Open Ephys data (this will take a couple minutes) ...\n')
     tic
     session = Session(pwd); %open-ephys-matlab-tools function
-    num_channels=session.recordNodes{1}.recordings{1}.info.continuous.num_channels;
+    num_channels=session.recordNodes{1}.recordings{1}.info.continuous(1).num_channels;
     for ch=1:num_channels
         bit_volts(ch)=session.recordNodes{1}.recordings{1}.info.continuous(1).channels(ch).bit_volts;
     end
@@ -171,6 +177,10 @@ catch
         soundcardtriggerch=5;
         lasertracech=6; %I think, but haven't confirmed
         %piezo data from mice 1-4 are on chans 8,9,10,11. Chans 1-3 are empty
+        mouse1ch=8;
+        mouse2ch=9;
+        mouse3ch=10;
+        mouse4ch=11;
     elseif num_channels==27 %Rig2 gap detection behavior, another config
         stimtracech=20;
         soundcardtriggerch=21;
@@ -771,6 +781,7 @@ out.soaflag=soaflag;
 out.xlimits=xlimits;
 out.startle_window=startle_window;
 out.samprate=samprate;
+out.mouse_number=1;
 try
     out.nb=nb;
     out.stimlog=stimlog;
@@ -1243,6 +1254,7 @@ out.soaflag=soaflag;
 out.xlimits=xlimits;
 out.startle_window=startle_window;
 out.samprate=samprate;
+out.mouse_number=2;
 try
     out.nb=nb;
     out.stimlog=stimlog;
@@ -1713,11 +1725,12 @@ out.soaflag=soaflag;
 out.xlimits=xlimits;
 out.startle_window=startle_window;
 out.samprate=samprate;
+out.mouse_number=3;
 try
     out.nb=nb;
     out.stimlog=stimlog;
     out.user=nb.user;
-    out.mouseID=nb.mouse2ID;
+    out.mouseID=nb.mouse3ID;
 catch
     out.nb='notebook file missing';
     out.stimlog='notebook file missing';
@@ -2183,11 +2196,12 @@ out.soaflag=soaflag;
 out.xlimits=xlimits;
 out.startle_window=startle_window;
 out.samprate=samprate;
+out.mouse_number=4;
 try
     out.nb=nb;
     out.stimlog=stimlog;
     out.user=nb.user;
-    out.mouseID=nb.mouse2ID;
+    out.mouseID=nb.mouse4ID;
 catch
     out.nb='notebook file missing';
     out.stimlog='notebook file missing';

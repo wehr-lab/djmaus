@@ -60,7 +60,8 @@ for i=1:length(messages)
         Events(sound_index).message_timestamp_sec=timestamp/sampleRate - StartAcquisitionSec;
         all_SCTs=[];
         for k=1:length(all_channels_timestamps)
-            if all_channels_info.eventType(k)==3 & all_channels_info.eventId(k)==1 & all_channels_data(k)==pref.SCT_digital_line_in
+%             if all_channels_info.eventType(k)==3 & all_channels_info.eventId(k)==1 & all_channels_data(k)==pref.SCT_digital_line_in
+            if all_channels_info.eventType(k)==3 & all_channels_info.eventId(k)==1 & all_channels_data(k)>0
                 corrected_SCT=all_channels_timestamps(k)-StartAcquisitionSec;
                 all_SCTs=[all_SCTs corrected_SCT];
             end
@@ -93,7 +94,7 @@ end
 %  figure; plot(diff(all_SCTs), 'ko')
 if length(Events) ~=  length(all_SCTs)
      warning('GetEventsAndSCT_Timestamps: Number of sound events (from network messages) does not match Number of hardware triggers (soundcardtrig TTLs)')
-   % THERE_IS_A_PROBLEM
+%    THERE_IS_A_PROBLEM
    fprintf('\n%d Events but %d SCTs, calling ResolveEventMismatch...',length(Events),length(all_SCTs)) 
 warning('\ncommenting out ResolveEventMismatch this is a HACK and needs to be investigated!!!!') 
 

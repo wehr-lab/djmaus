@@ -1,9 +1,10 @@
 function ProcessTC_2P(varargin)
-%processes dF/F mesoscope 2P tuning curve data from djmaus running in meso mode.
+%processes dF/F 2P tuning curve data from taskcontrol stimulus delivery and scanbox scope data
 %sorts dF/F  data into a response matrix.
 %
 %usage: ProcessTC_2P([datapath], [xlimits], [ylimits])
-%datapath is the djmaus-created directory with the notebook file in it
+%datapath is the directory containing the .sbx file, the taskcontrol .h5 file, and a suite2p output folder 
+%if it's a track2p folder, it is the session folder that contains the suite2p folder
 %datapath defaults to current directory
 %saves output in an outfile
 %
@@ -11,9 +12,6 @@ function ProcessTC_2P(varargin)
 %thousands of outfiles.
 %
 %notes: whitenoise plotted as freq=-1 kHz, silent sound as -2 kHz
-
-djPrefs;
-global pref
 
 if nargin==0
     datadir=pwd;
@@ -24,9 +22,11 @@ elseif nargin==1
     xlimits=[-1000 5000]; %default x limits for axis
     ylimits=[-.1 .2];
 elseif nargin==2
+    datadir=varargin{1};
     xlimits=varargin{2};
     ylimits=[-.1 .2];
 elseif nargin==3
+    datadir=varargin{1};
     xlimits=varargin{2};
     ylimits=varargin{3};
 else
@@ -34,39 +34,52 @@ else
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-djPrefs;
-global pref
-cd (pref.datapath);
-cd(datadir)
 
-try
-    load notebook.mat
-catch
-    warning('could not find notebook file in this data directory. For datapath use the djmaus-created directory with the notebook file in it.')
-    return
+if isempty(xlimits)
+        xlimits=[-1000 5000]; %default x limits for axis
+end
+if isempty(ylimits)
+    ylimits=[-.1 .2];
 end
 
 %assume this directory structure:
-cd ..
-cd suite2p_output
 cd suite2p
-cd combined
+cd plane0
 iscell=0; %initialize because iscell is a built-in function
-load Fall
+if exist('Fall.mat', 'file')==2
+    load Fall
+else
+      F = readNPY('F.npy');
+        % Fneu = readNPY(fullfile(datadir, Sessions{iDir}, '/suite2p/plane0/Fneu.npy'));
+        iscell = readNPY('iscell.npy');
+        % spks = readNPY(fullfile(datadir, Sessions{iDir}, '/suite2p/plane0/spks.npy'));
+        % !python ops2mat.py
+        %if pyenv shows matlab is not configured to use python, ("Python commands require a supported version of CPython") try something like pyenv(Version="/Users/wehr/opt/miniconda3/bin/python")
+        pyrunfile('ops2mat.py')
+        pyrunfile('stat2mat.py')
+        load ops 
+        load stat
+end
 numframes=size(F, 2);
+sampleRate=ops.fs; %2P scope framerate in Hz
+fprintf('\n%d total frames = %.1f s', numframes, numframes/sampleRate)
 % sort rows such that best cells (highest cell likelihood) are at the top
 %exclude non-cells 
 %[iscell_sorted, I]=sortrows(iscell, 2, 'descend');
-f=F(find(iscell(:,1)), :);
+iscell_threshold=0%.7;
+f=F(find(iscell(:,2)>iscell_threshold), :);
+iscell2=find(iscell(:,2)>iscell_threshold);
+%here we could impose a different probability threshold for iscell than whatever was set in suite2p, if we wanted
 % f=F(I(1:numcells),:);
-f0=prctile(f', 10);
-keep=find(f0>0);
-f=f(keep,:);
-f0=prctile(f', 10);
+f0_prctile=50;
+% f0=prctile(f', f0_prctile);
+% keep=find(f0>0);
+% f=f(keep,:);
+f0=prctile(f', f0_prctile); %not sure why the extra iteration, must have been a specific case, should have no effect
 f0=repmat(f0', 1, numframes);
 dff_unsorted=(f-f0)./f0;
 numcells=size(dff_unsorted, 1);
-fprintf('\n%d cells', numcells)
+fprintf('\n%d cells (using iscell_threshold=%.1f)', numcells, iscell_threshold)
 
 %another way to compute dff is to compute it for each trial, i.e. use the
 %pre-stimulus baseline as f0 for each trial. That's how Xu does it (for SOM cells).
@@ -76,126 +89,124 @@ fprintf('\n%d cells', numcells)
 % of the histogram of F, and dff is computed as usual, (F-F0)/F0
 
 %sort by pca
-[pcs, score, latent]=pca(dff_unsorted);
-[~, I]=sort(score(:,1));
-dff=(dff_unsorted(I,:));
-fprintf('\nsorted cells by pca (without regard to stimuli)')
+% [pcs, score, latent]=pca(dff_unsorted);
+% [~, I]=sort(score(:,1));
+% dff=(dff_unsorted(I,:));
+% fprintf('\nsorted cells by pca (without regard to stimuli)')
 %(if you want to see pca of stim-aligned responses, we have to align to
 %stimuli first)
 
+dff=dff_unsorted;
+
+%load stim framestamps from scanbox mat file 
 cd(datadir)
-cd ..
-d=dir('*.smrx');
-if length(d)<1 error('no smrx file found')
+d=dir('*.sbx');
+if length(d)<1
+    try
+        if contains(datadir, 'track2p') %with track2p we have to go find the sbx file
+            datapathparts = strsplit(datadir, '/');
+            mouseID = datapathparts{6}; %this is brittle as hell
+            session = datapathparts{10};
+            basedir = '/Volumes/Projects/2P5XFAD/JarascopeData/'; % full data directory path to build subsequent filepaths from
+            d=dir(fullfile(basedir, mouseID, session, '*.sbx'));
+            sbxfilename=fullfile(basedir, mouseID, session, replace(d.name, '.sbx', '.mat'));
+            fprintf('\nthis is a track2p directory, loading sbx file from %s', sbxfilename)
+        end
+    catch
+        error('no sbx file found')
+    end
 elseif length(d)>1
-    warning('multiple smrx files found, using the first one')
+    warning('multiple sbx files found, using the first one')
+elseif length(d)==1
+    sbxfilename=replace(d(1).name, '.sbx', '.mat');
 end
-sctfilename=replace(d(1).name, '.smrx', '.mat');
-[event_times_sec,num_events, ProtocolStart_secs] = GetSCTriggersFromSpike2file(sctfilename);
+    load(sbxfilename)
+% frames = info.frame(1:2:(end-2)); unclear whether we need to discard last 2 triggers or not
+frames = info.frame(1:2:end);
+numtriggers=length(frames);
 
-% % %read messages
-% % messagesfilename='messages.events';
-% % [messages] = GetNetworkEvents(messagesfilename);
-
-
-% % %read digital Events
-% % Eventsfilename='all_channels.events';
-% % [all_channels_data, all_channels_timestamps, all_channels_info] = load_open_ephys_data(Eventsfilename);
-sampleRate=ops.fs; %mesoscope framerate in Hz
-
-%get Events and soundcard trigger timestamps
-%[Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps(messages, sampleRate, all_channels_timestamps, all_channels_data, all_channels_info, stimlog);
-%there are some general notes on the format of Events and network messages in help GetEventsAndSCT_Timestamps
-numstim=length(stimlog);
-if numstim~=num_events error('Number of sound stimuli (from stimlog) does not match Number of hardware triggers (soundcardtrig TTLs from Spike2)');end
-   % THERE_IS_A_PROBLEM
-
- Events=stimlog;
-   for i=1:numstim
-    Events(i).soundcard_trigger_timestamp_sec=event_times_sec(i)-ProtocolStart_secs;
+%load stimlog from taskcontrol h5 file
+d=dir('*.h5');
+if length(d)<1 
+ try
+        if contains(datadir, 'track2p') %with track2p we have to go find the h5 file
+            d=dir(fullfile(basedir, mouseID, session, '*.h5'));
+            taskcontrolfilename=fullfile(basedir, mouseID, session, d(1).name);
+            fprintf('\nthis is a track2p directory, loading h5 file from %s', taskcontrolfilename)
+        end
+    catch
+        error('could not find h5 file ')
+ end
+elseif length(d)>1
+    warning('multiple taskcontrol h5 files found, using the first one')
+elseif length(d)==1
+    taskcontrolfilename=d(1).name;
+end
+allfreqs=h5read(taskcontrolfilename, '/resultsData/currentFreq/');
+allamps=h5read(taskcontrolfilename, '/resultsData/currentIntensity/');
+allisis=h5read(taskcontrolfilename, '/resultsData/isi/');
+alldurs=h5read(taskcontrolfilename, '/resultsData/stimDur/');
+numstim=length(allfreqs);
+fprintf('\n%d sound triggers \n%d logged stimuli', numtriggers, numstim)
+if numtriggers==numstim
+    fprintf('\t good, they match')
+else
+    fprintf('\nproblem: numtriggers does not match numstim...')
+    fprintf('\n\twill use the first %d triggers, and discard the last %d trigger', numstim, numtriggers-numstim)
 end
 
-%check if this is an appropriate stimulus protocol
-switch GetPlottingFunction(datadir)
-    case {'PlotTC_LFP', 'PlotTC_PSTH'}
-    otherwise
-        error('This does not appear to be a tuning curve stimulus protcol');
+if numtriggers>=numstim
+    for i=1:numstim
+        Events(i).type='tone';
+        Events(i).freq=allfreqs(i);
+        Events(i).amp=allamps(i);
+        Events(i).dur=alldurs(i);
+        Events(i).isi=allisis(i);
+        Events(i).frame=frames(i);
+    end
+else
+    for i=1:numtriggers
+        Events(i).type='tone';
+        Events(i).freq=allfreqs(i);
+        Events(i).amp=allamps(i);
+        Events(i).dur=alldurs(i);
+        Events(i).isi=allisis(i);
+        Events(i).frame=frames(i);
+    end
 end
-
 
         LaserRecorded=0;
         StimRecorded=0;
-
-%Here I should load the stimulus trace from the Spike2 file
-
-% try
-%     [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(getStimfile('.'));
-%     %Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
-%     Stimtimestamps=Stimtimestamps-Stimtimestamps(1);
-%     %  Stimtrace=Stimtrace./max(abs(Stimtrace));
-%     fprintf('\nsuccessfully loaded stim trace')
-% catch
-%     [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data('105_ADC3.continuous');
-%     fprintf('\ncouldnt find a stimtrace, loaded a differnt trace for plotting')
-%     
-%         LaserRecorded=0;
-%     if isempty(getStimfile('.'))
-%         StimRecorded=0;
-%     else
-%         StimRecorded=1;
-%     end
-%     
-% 
-%     if StimRecorded
-%         try
-%             [Stimtrace, Stimtimestamps, Stiminfo] =load_open_ephys_data(getStimfile('.'));
-%             Stimtimestamps=Stimtimestamps-StartAcquisitionSec; %zero timestamps to start of acquisition
-%             Stimtrace=Stimtrace./max(abs(Stimtrace));
-%             fprintf('\nsuccessfully loaded stim trace')
-%         catch
-%             fprintf('\nfound stim file %s but could not load stim trace', getStimfile('.'))
-%         end
-%     else
-%         fprintf('\nSound stimulus trace not recorded')
-%     end
-% end
-
-
-
-
-
 
 fprintf('\ncomputing tuning curve...');
 
 samprate=sampleRate;
 
-%get freqs/amps
-j=0;
-for i=1:length(Events)
-    if strcmp(Events(i).type, '2tone') |strcmp(Events(i).type, 'tone') | strcmp(Events(i).type, 'silentsound') ...
-            |strcmp(Events(i).type, 'fmtone') | strcmp(Events(i).type, 'whitenoise')| strcmp(Events(i).type, 'grating')
-        j=j+1;
-        alldurs(j)=Events(i).param.duration;
-        allisis(j)=Events(i).param.next;
-        if strcmp(Events(i).type, 'tone') | strcmp(Events(i).type, '2tone')
-            allamps(j)=Events(i).param.amplitude;
-            allfreqs(j)=Events(i).param.frequency;
-        elseif strcmp(Events(i).type, 'whitenoise')
-            allamps(j)=Events(i).param.amplitude;
-            allfreqs(j)=-1000;
-        elseif strcmp(Events(i).type, 'silentsound')
-            allfreqs(j)=-2000;
-            allamps(j)=nan; %flagging silent sound amp as nan
-        elseif strcmp(Events(i).type, 'fmtone')
-            allamps(j)=Events(i).param.amplitude;
-            allfreqs(j)=Events(i).param.carrier_frequency;
-        elseif strcmp(Events(i).type, 'grating')
-            allfreqs(j)=Events(i).param.angle*1000;
-            allamps(j)=Events(i).param.spatialfrequency;
-        end
-    end
-end
-allamps=allamps(~isnan(allamps)); %strip out nans from silent sound
+% %get freqs/amps
+% j=0;
+% for i=1:length(Events)
+%     if strcmp(Events(i).type, '2tone') |strcmp(Events(i).type, 'tone') | strcmp(Events(i).type, 'silentsound') ...
+%             |strcmp(Events(i).type, 'fmtone') | strcmp(Events(i).type, 'whitenoise')| strcmp(Events(i).type, 'grating')
+%         j=j+1;
+%         alldurs(j)=Events(i).dur;
+%         allisis(j)=Events(i).isi;
+%         if strcmp(Events(i).type, 'tone') | strcmp(Events(i).type, '2tone')
+%             allamps(j)=Events(i).amp;
+%             allfreqs(j)=Events(i).freq;
+%         elseif strcmp(Events(i).type, 'whitenoise')
+%             allamps(j)=Events(i).amp;
+%             allfreqs(j)=-1000;
+%         elseif strcmp(Events(i).type, 'silentsound')
+%             allfreqs(j)=-2000;
+%             allamps(j)=nan; %flagging silent sound amp as nan
+%         elseif strcmp(Events(i).type, 'fmtone')
+%             allamps(j)=Events(i).amp;
+%             allfreqs(j)=Events(i).param.carrier_frequency;
+% 
+%         end
+%     end
+% end
+% allamps=allamps(~isnan(allamps)); %strip out nans from silent sound
 freqs=unique(allfreqs);
 amps=unique(allamps);
 durs=unique(alldurs);
@@ -205,6 +216,7 @@ numamps=length(amps);
 numdurs=length(durs);
 numisis=length(isis);
 
+fprintf('\nfreqs in kHz:');fprintf(' %.1f', freqs/1000)
 
 M1=[];
 M1Stim=[];
@@ -223,8 +235,8 @@ j=0;
 for i=1:length(Events)
     if strcmp(Events(i).type, 'tone') | strcmp(Events(i).type, 'whitenoise') |  strcmp(Events(i).type, 'silentsound') | ...
             strcmp(Events(i).type, 'fmtone') | strcmp(Events(i).type, '2tone')| strcmp(Events(i).type, 'grating')
-        if  isfield(Events(i), 'soundcard_trigger_timestamp_sec')
-            pos=Events(i).soundcard_trigger_timestamp_sec*samprate;
+        if  isfield(Events(i), 'frame')
+            pos=Events(i).frame;
         else
             error('???')
             pos=Events(i).soundcard_trigger_timestamp_sec*samprate; %pos is in samples (2P frames)
@@ -235,32 +247,27 @@ for i=1:length(Events)
         region=start:stop;
 
 
-        if isempty(find(region<1)) %(disallow negative or zero start times)
+        if isempty(find(region<1)) & (region(end)< length(dff)) %disallow negative or zero start times & make sure there's enough data after the stimulus
             switch Events(i).type
                 case {'tone', '2tone'}
-                    freq=Events(i).param.frequency;
-                    amp=Events(i).param.amplitude;
-                case 'fmtone'
-                    freq=Events(i).param.carrier_frequency;%
-                    amp=Events(i).param.amplitude;
+                    freq=Events(i).freq;
+                    amp=Events(i).amp;
                 case 'whitenoise'
                     freq=-1000;
-                    amp=Events(i).param.amplitude;
+                    amp=Events(i).amp;
                 case 'silentsound'
                     freq=-2000;
                     amp=min(amps); %put silentsound in it's own column (freq=-2) in the lowest row
-                case 'grating'
-                    amp=Events(i).param.spatialfrequency;
-                    freq=Events(i).param.angle*1000;
             end
             
             
-            dur=Events(i).param.duration;
+            dur=Events(i).dur;
             findex= find(freqs==freq);
             aindex= find(amps==amp);
             dindex= find(durs==dur);
             nreps(findex, aindex, dindex)=nreps(findex, aindex, dindex)+1;
-            M1(findex,aindex,dindex, nreps(findex, aindex, dindex),:,:)=dff(:,region);
+            M1dff(findex,aindex,dindex, nreps(findex, aindex, dindex),:,:)=dff(:,region);
+            M1f(findex,aindex,dindex, nreps(findex, aindex, dindex),:,:)=f(:,region);
             %M1 is freqs x amps x durs x reps x cells x frames
             %M1stim(findex,aindex,dindex, nreps(findex, aindex, dindex),:)=Stimtrace(region);
             
@@ -281,12 +288,14 @@ else
         for findex=1:numfreqs
             for dindex=1:numdurs
                 if nreps(findex, aindex, dindex)>0
-                    mM1(findex, aindex, dindex,:,:)=mean(M1(findex, aindex, dindex, 1:nreps(findex, aindex, dindex),:,:), 4);
+                    mM1f(findex, aindex, dindex,:,:)=mean(M1f(findex, aindex, dindex, 1:nreps(findex, aindex, dindex),:,:), 4);
+                    mM1dff(findex, aindex, dindex,:,:)=mean(M1dff(findex, aindex, dindex, 1:nreps(findex, aindex, dindex),:,:), 4);
                     %mM1 is freqs x amps x durs x cells x frames
 
                    % mM1stim(findex, aindex, dindex,:)=mean(M1stim(findex, aindex, dindex, 1:nreps(findex, aindex, dindex),:), 4);
                 else %no reps for this stim, since rep=0
-                    mM1(findex, aindex, dindex,:,:)=zeros(numcells, length(region));
+                    mM1f(findex, aindex, dindex,:,:)=zeros(numcells, length(region));
+                    mM1dff(findex, aindex, dindex,:,:)=zeros(numcells, length(region));
                     %mM1stim(findex, aindex, dindex,:)=zeros(size(region));
                 end
            
@@ -305,11 +314,17 @@ end
 
 %assign outputs
 out.dff=dff;
-out.M1=M1;
+out.f0_prctile=f0_prctile;
+out.iscell_threshold=iscell_threshold;
+out.M1f=M1f;
+out.M1dff=M1dff;
 % out.M1stim=M1stim;
 % out.mM1stim=mM1stim;
-out.mM1=mM1;
+out.mM1f=mM1f;
+out.mM1dff=mM1dff;
 out.datadir=datadir;
+out.sbxfilename=sbxfilename;
+out.taskcontrolfilename=taskcontrolfilename;
 out.freqs=freqs;
 out.amps=amps;
 out.durs=durs;
@@ -326,8 +341,9 @@ out.ylimits=ylimits;
 out.numframes=numframes;
 out.samprate=samprate;
 out.numcells=numcells;
-out.nb=nb;
-out.stimlog=stimlog;
+out.iscell2=iscell2;
+out.iscell=iscell;
+out.stat=stat(iscell2);
 out.readme={'M1 is freqs x amps x durs x reps x cells x frames', ...
     'mM1 is freqs x amps x durs x cells x frames'};
 

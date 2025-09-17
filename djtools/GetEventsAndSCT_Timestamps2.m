@@ -1,11 +1,26 @@
-function [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(Sky)
+function [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(BonsaiPath)
 global pref
 if isempty(pref); djPrefs;end
 
+%usage [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(BonsaiPath)
+%
 %updated to work with new OE file formats and file hierarchy with version 0.6 and open-ephys-matlab-tools
 % -mike 9.2023
+%
+%I stored OE info in Sky, but sometimes we want to run without a camera, so
+%I'm changing it to pull from OEinfo instead
+%that is, it used to be called with GetEventsAndSCT_Timestamps2(Sky) but
+%now we use GetEventsAndSCT_Timestamps2(BonsaiPath) instead
+
+
+%-mike 2.12.25
+
+
+[~,BonsaiFolder,~]=fileparts(BonsaiPath);
+OEinfofilename=sprintf('OEinfo-%s', BonsaiFolder);
+load(OEinfofilename)
+
 try
-    OEversion = Sky.OEversion;
     if startsWith(OEversion, 'old')
         error('GetEventsAndSCT_Timestamps2: this data is from old version of open ephys, use GetEventsAndSCT_Timestamps instead')
     elseif startsWith(OEversion, '0.6')
@@ -44,8 +59,8 @@ er=0; % manually fix SCT if there are too many
 % get all SCT timestamps
 sound_index=0;
 
-messages=Sky.messages;
-TTL=Sky.TTL;
+%messages=Sky.messages;
+%TTL=Sky.TTL;
 
 % this works with OE 06.4, but you have to locate the continuous files:
 % cont_files=dir('*.continuous');
@@ -78,12 +93,21 @@ end
 %     1925.7088       57771264       "GetRecordingPath"
 
 all_SCTs=[];
-for k=1:height(Sky.TTL)
+for k=1:height(TTL)
     if TTL.state(k) ... %is true, means rising
             & TTL.line(k)==pref.SCT_digital_line_in %should be line 2
         corrected_SCT=TTL.timestamp(k)-StartAcquisitionSec;
         all_SCTs=[all_SCTs corrected_SCT];
     end
+end
+
+%Here's where we can recover from a situation where the TTLs were not
+%recorded (e.g. the BNC only went to an ADC channel)
+if ~height(TTL) %this means TTL is empty (although it doesn't show up as empty(TTL) bc it's a dataframe)
+    str=sprintf('\n\n%s\n\n%s\n\n%s\n\n', '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', ...
+        'TTLs are empty. Maybe the soundcard triggers weren''t plugged into the Digital In channel? Attempting to recover soundcard triggers from messages and/or analog soundcardtrig', ...
+        '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+    warning(str)
 end
 
 for i=1:height(messages)
@@ -121,8 +145,22 @@ for i=1:height(messages)
         end
         Events(sound_index).message_timestamp_samples=sample_number - StartAcquisitionSamples;
         Events(sound_index).message_timestamp_sec=timestamp - StartAcquisitionSec;
-        SCTtime_sec=all_SCTs(sound_index);
+        if ~isempty(all_SCTs) %the normal case, we have digital TTL soundcard triggers
+       try
+           SCTtime_sec=all_SCTs(sound_index);
+       catch
+       warning('SCTtime_sec=all_SCTs(sound_index); failed probably because sound_index exceeded length of all_SCT')
+       end
+        else
+            %the digital TTL soundcard triggers are missing, so we try to
+            %recover using the message timestamp (very suboptimal!)
+            %-mike 04.25.2024
+            SCTtime_sec=Events(sound_index).message_timestamp_sec;
+            Events(sound_index).soundcardtrig_is_missing='using message timestamp as workaround';
+        end
         Events(sound_index).soundcard_trigger_timestamp_sec=SCTtime_sec;
+
+
 
 %         figure; plot(diff(all_SCTs), 'ko')
 %         if er
@@ -156,7 +194,7 @@ if length(Events) ~=  length(all_SCTs)
    fprintf('\n%d Events but %d SCTs, calling ResolveEventMismatch...',length(Events),length(all_SCTs)) 
 warning('\ncommenting out ResolveEventMismatch this is a HACK and needs to be investigated!!!!') 
 
-%     [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog);
+     [Events, all_SCTs, stimlog]=ResolveEventMismatch(Events, all_SCTs, stimlog);
 end
 
 if exist('check1', 'var') & exist('check2', 'var')
@@ -165,4 +203,4 @@ end
 
 fprintf('\nsuccessfully processed network messages and soundcard triggers into Events.')
 fprintf('\nNumber of sound events (from network messages): %d', length(Events));
-fprintf('\nNumber of hardware triggers (soundcardtrig TTLs): %d', length(all_SCTs));
+fprintf('\nNumber of hardware triggers (soundcardtrig TTLs): %d\n', length(all_SCTs));

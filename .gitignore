@@ -16,3 +16,7 @@ stimuli
 _build
 docs/_build
 venv
+Kilosort8TT/*
+djtools/Kilosort8TT/config8TT.m
+djtools/Kilosort8TT/make_8TTChannelMap.m
+djtools/Kilosort8TT/master_8TT.m

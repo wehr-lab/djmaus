@@ -199,14 +199,16 @@ nreps_ssOFF=out.nreps_ssOFF;
 %hardcoding for probe P128-2
 pitch=20; %distance between recording sites in µm
 chans_per_shank=64;
-  try
-        corrected_depths_from_file=load('depths.mat');
-        corrected_depths=corrected_depths_from_file.corrected_depth;
-        fprintf('\nfound and loaded corrected depths file')
-    catch
-        corrected_depths=[];
-        warning('\ncould not find corrected depths file')
-  end
+try
+    corrected_depths_from_file=load('depths.mat');
+    corrected_depths=corrected_depths_from_file.corrected_depth;
+    angle_corrected_depths=corrected_depths_from_file.angle_corrected_depth;
+    fprintf('\nfound and loaded corrected depths file')
+catch
+    corrected_depths=[];
+    angle_corrected_depths=[];
+    warning('\ncould not find corrected depths file')
+end
 
 for cellnum=cells
     tic
@@ -238,7 +240,12 @@ for cellnum=cells
     else
         corrected_depth=nan;
     end
-    fprintf('\ncell %d, chan %d, shank %d, raw depth %d, corrected depth %d', cellnum, chan, shank, depth, corrected_depth)
+      if ~isempty(angle_corrected_depths)
+        angle_corrected_depth=angle_corrected_depths(chan);
+    else
+        angle_corrected_depth=nan;
+    end
+    fprintf('\ncell %d, chan %d, shank %d, raw depth %d, corrected depth %.0f, angle_corrected_depth %.0f', cellnum, chan, shank, depth, corrected_depth, angle_corrected_depth)
 
     % %find optimal axis limits
     if autoscale_ylimits
@@ -366,7 +373,7 @@ for cellnum=cells
                 %set(gca, 'xticklabel', '')
                 %set(gca, 'yticklabel', '')
                 if p==1
-                    h=title(sprintf('%s: \ncell %d, chan %d, shank %d, raw depth %d um, corrected depth %d um, %d spikes, %dms, nreps: %d-%d, %s, OFF ',datadir,cellnum, chan, shank, depth, corrected_depth, length(out.SortedUnits(cellnum).spiketimes), durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF))), SortedUnits(cellnum).rating));
+                    h=title(sprintf('%s: \ncell %d, chan %d, shank %d, raw depth %d um, corrected depth %.0f um, angle-corrected depth %.0f um, %d spikes, %dms, nreps: %d-%d, %s, OFF ',datadir,cellnum, chan, shank, depth, corrected_depth, angle_corrected_depth, length(out.SortedUnits(cellnum).spiketimes), durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF))), SortedUnits(cellnum).rating));
                     set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
                 end
                 xl = xlim; yl = ylim;
@@ -549,7 +556,7 @@ for cellnum=cells
                     % set(gca, 'yticklabel', '')
 
                     subplot1(1)
-                    h=title(sprintf('%s: \ncell %d, chan %d, shank %d, raw depth %d um, corrected depth %d um, %d spikes, %dms, nreps: %d-%d, %s, ON ',out.BonsaiFolder,cellnum, chan, shank, depth, corrected_depth, length(out.SortedUnits(cellnum).spiketimes), durs(dindex),min(min(min(nrepsON))),max(max(max(nrepsON))), SortedUnits(cellnum).rating));
+                    h=title(sprintf('%s: \ncell %d, chan %d, shank %d, raw depth %d um, corrected depth %.0f um, angle_corrected depth %.0f um, %d spikes, %dms, nreps: %d-%d, %s, ON ',out.BonsaiFolder,cellnum, chan, shank, depth, corrected_depth, angle_corrected_depth, length(out.SortedUnits(cellnum).spiketimes), durs(dindex),min(min(min(nrepsON))),max(max(max(nrepsON))), SortedUnits(cellnum).rating));
                     set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
 
                     %label amps and freqs
@@ -882,7 +889,7 @@ for cellnum=cells
                     % set(gca, 'yticklabel', '')
 
                     subplot1(1)
-                    h=title(sprintf('%s: \ncell %d, chan %d, shank %d, raw depth %d, corrected depth %d %d spikes, %dms, nreps: %d-%d, %s, ON & OFF ',out.BonsaiFolder,cellnum, chan, shank, depth, corrected_depth, length(out.SortedUnits(cellnum).spiketimes), durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF))), SortedUnits(cellnum).rating));
+                    h=title(sprintf('%s: \ncell %d, chan %d, shank %d, raw depth %d, corrected depth %.0f, angle-corrected depth %.0f, %d spikes, %dms, nreps: %d-%d, %s, ON & OFF ',out.BonsaiFolder,cellnum, chan, shank, depth, corrected_depth, angle_corrected_depth, length(out.SortedUnits(cellnum).spiketimes), durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF))), SortedUnits(cellnum).rating));
                     set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
 
                     %label amps and freqs

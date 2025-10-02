@@ -69,6 +69,20 @@ end
 if exist(outfilename,'file')
     load(outfilename)
     fprintf('\nloaded outfile.')
+elseif exist('Bdirs.mat', 'file') %we're in BonsaiDir, look for outfile in EphysDir
+    load('Bdirs.mat')
+    cd(dirs{1})
+    try
+        load(outfilename)
+        fprintf('\nloaded outfile.')
+    catch
+        cd .. %cd(Bdirs{1})
+        ProcessSession
+        if ~exist('SortedUnitsFile') fprintf('\nNo Sorted Units File, probably because there is no kilosort data. PlotTC_PSTH2 will fail.'); end
+        load(SortedUnitsFile)
+        ProcessGPIAS_PSTH2(SortedUnits, BonsaiPath, EphysPath, EphysPath_KS, xlimits,ylimits)
+        load(outfilename);
+    end
 else
     fprintf('\ncould not find outfile, calling ProcessSession...')
     if exist('./notebook.mat')==2
@@ -192,6 +206,16 @@ end
 %hardcoding for probe P128-2
 distance=20;
 chans_per_shank=64;
+try
+    corrected_depths_from_file=load('depths.mat');
+    corrected_depths=corrected_depths_from_file.corrected_depth;
+    angle_corrected_depths=corrected_depths_from_file.angle_corrected_depth;
+    fprintf('\nfound and loaded corrected depths file')
+catch
+    corrected_depths=[];
+    angle_corrected_depths=[];
+    warning('\ncould not find corrected depths file')
+end
 
 for cellnum=cells
     tic
@@ -218,7 +242,17 @@ for cellnum=cells
         shank=2;
         depth=distance*chan-chans_per_shank;
     end
-    fprintf('\ncell %d, chan %d, shank %d, raw depth %d', cellnum, chan, shank, depth)
+    if ~isempty(corrected_depths)
+        corrected_depth=corrected_depths(chan);
+    else
+        corrected_depth=nan;
+    end
+    if ~isempty(angle_corrected_depths)
+        angle_corrected_depth=angle_corrected_depths(chan);
+    else
+        angle_corrected_depth=nan;
+    end
+    fprintf('\ncell %d, chan %d, shank %d, raw depth %d, corrected depth %.0f, angle_corrected_depth %.0f', cellnum, chan, shank, depth, corrected_depth, angle_corrected_depth)
 
     % %find optimal axis limits
     if autoscale_ylimits
@@ -350,7 +384,7 @@ for cellnum=cells
 
 
     subplot1(1)
-    h=title(sprintf('GPIAS OFF %s: \ncell %d, chan %d, shank %d, raw depth %d um, %d spikes, nreps: %d-%d, OFF ',datadir,cellnum, chan, shank, depth, length(out.SortedUnits(cellnum).spiketimes),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
+    h=title(sprintf('GPIAS OFF %s: \ncell %d, chan %d, shank %d, raw depth %d um, corrected depth %.0f um, angle-corrected depth %.0f um, %d spikes, nreps: %d-%d, OFF ',datadir,cellnum, chan, shank, depth, corrected_depth, angle_corrected_depth, length(out.SortedUnits(cellnum).spiketimes),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
     set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
 
     %label amps and freqs

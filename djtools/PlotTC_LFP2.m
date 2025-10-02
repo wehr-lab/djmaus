@@ -1035,15 +1035,16 @@ if exist('sink_chans', 'var')
         angle_corrected_depth=[];
     end
 
-    % for j=1:128
-    %     fprintf('\nchannel %d corrected_depth %.0f angle_corrected_depth %.0f', j, corrected_depth(j), angle_corrected_depth(j))
-    % end
     generated_on=datestr(now);
     generated_by=mfilename;
     readme='corrected_depth = subtracted so that L3/4 sink is at 400µm, ignoring L5/6 sink. angle_corrected_depth = subtracted so that L3/4 sink is at 400µm and corrected for penetration angle, ignoring L5/6 sink';
     save depths.mat readme corrected_depth angle_corrected_depth sink_chans BonsaiFolder generated_on generated_by
 
-
+   %sanity check. comment this out if it gets tedious
+    fprintf('\nangle correction sanity check:\n\n')
+    for j=1:128
+        fprintf('\nchannel %d corrected_depth %.0f angle_corrected_depth %.0f', j, corrected_depth(j), angle_corrected_depth(j))
+    end
 
 
     %replot with corrected depth labels

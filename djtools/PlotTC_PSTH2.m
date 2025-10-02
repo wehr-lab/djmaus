@@ -199,8 +199,18 @@ nreps_ssOFF=out.nreps_ssOFF;
 %hardcoding for probe P128-2
 pitch=20; %distance between recording sites in µm
 chans_per_shank=64;
+% look for depths.mat in local directory or master directory
 try
     corrected_depths_from_file=load('depths.mat');
+catch
+    %if this was batch kilosorted, there might be a depths.mat in the
+    %LFP directory which is dirs{1}
+    if exist('Bdirs.mat', 'file') load('Bdirs.mat')
+    elseif exist('dirs.mat', 'file') load('dirs.mat')
+    end
+    corrected_depths_from_file=load(fullfile(dirs{1}, 'depths.mat'));
+end
+try
     corrected_depths=corrected_depths_from_file.corrected_depth;
     angle_corrected_depths=corrected_depths_from_file.angle_corrected_depth;
     fprintf('\nfound and loaded corrected depths file')
@@ -209,6 +219,7 @@ catch
     angle_corrected_depths=[];
     warning('\ncould not find corrected depths file')
 end
+
 
 for cellnum=cells
     tic

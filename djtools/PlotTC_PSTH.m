@@ -63,8 +63,12 @@ if exist([datadir, filesep, 'dirs.mat'],'file') | exist([datadir, filesep, 'Bdir
     catch
         load([datadir, filesep, 'Bdirs.mat'])
     end
-    masterdir=Bdirs{1};
-    cd(masterdir);
+    try
+        masterdir=Bdirs{1};
+    catch
+        masterdir=dirs{1};
+    end
+        cd(masterdir);
     d=dir('OEinfo*.mat');
     if ~isempty(d) %if OEinfo exists, we're using new OE format -mike 04.28.2024
         load(d.name)

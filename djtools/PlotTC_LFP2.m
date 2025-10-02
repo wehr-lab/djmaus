@@ -17,7 +17,7 @@ function PlotTC_LFP2(varargin)
 % all inputs are optional
 % defaults to datapath=pwd, xlimits [0 200], ylimits autoscaled
 % Plots all continuous channels
-% Processes data if outfile is not found;
+% Processes data if outfile is not found;a
 
 % set filtering flag and cutoffs (if isempty(lo_pass_cutoff), then hipass created)
 flag.filt = 0;
@@ -27,7 +27,7 @@ printtofile=1; %print figures to postscript file
 closewindows=1; %close windows as soon as you print them
 %write_depth_textfile=1; %create or edit depth.txt file
 force_reprocess=0;
-interactive=0; %1 asks user to confirm bad channels and impedance file, asks user to
+interactive=1; %1 asks user to confirm bad channels and impedance file, asks user to
 %     select sinks, and saves bad channels, sinks, and depths files.
 %if you set interactive=0, it will run without any user input, and save an
 %     outfile, but will not save bad_channels or calculate corrected depth. This
@@ -876,7 +876,7 @@ xticklabels(linspace(xlimits(1), xlimits(2), numxticks))
 yticks(1:size(CSD, 2))
 yticklabels(yticks+1)
 xlabel('time, ms')
-ylabel('depth, um')
+ylabel('channel')
 h=title(sprintf('CSD shank 1 %s \n %dms, nreps: %d',BonsaiFolder,durs(dindex),min(nrepsOFF(:))));
 set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none')
 text(0*bad_channels_sh1-20, bad_channels_sh1, 'X', 'fontsize', 12, 'color', 'r')
@@ -892,7 +892,7 @@ xticklabels(linspace(xlimits(1), xlimits(2), numxticks))
 yticks(1:size(CSD, 2))
 yticklabels(yticks+65)
 xlabel('time, ms')
-ylabel('depth, um')
+ylabel('channel')
 title('shank 2')
 text(0*bad_channels_sh2-20, bad_channels_sh2, 'X', 'fontsize', 12, 'color', 'r')
 set(gca, 'pos', [ 0.5300    0.1100    0.3347    0.8150])
@@ -920,14 +920,15 @@ catch
         switch ButtonName
             case 'Sure'
                 prompt={'Enter the channel number for shank 1 L3/4 sink',...
-                    'Enter the channel number for shank 1 L5/6 sink';...
+                    'Enter the channel number for shank 1 L5/6 sink',...
                     'Enter the channel number for shank 2 L3/4 sink',...
                     'Enter the channel number for shank 2 L5/6 sink',...
                     };
-                name='Identify the channels with shortest-latency positive-going current sink';
-                numlines=1;
-
-                sink_chans_str=inputdlg(prompt,name,numlines);
+                name='Identify the channels with shortest-latency positive-going (yellow) current sink';
+                numlines=[1 120];
+                 opts.Resize='on';
+                 def={'','','',''}
+                sink_chans_str=inputdlg(prompt,name,numlines, def, opts);
 
                 if isempty(sink_chans_str)   warning('user cancelled, no depth.txt file written'), end
                 sink_chans.shank1L34=str2num(sink_chans_str{1});
@@ -958,6 +959,63 @@ catch
     end
 end
 
+
+try
+    fid=fopen('penetration_angles.txt', 'r');
+    fgetl(fid);
+    penetration_angles.shank1=str2num(extractAfter(fgetl(fid),'shank1:'));
+    penetration_angles.shank2=str2num(extractAfter(fgetl(fid),'shank2:'));
+    fclose(fid);
+    fprintf('\nfound and loaded penetration angles from local penetration_angles.txt file')
+    %expecting this txt file to have the following structure:
+    % angles (in °) of penetration with respect to orthogonal to cortical surface
+    % shank1: 8 % (a number between 0-90)
+    % shank2: 13 % (a number between 0-90)
+    % note that these angles are reconstructed from di-I or di-O histology and recorded in
+    % Projects/5XFAD/Rig3Phys/Summary of Recording Sites.xlsx among other places
+
+catch
+    if interactive
+        ButtonName = questdlg('        did not find penetration_angles.txt file, would you like to enter them? ', ...
+            'enter penetration angles?', ...
+            'Sure', 'Not now', 'Not now');
+        switch ButtonName
+            case 'Sure'
+                prompt={'Enter the penetration angle for shank 1',...
+                    'Enter the penetration angle for shank 2';...
+                    };
+                name=sprintf('Enter the penetration angles for %s', BonsaiFolder);
+                numlines=[1 120; 1 120];
+                 opts.Resize='on';
+
+                penetration_angles_str=inputdlg(prompt,name,numlines,{'',''}, opts);
+
+                if isempty(penetration_angles_str)   warning('user cancelled, no penetration_angles.txt file written'), end
+                penetration_angles.shank1=str2num(penetration_angles_str{1});
+                penetration_angles.shank2=str2num(penetration_angles_str{2});
+                if penetration_angles.shank1<0 | penetration_angles.shank1>90 | penetration_angles.shank2<0 | penetration_angles.shank2>90 
+                    warning('invalid angles entered, must be 0-90, no penetration_angles.txt file written')
+                    clear penetration_angles
+                else
+
+                    %write out penetration_angles.txt file
+                    fid=fopen('penetration_angles.txt', 'w');
+                    fprintf(fid, 'angles (in °) of penetration with respect to orthogonal to cortical surface');
+                    fprintf(fid, '\nshank1: %d', penetration_angles.shank1);
+                    fprintf(fid, '\nshank2: %d', penetration_angles.shank2);
+                    fclose(fid);
+                end
+            case 'Not now'
+                %do nothing
+        end % switch
+    else %if non-interactive
+        %do nothing
+        fprintf('\nnon-interactive mode, skipping user entry of penetration angles ')
+    end
+end
+
+
+
 if exist('sink_chans', 'var')
     for j=1:64
         corrected_depth(j)=-pitch*j+pitch*sink_chans.shank1L34+400;
@@ -965,11 +1023,24 @@ if exist('sink_chans', 'var')
     for j=65:128
         corrected_depth(j)=-pitch*j+pitch*sink_chans.shank2L34+400;
     end
-    angle_corrected_depth = 'not implemented yet';
 
+    if exist('penetration_angles', 'var')
+        for j=1:64
+            angle_corrected_depth(j)=(-pitch*j+pitch*sink_chans.shank1L34)*cosd(penetration_angles.shank1)+400;
+        end
+        for j=65:128
+            angle_corrected_depth(j)=(-pitch*j+pitch*sink_chans.shank2L34)*cosd(penetration_angles.shank2)+400;
+        end
+    else
+        angle_corrected_depth=[];
+    end
+
+    % for j=1:128
+    %     fprintf('\nchannel %d corrected_depth %.0f angle_corrected_depth %.0f', j, corrected_depth(j), angle_corrected_depth(j))
+    % end
     generated_on=datestr(now);
     generated_by=mfilename;
-    readme='corrected_depth = subtracted so that L3/4 sink is at 400µm, ignoring L5/6 sink. angle_corrected_depth = subtracted and scaled so that L3/4 sink is at 400µm and L5/6 sink is at ??? µm (not implemented yet)';
+    readme='corrected_depth = subtracted so that L3/4 sink is at 400µm, ignoring L5/6 sink. angle_corrected_depth = subtracted so that L3/4 sink is at 400µm and corrected for penetration angle, ignoring L5/6 sink';
     save depths.mat readme corrected_depth angle_corrected_depth sink_chans BonsaiFolder generated_on generated_by
 
 
@@ -982,18 +1053,27 @@ if exist('sink_chans', 'var')
     plot(t, squeeze(CSD(1,:,:))+offsets2, 'k');
     ylim([0 1.1*max(offsets2)])
     title('CSD')
-    text(repmat(-30, 1, 62), offsets2, int2str(corrected_depth([2:63])'), 'fontsize', 6)
+    if isempty(angle_corrected_depth)
+        text(repmat(-30, 1, 62), offsets2, int2str(corrected_depth([2:63])'), 'fontsize', 6)
+        h=title(sprintf('CSD shank 1 %s \nwith corrected depths',BonsaiFolder));
+    else
+        text(repmat(-30, 1, 62), offsets2, int2str(angle_corrected_depth([2:63])'), 'fontsize', 6)
+        h=title(sprintf('CSD shank 1 %s \nwith angle-corrected depths',BonsaiFolder));
+    end
     text(0*sink_chans.shank1L34-10, offsets2(sink_chans.shank1L34-1), '*', 'fontsize', 18, 'color', 'g')
     text(0*bad_channels_sh1_trim-15, offsets2(bad_channels_sh1_trim), 'X', 'fontsize', 12, 'color', 'r')
     axis off
-    h=title(sprintf('CSD shank 1 %s \nwith corrected depths',BonsaiFolder));
     set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none')
 
     subplot(122)
     %shank2
     plot(t, squeeze(CSD(2,:,:))+offsets2, 'k');
     ylim([0 1.1*max(offsets2)])
-    text(repmat(-30, 1, 62), offsets2, int2str(corrected_depth([66:127])'), 'fontsize', 6)
+    if isempty(angle_corrected_depth)
+        text(repmat(-30, 1, 62), offsets2, int2str(corrected_depth([66:127])'), 'fontsize', 6)
+    else
+        text(repmat(-30, 1, 62), offsets2, int2str(angle_corrected_depth([66:127])'), 'fontsize', 6)
+    end
     text(0*sink_chans.shank2L34-10, offsets2(sink_chans.shank2L34-65), '*', 'fontsize', 18, 'color', 'g')
     text(0*bad_channels_sh2_trim-15, offsets2(bad_channels_sh2_trim-1), 'X', 'fontsize', 12, 'color', 'r')
     set(gcf, 'pos', [ 998         198         660        1100])
@@ -1019,10 +1099,15 @@ if exist('sink_chans', 'var')
     yt=[(sink_chans.shank1L34-50-1):10:(sink_chans.shank1L34+50)];
     yt=yt(find(yt>1 & yt<64));
     yticks(yt)
-    yticklabels(corrected_depth(round(yticks)+1))
+    if isempty(angle_corrected_depth)
+        yticklabels(round(corrected_depth(round(yticks)+1)))
+        h=title(sprintf('CSD shank 1 %s \nwith corrected depths',BonsaiFolder));
+    else
+        yticklabels((angle_corrected_depth(round(yticks)+1)))
+        h=title(sprintf('CSD shank 1 %s \nwith angle-corrected depths',BonsaiFolder));
+    end
     xlabel('time, ms')
     ylabel('depth, um')
-    h=title(sprintf('CSD shank 1 %s \nwith corrected depths',BonsaiFolder));
     set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none')
     text(0*bad_channels_sh1-20, bad_channels_sh1, 'X', 'fontsize', 12, 'color', 'r')
     text(0*sink_chans.shank1L34-10, sink_chans.shank1L34-1, '*', 'fontsize', 18, 'color', 'g')
@@ -1041,7 +1126,11 @@ if exist('sink_chans', 'var')
     yt=[(sink_chans.shank2L34-50-0):10:(sink_chans.shank2L34+50)];
     yt=yt(find(yt>65 & yt<128));
     yticks(yt-65)
-    yticklabels(corrected_depth(yt))
+    if isempty(angle_corrected_depth)
+        yticklabels(round(corrected_depth(yt)))
+    else
+        yticklabels(round(angle_corrected_depth(yt)))
+    end
     xlabel('time, ms')
     ylabel('depth, um')
     title('shank 2')

@@ -26,7 +26,7 @@ lo_pass_cutoff=300;
 printtofile=1; %print figures to postscript file
 closewindows=1; %close windows as soon as you print them
 %write_depth_textfile=1; %create or edit depth.txt file
-force_reprocess=0;
+force_reprocess=1;
 interactive=1; %1 asks user to confirm bad channels and impedance file, asks user to
 %     select sinks, and saves bad channels, sinks, and depths files.
 %if you set interactive=0, it will run without any user input, and save an
@@ -76,6 +76,7 @@ catch
         cd(Bdirs{1}) %go to Bonsai Folder
     catch
         ProcessTC_LFP2(datadir, xlimits, ylimits);
+        load bdirs.mat
     end
 end
 
@@ -98,7 +99,11 @@ if force_reprocess
     ProcessTC_LFP2(datadir, xlimits, ylimits);
 end
 
-tmp=split(macifypath(BonsaiPath), '/');
+if ispc
+    tmp=split(BonsaiPath, '\');
+elseif ismac
+    tmp=split(macifypath(BonsaiPath), '/');
+end
 BonsaiFolder=tmp{end}; %remove absolute path
 DataRoot=macifypath(DataRoot); %does nothing if you're on windows
 cd(DataRoot)
@@ -1046,11 +1051,12 @@ if exist('sink_chans', 'var')
     save depths.mat readme corrected_depth angle_corrected_depth sink_chans BonsaiFolder generated_on generated_by
 
    %sanity check. comment this out if it gets tedious
-    fprintf('\nangle correction sanity check:\n\n')
-    for j=1:128
-        fprintf('\nchannel %d corrected_depth %.0f angle_corrected_depth %.0f', j, corrected_depth(j), angle_corrected_depth(j))
-    end
-
+   if ~isempty(angle_corrected_depth)
+       fprintf('\nangle correction sanity check:\n\n')
+       for j=1:128
+           fprintf('\nchannel %d corrected_depth %.0f angle_corrected_depth %.0f', j, corrected_depth(j), angle_corrected_depth(j))
+       end
+   end
 
     %replot with corrected depth labels
     figure

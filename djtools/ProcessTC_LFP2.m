@@ -41,7 +41,11 @@ cd(datadir)
 try
     load dirs.mat
 catch
+try
     load bdirs.mat
+catch
+    ProcessSession
+end
 end
 BonsaiPath=Bdirs{1};
 EphysPath=dirs{1};

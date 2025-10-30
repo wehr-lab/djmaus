@@ -69,10 +69,15 @@ outfilename='outLFP.mat';
 cd(datadir)
 try
     load dirs.mat
+    cd(Bdirs{1}) %go to Bonsai Folder
 catch
-    load bdirs.mat
+    try
+        load bdirs.mat
+        cd(Bdirs{1}) %go to Bonsai Folder
+    catch
+        ProcessTC_LFP2(datadir, xlimits, ylimits);
+    end
 end
-cd(Bdirs{1}) %go to Bonsai Folder
 
 try
     dOEinfo=dir('OEinfo*.mat'); %if we're in bonsai dir

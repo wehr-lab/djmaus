@@ -55,7 +55,8 @@ DataRoot=macifypath(DataRoot); %does nothing if you're on windows
 
 %if DataRoot is invalid (e.g. it was generated on a different computer), figure out what it should be on this computer
 if exist(DataRoot)~=7 %if it's not a valid path on this computer
-    DataRoot = FixDataRoot(DataRoot, datadir)
+    DataRoot = FixDataRoot(DataRoot, datadir);
+    fprintf('\nfixed DataRoot to %s', DataRoot)
 end
 
 try

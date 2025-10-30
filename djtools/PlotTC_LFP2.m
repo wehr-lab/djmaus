@@ -69,14 +69,42 @@ outfilename='outLFP.mat';
 cd(datadir)
 try
     load dirs.mat
-    cd(Bdirs{1}) %go to Bonsai Folder
+    BonsaiPath=Bdirs{1};
+    %if DataRoot is invalid (e.g. it was generated on a different computer), figure out what it should be on this computer
+    if exist(DataRoot)~=7 %if it's not a valid path on this computer
+        DataRoot = FixDataRoot(DataRoot, datadir);
+        fprintf('\nfixed DataRoot to %s', DataRoot)
+    end
+    if  contains(BonsaiPath, '\')
+        tmp=split(BonsaiPath, '\');
+    elseif  contains(BonsaiPath, '/')
+        tmp=split(macifypath(BonsaiPath), '/');
+    end
+    BonsaiFolder=tmp{end}; %remove absolute path
+    DataRoot=macifypath(DataRoot); %does nothing if you're on windows
+    cd(DataRoot)
+    cd(BonsaiFolder) %go to Bonsai Folder
 catch
     try
-        load bdirs.mat
-        cd(Bdirs{1}) %go to Bonsai Folder
+        load Bdirs.mat
+        BonsaiPath=Bdirs{1};
+        %if DataRoot is invalid (e.g. it was generated on a different computer), figure out what it should be on this computer
+        if exist(DataRoot)~=7 %if it's not a valid path on this computer
+            DataRoot = FixDataRoot(DataRoot, datadir);
+            fprintf('\nfixed DataRoot to %s', DataRoot)
+        end
+        if  contains(BonsaiPath, '\')
+            tmp=split(BonsaiPath, '\');
+        elseif  contains(BonsaiPath, '/')
+            tmp=split(macifypath(BonsaiPath), '/');
+        end
+        BonsaiFolder=tmp{end}; %remove absolute path
+        DataRoot=macifypath(DataRoot); %does nothing if you're on windows
+        cd(DataRoot)
+        cd(BonsaiFolder) %go to Bonsai Folder
     catch
         ProcessTC_LFP2(datadir, xlimits, ylimits);
-        load bdirs.mat
+        load dirs.mat
     end
 end
 
@@ -99,13 +127,6 @@ if force_reprocess
     ProcessTC_LFP2(datadir, xlimits, ylimits);
 end
 
-if ispc
-    tmp=split(BonsaiPath, '\');
-elseif ismac
-    tmp=split(macifypath(BonsaiPath), '/');
-end
-BonsaiFolder=tmp{end}; %remove absolute path
-DataRoot=macifypath(DataRoot); %does nothing if you're on windows
 cd(DataRoot)
 cd(BonsaiFolder)
 cd(EphysPath)

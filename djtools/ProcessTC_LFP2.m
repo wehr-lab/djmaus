@@ -53,14 +53,10 @@ tmp=split(macifypath(BonsaiPath), '/');
 BonsaiFolder=tmp{end}; %remove absolute path
 DataRoot=macifypath(DataRoot); %does nothing if you're on windows
 
-<<<<<<< Updated upstream
-%if DataRoot is invalid (e.g. it was generated on a different computer), figure out what it
-%should be on this computer
+%if DataRoot is invalid (e.g. it was generated on a different computer), figure out what it should be on this computer
 if exist(DataRoot)~=7 %if it's not a valid path on this computer
     DataRoot = FixDataRoot(DataRoot, datadir)
 end
-=======
->>>>>>> Stashed changes
 
 try
     cd(DataRoot)

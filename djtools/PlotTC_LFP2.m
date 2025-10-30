@@ -26,7 +26,7 @@ lo_pass_cutoff=300;
 printtofile=1; %print figures to postscript file
 closewindows=1; %close windows as soon as you print them
 %write_depth_textfile=1; %create or edit depth.txt file
-force_reprocess=1;
+force_reprocess=0;
 interactive=1; %1 asks user to confirm bad channels and impedance file, asks user to
 %     select sinks, and saves bad channels, sinks, and depths files.
 %if you set interactive=0, it will run without any user input, and save an

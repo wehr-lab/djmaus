@@ -27,8 +27,11 @@ function FixedDataRoot = FixDataRoot(DataRoot, datadir)
     % in datadir. 
     
     % Get the name of the final folder (e.g., 'Rig3Phys')
-    [~, anchorFolder, ~] = fileparts(DataRoot);
-
+    if ispc
+        [~, anchorFolder, ~] = fileparts(DataRoot);
+    else
+        [~, anchorFolder, ~] = fileparts(macifypath(DataRoot));
+    end
     % --- 2. Find the Anchor Folder in the Windows Example Path ---
     % Find the starting index of the anchor folder in the Windows example string.
     % The comparison is case-insensitive ('ignorecase' flag) for robustness,

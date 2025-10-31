@@ -1177,7 +1177,9 @@ end %if exist sink chans
 
 if printtofile
     fprintf('\nprinting figs to pdf...')
-    cd(Bdirs{1}) %go to Bonsai Folder
+    cd(DataRoot)
+    cd(BonsaiFolder)
+    % cd(Bdirs{1}) %go to Bonsai Folder
     pdffilename=sprintf('%s-LFP-figs.pdf', BonsaiFolder);
     %print figures to postscript file
     f=findobj('type', 'figure');

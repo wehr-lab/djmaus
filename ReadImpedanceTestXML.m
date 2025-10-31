@@ -18,6 +18,10 @@ d=dir('*.xml');
 if isempty(d) fprintf('\n%s: could not find impedance test file', mfilename), return, end
 try
     load dirs
+    if exist(DataRoot)~=7 %if it's not a valid path on this computer
+        DataRoot = FixDataRoot(DataRoot, pwd);
+        fprintf('\nfixed DataRoot to %s', DataRoot)
+    end
     load(fullfile(DataRoot, 'chanMap128.mat'))
 catch
     error('cannot find chanMap128.mat file, which is required to interpret channel numbers')

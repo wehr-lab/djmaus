@@ -413,7 +413,7 @@ for dindex=1:numdurs
         end
     end
 end
-set(gcf, 'pos', [ 998         198         660        1100])
+set(gcf, 'pos', [ 698         198         660        900])% left, bottom, width height 998 198 660 900
 
 %plot heatmap to look for bad channels
 for dindex=1:numdurs
@@ -445,7 +445,7 @@ for dindex=1:numdurs
     h=title(sprintf('OFF %s: %dms, nreps: %d-%d\nno channel replacement or smoothing',datadir,durs(dindex),min(nrepsOFF(:)),max(nrepsOFF(:))));
     set(h, 'HorizontalAlignment', 'left', 'interpreter', 'none')
     set(h,  'interpreter', 'none')
-    set(gcf, 'pos', [ 330         198         660        1100])
+    set(gcf, 'pos', [ 698         198         660        900])
 end
 
 % plot on
@@ -773,7 +773,7 @@ for dindex=1:numdurs
     h=title(sprintf('OFF %s \n%dms, nreps: %d-%d\nbad chans replaced, no channel smoothing',datadir,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
     set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none')
 end
-set(gcf, 'pos', [ 998         198         660        1100])
+set(gcf, 'pos', [ 698         198         660        900]) %Figure 6?
 
 
 %Ira smoothed the traces like this:
@@ -819,7 +819,7 @@ axis off
 subplot(122)
 plot(t, squeeze(traces_by_shank(2,:,:))+offsets1, 'k');
 text(repmat(-30, 1, 64), offsets1, int2str([65:128]'), 'fontsize', 6)
-set(gcf, 'pos', [ 998         198         660        1100])
+set(gcf, 'pos', [ 698         198         660        900])% Figure 7
 axis off
 
 for shank=1:2
@@ -854,7 +854,7 @@ plot(t, squeeze(CSD(2,:,:))+offsets2, 'k');
 ylim([0 1.1*max(offsets2)])
 text(repmat(-30, 1, 62), offsets2, int2str([66:127]'), 'fontsize', 6)
 text(0*bad_channels_sh2_trim-15, offsets2(bad_channels_sh2_trim-1), 'X', 'fontsize', 12, 'color', 'r')
-set(gcf, 'pos', [ 998         198         660        1100])
+set(gcf, 'pos', [ 698         198         660        900])
 axis off
 
 
@@ -927,7 +927,7 @@ ylabel('channel')
 title('shank 2')
 text(0*bad_channels_sh2-20, bad_channels_sh2, 'X', 'fontsize', 12, 'color', 'r')
 set(gca, 'pos', [ 0.5300    0.1100    0.3347    0.8150])
-set(gcf, 'pos', [93 141 895 1156])
+set(gcf, 'pos', [93 141 895 956])
 
 try
     fid=fopen('sink_chans.txt', 'r');
@@ -1109,7 +1109,7 @@ if exist('sink_chans', 'var')
     end
     text(0*sink_chans.shank2L34-10, offsets2(sink_chans.shank2L34-65), '*', 'fontsize', 18, 'color', 'g')
     text(0*bad_channels_sh2_trim-15, offsets2(bad_channels_sh2_trim-1), 'X', 'fontsize', 12, 'color', 'r')
-    set(gcf, 'pos', [ 998         198         660        1100])
+    set(gcf, 'pos', [ 998         198         660        900])
     axis off
     title('shank 2')
 
@@ -1177,7 +1177,7 @@ end %if exist sink chans
 
 if printtofile
     fprintf('\nprinting figs to pdf...')
-    cd(Bdirs{1}) %go to Bonsai Folder
+%    cd(Bdirs{1}) %go to Bonsai Folder
     pdffilename=sprintf('%s-LFP-figs.pdf', BonsaiFolder);
     %print figures to postscript file
     f=findobj('type', 'figure');

@@ -14,11 +14,14 @@ function [bad_channels, magnitude, channel, shank]=ReadImpedanceTestXML
 %  looks in current directory and loads the first xml file it finds
 bad_channels=[];
 
+%DataRoot='\\wehr-nas.uoregon.edu\Projects\5XFAD\Rig3Phys'
+
 d=dir('*.xml');
 if isempty(d) fprintf('\n%s: could not find impedance test file', mfilename), return, end
 try
     load dirs
-    load(fullfile(DataRoot, 'chanMap128.mat'))
+    load(fullfile('C:\Users\wehrlab\Desktop\Stuff\chanMap128.mat'))
+%    load(fullfile(DataRoot, 'chanMap128.mat'))
 catch
     error('cannot find chanMap128.mat file, which is required to interpret channel numbers')
 end
@@ -59,7 +62,7 @@ stem(chanMap, phase)
 ylabel('phase')
 xlabel('channel')
 text(chanMap, phase, int2str(chanMap'))
-set(gcf, 'pos',[192 818 2140 420]);
+set(gcf, 'pos',[192 418 1640 420]);%192 818 2140 420
 
 fprintf('\n%s: ', mfilename)
 fprintf('\nreading file %s from %s', filename, d(1).date)

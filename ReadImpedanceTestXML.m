@@ -22,6 +22,7 @@ try
     load dirs
     load(fullfile('C:\Users\wehrlab\Desktop\Stuff\chanMap128.mat'))
 %    load(fullfile(DataRoot, 'chanMap128.mat'))
+
 catch
     error('cannot find chanMap128.mat file, which is required to interpret channel numbers')
 end

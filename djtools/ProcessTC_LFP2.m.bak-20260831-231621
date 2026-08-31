@@ -59,25 +59,6 @@ if exist(DataRoot)~=7 %if it's not a valid path on this computer
     fprintf('\nfixed DataRoot to %s', DataRoot)
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%set up a verbose log file capturing console output (fprintf/warnings,
-%including any Events/SCT mismatch detection and resolution) for this
-%processing run. Saved alongside outLFP.mat, named for this function and
-%the session (EphysPath). Deleted and restarted fresh each run.
-logfilename=sprintf('ProcessTC_LFP2-%s.log', EphysPath);
-logfullpath=fullfile(DataRoot, BonsaiFolder, EphysPath, logfilename);
-if exist(logfullpath, 'file')
-    delete(logfullpath);
-end
-diary(logfullpath);
-logCleanupObj=onCleanup(@() diary('off')); %guarantees diary is turned off even if this function errors out
-fprintf('\n===== ProcessTC_LFP2 log =====');
-fprintf('\nRun started: %s', datestr(now));
-fprintf('\ndatadir: %s', datadir);
-fprintf('\nEphysPath: %s', EphysPath);
-fprintf('\n===============================\n');
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 try
     cd(DataRoot)
     cd(BonsaiFolder)
@@ -214,27 +195,6 @@ catch
     fprintf(' done. ')
     toc
 end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%Events(i).soundcard_trigger_timestamp_sec is computed (in
-%GetEventsAndSCT_Timestamps2) relative to StartAcquisitionSec, i.e. the
-%timestamp of the first logged network message. But `samples` (and
-%`timestamps`) are indexed from the first actually-recorded continuous
-%sample, timestamps(1), which is not always the same moment as
-%StartAcquisitionSec. Any difference between the two must be corrected
-%for before using soundcard_trigger_timestamp_sec as a sample index into
-%`samples`, or every trial in the recording gets pulled from the wrong,
-%constantly-offset sample -- this was the cause of a bug where
-%trial-averaged responses appeared to begin before sound onset.
-%-mike/claude 8.31.26
-offset_sec=timestamps(1)-StartAcquisitionSec;
-if abs(offset_sec)>0.001 %more than 1 ms is worth flagging
-    fprintf('\nNOTE: timestamps(1) differs from StartAcquisitionSec by %.4f sec (%.2f ms).', offset_sec, offset_sec*1000);
-    fprintf('\nCorrecting event/trial alignment by this amount before epoching.\n');
-else
-    fprintf('\ntimestamps(1) and StartAcquisitionSec agree to within 1 ms (offset_sec=%.4f sec). No correction needed.\n', offset_sec);
-end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %try to load laser and stimulus monitor
 if exist('lasertrace')==1
@@ -389,10 +349,10 @@ for i=1:length(Events)
     if strcmp(Events(i).type, 'tone') | strcmp(Events(i).type, 'whitenoise') |  strcmp(Events(i).type, 'silentsound') | ...
             strcmp(Events(i).type, 'fmtone') | strcmp(Events(i).type, '2tone')| strcmp(Events(i).type, 'grating')
         if  isfield(Events(i), 'soundcard_trigger_timestamp_sec')
-            pos=(Events(i).soundcard_trigger_timestamp_sec-offset_sec)*samprate; %corrected to timestamps(1) reference frame, matching the indexing base of `samples` -mike/claude 8.31.26
+            pos=Events(i).soundcard_trigger_timestamp_sec*samprate;
         else
             error('???')
-            pos=(Events(i).soundcard_trigger_timestamp_sec-offset_sec)*samprate; %pos is in samples
+            pos=Events(i).soundcard_trigger_timestamp_sec*samprate; %pos is in samples
         end
         laser=LaserTrials(i);
         start=round(pos+xlimits(1)*1e-3*samprate);
@@ -541,7 +501,6 @@ out.chans=chans;
 out.channelorder=channelorder;
 out.num_channels=num_channels;
 out.probe=probe;
-out.SamplesTimestampOffset_sec=offset_sec; %timestamps(1)-StartAcquisitionSec; nonzero indicates the alignment correction applied to this recording (see timing fix, 8.31.26)
 
 [~,BonsaiFolder,~]=fileparts(BonsaiPath);
 out.BonsaiFolder=BonsaiFolder;

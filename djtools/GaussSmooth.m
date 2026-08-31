@@ -11,8 +11,9 @@ function [t, fr]=GaussSmooth(spiketimes, sigma, xlimits)
 %  fr: smoothed firing rate, in Hz
 %for example, you could plot(t, fr); xlabel('time, ms'); ylabel('firing rate, Hz')
 
-%gaussian kernel 
-winsize=1000; %in 10x ms
+%gaussian kernel
+%winsize=1000; %in 10x ms
+winsize=100*sigma; %in 10x ms
 gk=gausswin(winsize, .1*winsize/sigma);
 gk=gk./sum(gk); %->unit area
 
@@ -21,5 +22,5 @@ gk=gk./sum(gk); %->unit area
 
 %convolve
 c=conv(spiketrain, gk, 'same'); %c is in spikes/10xms
-fr=10000*c; %convert back to Hz
+ fr=10000*c; %convert back to Hz
 

@@ -23,8 +23,8 @@ function PlotTC_LFP2(varargin)
 flag.filt = 0;
 hi_pass_cutoff=3000;
 lo_pass_cutoff=300;
-printtofile=1; %print figures to postscript file
-closewindows=1; %close windows as soon as you print them
+printtofile=0; %print figures to postscript file
+closewindows=0; %close windows as soon as you print them
 %write_depth_textfile=1; %create or edit depth.txt file
 force_reprocess=0;
 interactive=1; %1 asks user to confirm bad channels and impedance file, asks user to
@@ -1136,7 +1136,7 @@ if exist('sink_chans', 'var')
         yticklabels(round(corrected_depth(round(yticks)+1)))
         h=title(sprintf('CSD shank 1 %s \nwith corrected depths',BonsaiFolder));
     else
-        yticklabels((angle_corrected_depth(round(yticks)+1)))
+        yticklabels(round(angle_corrected_depth(round(yticks)+1)))
         h=title(sprintf('CSD shank 1 %s \nwith angle-corrected depths',BonsaiFolder));
     end
     xlabel('time, ms')

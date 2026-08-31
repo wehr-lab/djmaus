@@ -208,7 +208,9 @@ catch
     if exist('Bdirs.mat', 'file') load('Bdirs.mat')
     elseif exist('dirs.mat', 'file') load('dirs.mat')
     end
-    corrected_depths_from_file=load(fullfile(dirs{1}, 'depths.mat'));
+    try
+        corrected_depths_from_file=load(fullfile(dirs{1}, 'depths.mat'));
+    end
 end
 try
     corrected_depths=corrected_depths_from_file.corrected_depth;

@@ -18,6 +18,7 @@ if isempty(pref); djPrefs;end
 
 [~,BonsaiFolder,~]=fileparts(BonsaiPath);
 OEinfofilename=sprintf('OEinfo-%s', BonsaiFolder);
+cd(BonsaiPath)
 load(OEinfofilename)
 
 try

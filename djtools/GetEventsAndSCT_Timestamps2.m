@@ -15,7 +15,7 @@ if isempty(pref); djPrefs;end
 
 %-mike 2.12.25
 
-
+BonsaiPath=macifypath(BonsaiPath);
 [~,BonsaiFolder,~]=fileparts(BonsaiPath);
 OEinfofilename=sprintf('OEinfo-%s', BonsaiFolder);
 cd(BonsaiPath)

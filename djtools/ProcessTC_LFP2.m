@@ -555,5 +555,5 @@ out.EphysPath=EphysPath;
 outfilename=sprintf('outLFP.mat');
 % save(outfilename, 'out')
 save(outfilename, 'out', '-v7.3' )
-fprintf('\n saved to %s', outfilename)
+fprintf('\n saved to %s\n', outfilename)
 toc

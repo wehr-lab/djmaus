@@ -145,7 +145,8 @@ else
 end
 
 if printtofile
-    pdffilename=sprintf('%s-LFP-figs.pdf', BonsaiFolder);
+    %pdf file goes in the Bonsai folder, ensured by using absolute path in filename 
+    pdffilename=fullfile(macifypath(BonsaiPath), sprintf('%s-LFP-figs.pdf', BonsaiFolder));
     delete(pdffilename)
 end
 
@@ -1185,17 +1186,10 @@ if printtofile
 
     cd(DataRoot)
     cd(BonsaiFolder)
-    % cd(Bdirs{1}) %go to Bonsai Folder
-    pdffilename=sprintf('%s-LFP-figs.pdf', BonsaiFolder);
-    %print figures to postscript file
     f=findobj('type', 'figure');
     for idx=1:length(f)
         pause(.5)
-        %figure(f(idx))
-        % orient landscape
-        % % print figs -dpsc2 -append -bestfit
         fitFigureToPage(f(idx), 8.5, 11); %rescale content to fit a US Letter page without stretching -- replicates the old -bestfit behavior above, which exportgraphics has no equivalent for -mike/claude 9.1.26
-        % exportgraphics(f(idx),pdffilename,'Append',true,'ContentType','vector')
         exportgraphics(f(idx),pdffilename,'Append',true)
         pause(.5)
 

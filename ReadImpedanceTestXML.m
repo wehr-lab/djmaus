@@ -44,7 +44,7 @@ if nargin==0 || isempty(chanMapFile)
     end
 end
 
-load(chanMapFile)
+load(macifypath(chanMapFile))
 
 %here you could find the most recent file relative to youre recording session using d.date
 filename=d(1).name;

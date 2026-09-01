@@ -1,4 +1,4 @@
-function ProcessTC_LFP2(varargin)
+function out = ProcessTC_LFP2(varargin)
 %processes continuous tuning curve data from djmaus.
 %sorts Open Ephys continuous data into a big response matrix.
 %using new OpenEphys file formats and hierarchy

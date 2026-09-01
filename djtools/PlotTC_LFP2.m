@@ -23,7 +23,7 @@ function PlotTC_LFP2(varargin)
 flag.filt = 0;
 hi_pass_cutoff=3000;
 lo_pass_cutoff=300;
-printtofile=0; %print figures to postscript file
+printtofile=1; %print figures to postscript file
 closewindows=0; %close windows as soon as you print them
 %write_depth_textfile=1; %create or edit depth.txt file
 force_reprocess=0;
@@ -103,7 +103,7 @@ catch
         cd(DataRoot)
         cd(BonsaiFolder) %go to Bonsai Folder
     catch
-        ProcessTC_LFP2(datadir, xlimits, ylimits);
+        ProcessSession; %lightweight bootstrap to create dirs.mat -- matches ProcessTC_LFP2's own fallback for the same purpose, avoids an unnecessary full ProcessTC_LFP2 call here -mike/claude 9.1.26
         load dirs.mat
     end
 end
@@ -116,37 +116,37 @@ catch %if we're in ephys dir
     load(fullfile(dOEinfo.folder, dOEinfo.name))
 end
 
-if printtofile
-    pdffilename=sprintf('%s-LFP-figs.pdf', BonsaiFolder);
-    delete(pdffilename)
-end
-
-if force_reprocess
-    fprintf('\nForce Re-process')
-    fprintf('\ncalling ProcessTC_LFP2')
-    ProcessTC_LFP2(datadir, xlimits, ylimits);
-end
-
 cd(DataRoot)
 cd(BonsaiFolder)
 cd(EphysPath)
 
-if printtofile
-    pdffilename=sprintf('%s-LFP-figs.pdf', BonsaiFolder);
-    delete(pdffilename)
-end
-
+%single decision point for (re)processing -- avoids ever calling
+%ProcessTC_LFP2 more than once per invocation, and avoids a redundant
+%save-then-reload round trip through outfilename when we do process
+%(ProcessTC_LFP2 now returns out directly instead of only saving it).
+%-mike/claude 9.1.26
 d=dir(outfilename);
-if ~isempty(d)
+need_process = force_reprocess || isempty(d);
+
+if need_process
+    if force_reprocess
+        fprintf('\nForce Re-process')
+    else
+        fprintf('\ndid not find outfile')
+    end
+    fprintf('\ncalling ProcessTC_LFP2')
+    out = ProcessTC_LFP2(datadir, xlimits, ylimits);
+else
     tic
     fprintf('\nloading outfile %s (%.3f Gb) ...', outfilename, d.bytes/1e9);
     load(outfilename)
     fprintf('\tdone');
     toc
-else
-    fprintf('\ndid not find outfile, calling ProcessTC_LFP2')
-    ProcessTC_LFP2(datadir, xlimits, ylimits);
-    load(outfilename);
+end
+
+if printtofile
+    pdffilename=sprintf('%s-LFP-figs.pdf', BonsaiFolder);
+    delete(pdffilename)
 end
 
 %hard coded for P128-2 distance=20 um, 64 ch on each shank (1260 um total), shanks are 500 um apart
@@ -1194,6 +1194,8 @@ if printtofile
         %figure(f(idx))
         % orient landscape
         % % print figs -dpsc2 -append -bestfit
+        fitFigureToPage(f(idx), 8.5, 11); %rescale content to fit a US Letter page without stretching -- replicates the old -bestfit behavior above, which exportgraphics has no equivalent for -mike/claude 9.1.26
+        % exportgraphics(f(idx),pdffilename,'Append',true,'ContentType','vector')
         exportgraphics(f(idx),pdffilename,'Append',true)
         pause(.5)
 
@@ -1201,6 +1203,6 @@ if printtofile
             close
         end
     end
-        fprintf('\t done')
+    fprintf('\t done')
 end
 

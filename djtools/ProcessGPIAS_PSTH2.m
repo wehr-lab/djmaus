@@ -106,6 +106,40 @@ else
     save('StartAcquisitionSec.mat','StartAcquisitionSec')
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Events(i).soundcard_trigger_timestamp_sec is computed (in
+%GetEventsAndSCT_Timestamps2) relative to StartAcquisitionSec, i.e. the
+%timestamp of the first logged network message. But spiketimes (from
+%Kilosort -- see readKiloSortOutput2/readKiloSortOutputAll: "spiketimes
+%in seconds, start at 0") and the continuous Stimtrace/Lasertrace arrays
+%are referenced to timestamps(1), the actual first recorded continuous
+%sample -- which is not always the same moment as StartAcquisitionSec.
+%Any difference between the two must be corrected for before using
+%soundcard_trigger_timestamp_sec to window spiketimes or index into
+%Stimtrace/Lasertrace, or every trial will be misaligned by a constant
+%offset -- this is the same bug fixed in ProcessTC_LFP2 on 8.31.26.
+%-mike/claude 9.1.26
+if ~exist('timestamps','var')
+    try
+        S=load(fullfile(BonsaiPath, EphysPath, ['session-',EphysPath,'.mat']), 'timestamps');
+        timestamps=S.timestamps;
+    catch
+        warning('ProcessGPIAS_PSTH2: could not load timestamps to check/correct for a StartAcquisitionSec offset -- proceeding WITHOUT this correction. If this session has a nonzero offset, spike windows and stim/laser traces will be misaligned by a constant amount.')
+    end
+end
+if exist('timestamps','var')
+    offset_sec=timestamps(1)-StartAcquisitionSec;
+    if abs(offset_sec)>0.001 %more than 1 ms is worth flagging
+        fprintf('\nNOTE: timestamps(1) differs from StartAcquisitionSec by %.4f sec (%.2f ms).', offset_sec, offset_sec*1000);
+        fprintf('\nCorrecting event/trial alignment by this amount before windowing spikes.\n');
+    else
+        fprintf('\ntimestamps(1) and StartAcquisitionSec agree to within 1 ms (offset_sec=%.4f sec). No correction needed.\n', offset_sec);
+    end
+else
+    offset_sec=0; %could not determine timestamps(1) -- proceeding uncorrected, see warning above
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 try
     fprintf('\nNumber of logged stimuli in notebook: %d', length(stimlog));
 catch
@@ -326,7 +360,7 @@ for cellnum=1:numcells;
     for i=1:length(Events)
     if strcmp(Events(i).type, 'GPIAS') | strcmp(Events(i).type, 'gapinnoise')
 
-            pos=Events(i).soundcard_trigger_timestamp_sec; %pos is in seconds
+            pos=Events(i).soundcard_trigger_timestamp_sec-offset_sec; %pos is in seconds, corrected to timestamps(1) reference frame (matches spiketimes and Stimtrace/Lasertrace indexing) -mike/claude 9.1.26
             laser=LaserTrials(i);
         start=pos + gapdelay/1000 +xlimits(1)/1000; %start is in seconds
         stop=pos+ gapdelay/1000 + xlimits(2)/1000; %stop is in seconds
@@ -531,6 +565,7 @@ out.nrepsON=nrepsON;
 out.nrepsOFF=nrepsOFF;
 out.xlimits=xlimits;
 out.samprate=samprate;
+out.SamplesTimestampOffset_sec=offset_sec; %timestamps(1)-StartAcquisitionSec; nonzero indicates the alignment correction applied to this recording (see timing fix, 9.1.26)
 
 out.LaserRecorded=LaserRecorded; %whether the laser signal was hooked up and recorded as a continuous channel
 out.StimRecorded=StimRecorded; %%whether the sound stimulus signal was hooked up and recorded as a continuous channel

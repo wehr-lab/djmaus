@@ -81,6 +81,20 @@ if isempty(tok)
     error('BuildDirsFromRecordingLengths:parse', 'could not parse any entries out of %s -- unexpected format?', jsonpath);
 end
 
+%Expected folder-naming conventions -- these differ subtly between the
+%two acquisition programs: Bonsai folders use an underscore and a dash
+%before the mouse ID and don't zero-pad the hour ("2025-11-19_6-22-38_
+%mouse-4091"), while Ephys folders run the time straight into "mouse"
+%with no separator and DO zero-pad the hour ("2025-11-19_06-22-43mouse-
+%4091"). Both are validated below so a malformed "folder" entry in
+%recording_lengths.json (e.g. one that on Windows incorrectly includes
+%an extra path segment, joined with '/' instead of stopping at the true
+%Bonsai folder -- a known bug in the split function, as of 9.2.26) is
+%caught here and fails loudly, instead of silently producing a garbled
+%dirs{}/Bdirs{} entry downstream.
+BONSAI_PAT='^\d{4}-\d{2}-\d{2}_\d{1,2}-\d{2}-\d{2}_mouse-.+$';
+EPHYS_PAT='^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}mouse-.+$';
+
 n=numel(tok);
 dirs=cell(1,n);
 Bdirs=cell(1,n);
@@ -93,13 +107,35 @@ for i=1:n
     if ~startsWith(key, folder)
         error('BuildDirsFromRecordingLengths:mismatch', 'entry %d: key does not start with its own folder:\n key:    %s\n folder: %s', i, key, folder);
     end
+
+    bonsainame=local_basename(folder);
+    if isempty(regexpi(bonsainame, BONSAI_PAT, 'once'))
+        error('BuildDirsFromRecordingLengths:malformed', ...
+            ['entry %d: the "folder" field looks malformed -- its last path component ("%s")\n' ...
+             'does not match the expected Bonsai folder naming "YYYY-MM-DD_H-MM-SS_mouse-ID".\n' ...
+             'This is usually the known Windows path bug in the split function (the "folder"\n' ...
+             'field incorrectly includes an extra path segment). Full entry:\n key:    %s\n folder: %s'], ...
+            i, bonsainame, key, folder);
+    end
+
     rest=key(length(folder)+1:end);
     rest=regexprep(rest, '^[/\\]+', ''); %strip leading separator(s)
     parts=regexp(rest, '[/\\]+', 'split');
     if isempty(parts) || isempty(parts{1})
         error('BuildDirsFromRecordingLengths:mismatch', 'entry %d: could not find an Ephys folder name after the Bonsai folder in key:\n%s', i, key);
     end
-    dirs{i}=parts{1};
+    ephysname=parts{1};
+    if isempty(regexpi(ephysname, EPHYS_PAT, 'once'))
+        error('BuildDirsFromRecordingLengths:malformed', ...
+            ['entry %d: the Ephys folder name parsed from the key ("%s") does not match the\n' ...
+             'expected naming "YYYY-MM-DD_HH-MM-SSmouse-ID". This is usually the known Windows\n' ...
+             'path bug in the split function (the "folder" field incorrectly includes an extra\n' ...
+             'path segment, which shifts what this code thinks the Ephys folder is). Full entry:\n' ...
+             ' key:    %s\n folder: %s'], ...
+            i, ephysname, key, folder);
+    end
+
+    dirs{i}=ephysname;
     Bdirs{i}=resolve_local_path(folder);
 end
 
@@ -153,16 +189,39 @@ s=strrep(s, '\\', '\'); %JSON-escaped backslash -> literal backslash
 s=strrep(s, '\"', '"'); %JSON-escaped quote -> literal quote (shouldn't occur in a path, but just in case)
 end
 
+function b=local_basename(p)
+%last path component of p, tolerant of either separator -- avoids
+%fileparts' extension-splitting behavior, which folder names here don't
+%need or want.
+p=regexprep(p, '[/\\]+$', ''); %strip trailing separator, if any
+parts=regexp(p, '[/\\]', 'split');
+b=parts{end};
+end
+
 function localpath=resolve_local_path(rawpath)
 %best-effort conversion of a raw (as-collected) NAS path to this local
 %machine's view of it. Defers to the existing macifypath.m convention
-%used throughout djtools/djmaus; adds a case-insensitive fallback for
-%the wehr-nas share since recording_lengths.json capitalizes it
-%('Projects') differently than macifypath.m's hardcoded pattern
-%('projects') -- strrep in macifypath.m is case-sensitive, so without
-%this fallback the conversion silently would not fire on a Mac.
+%used throughout djtools/djmaus; adds a couple of case-insensitive
+%fallbacks that macifypath.m doesn't (yet) cover:
+%  - the wehr-nas share: recording_lengths.json capitalizes it
+%    ('Projects') differently than macifypath.m's hardcoded pattern
+%    ('projects') -- strrep in macifypath.m is case-sensitive, so
+%    without this fallback the conversion silently would not fire on a
+%    Mac.
+%  - the G: drive used for 5XFAD/Rig3Phys: recording_lengths.json is
+%    written on the Windows acquisition machine with a mapped drive
+%    letter, e.g. "G:/5XFAD/Rig3Phys/...", which macifypath.m has no
+%    rule for at all. On a Mac this share is mounted at
+%    /Volumes/Projects/5XFAD/Rig3Phys, so that specific prefix is
+%    remapped there -- case-insensitively, since some
+%    recording_lengths.json entries have been observed already
+%    lowercased ("g:/5xfad/rig3phys/...", 9.2.26). This only ever
+%    matches paths that already start with g:/5xfad/rig3phys, so it's
+%    safe to leave on by default -- it can't misfire on paths bound for
+%    anywhere other than /Volumes/Projects/5XFAD/Rig3Phys.
 localpath=macifypath(rawpath);
 if ismac
     localpath=regexprep(localpath, '//wehr-nas\.uoregon\.edu/projects/', '/Volumes/Projects/', 'ignorecase');
+    localpath=regexprep(localpath, '^g:/5xfad/rig3phys', '/Volumes/Projects/5XFAD/Rig3Phys', 'ignorecase');
 end
 end

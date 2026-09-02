@@ -200,8 +200,11 @@ if ~exist('EphysPath_KS') | isempty(EphysPath_KS)
     if isempty(ksd)
         warning('could not find kilosort data')
         EphysPath_KS=[];
-        fprintf('\nProcess Spikes will fail because there is no kilosort data')
-
+        if exist('spike_times.csv', 'file')
+            fprintf('\nfound spike_times.csv file')
+        else
+            fprintf('\nProcess Spikes will fail because there is no kilosort data')
+        end
     elseif length(ksd)==1
         fprintf('\tfound it. (took %.0fs to find)', toc)
         EphysPath_KS=ksd.folder;

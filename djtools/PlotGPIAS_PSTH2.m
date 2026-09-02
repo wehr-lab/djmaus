@@ -52,48 +52,45 @@ end
 outfilename='outPSTH.mat';
 cd(datadir)
 
+%single decision point for (re)processing -- avoids ever calling
+%ProcessGPIAS_PSTH2 more than once per invocation, and avoids a
+%redundant save-then-reload round trip through outfilename when we do
+%process (ProcessGPIAS_PSTH2 now returns out directly instead of only
+%saving it). Directory resolution (BonsaiDir vs EphysDir) is unchanged
+%from before. -mike/claude 9.2.26
 if force_reprocess
-    fprintf('\nForce re-process\n')
-    warning('Force re-process')
-    if exist('./notebook.mat')==2
-        %we're in Ephys folder, so go up one
-        cd ..
-    end
-    ProcessSession
-    if ~exist('SortedUnitsFile') fprintf('\nNo Sorted Units File, probably because there is no kilosort data. \nPlotTC_PSTH2 will fail.'); end
-    load(SortedUnitsFile)
-    ProcessGPIAS_PSTH2(SortedUnits, BonsaiPath, EphysPath, EphysPath_KS, xlimits,ylimits)
-    load(outfilename);
-end
-
-if exist(outfilename,'file')
-    load(outfilename)
-    fprintf('\nloaded outfile.')
+    need_process=true;
+elseif exist(outfilename,'file')
+    need_process=false;
 elseif exist('Bdirs.mat', 'file') %we're in BonsaiDir, look for outfile in EphysDir
     load('Bdirs.mat')
     cd(dirs{1})
-    try
-        load(outfilename)
-        fprintf('\nloaded outfile.')
-    catch
-        cd .. %cd(Bdirs{1})
-        ProcessSession
-        if ~exist('SortedUnitsFile') fprintf('\nNo Sorted Units File, probably because there is no kilosort data. PlotTC_PSTH2 will fail.'); end
-        load(SortedUnitsFile)
-        ProcessGPIAS_PSTH2(SortedUnits, BonsaiPath, EphysPath, EphysPath_KS, xlimits,ylimits)
-        load(outfilename);
+    need_process=~exist(outfilename,'file');
+    if need_process
+        cd .. %cd(Bdirs{1}) -- back to BonsaiDir before (re)processing, below
     end
 else
-    fprintf('\ncould not find outfile, calling ProcessSession...')
+    need_process=true;
+end
+
+if need_process
+    if force_reprocess
+        fprintf('\nForce re-process\n')
+        warning('Force re-process')
+    else
+        fprintf('\ncould not find outfile, calling ProcessSession...')
+    end
     if exist('./notebook.mat')==2
         %we're in Ephys folder, so go up one
         cd ..
     end
     ProcessSession
-    if ~exist('SortedUnitsFile') fprintf('\nNo Sorted Units File, probably because there is no kilosort data. PlotTC_PSTH2 will fail.'); end
+    if ~exist('SortedUnitsFile') fprintf('\nNo Sorted Units File, probably because there is no kilosort data. \nPlotGPIAS_PSTH2 will fail.'); end
     load(SortedUnitsFile)
-    ProcessGPIAS_PSTH2(SortedUnits, BonsaiPath, EphysPath, EphysPath_KS, xlimits,ylimits)
-    load(outfilename);
+    out=ProcessGPIAS_PSTH2(SortedUnits, BonsaiPath, EphysPath, EphysPath_KS, xlimits,ylimits);
+else
+    load(outfilename)
+    fprintf('\nloaded outfile.')
 end
 
 if isempty(ylimits)
@@ -102,12 +99,11 @@ else
     autoscale_ylimits=0;
 end
 
-%if xlimits are requested but don't match those in outfile, force preprocess
+%if xlimits are requested but don't match those in outfile, reprocess once more
 if ~isempty(xlimits)
     if out.xlimits(1)>xlimits(1) | out.xlimits(2)<xlimits(2) %xlimits in outfile are too narrow, so reprocess
         fprintf('\nPlot called with xlimits [%.1f %.1f] but xlimits in outfile are [%.1f %.1f], re-processing...', xlimits(1), xlimits(2), out.xlimits(1), out.xlimits(2))
-        ProcessGPIAS_PSTH2(out.SortedUnits, out.BonsaiPath, out.EphysPath, out.EphysPath_KS, xlimits, ylimits)
-        load(outfilename);
+        out=ProcessGPIAS_PSTH2(out.SortedUnits, out.BonsaiPath, out.EphysPath, out.EphysPath_KS, xlimits, ylimits);
     end
 else %xlimits is empty
     xlimits=out.xlimits;
@@ -124,7 +120,8 @@ else
 end
 
 if printtofile
-    pdffilename=sprintf('%s-figs.pdf', out.BonsaiFolder);
+    %pdf file goes in the Bonsai folder, ensured by using absolute path in filename
+    pdffilename=fullfile(macifypath(BonsaiPath), sprintf('%s-figs.pdf', BonsaiFolder));
     delete(pdffilename)
     close all
 end
@@ -162,16 +159,6 @@ else
     StimRecorded=0;
 end
 
-
-% %find optimal axis limits
-if isempty(xlimits)
-    xlimits(1)=-.5*max(durs);
-    xlimits(2)=1.5*max(durs);
-end
-fprintf('\nusing xlimits [%d-%d]', xlimits(1), xlimits(2))
-
-LaserRecorded=out.LaserRecorded;
-StimRecorded=out.StimRecorded;
 try
     M_LaserStart=out.M_LaserStart;
     M_LaserWidth=out.M_LaserWidth;
@@ -184,24 +171,7 @@ try
     LaserNumPulses=out.LaserNumPulses;
     LaserISI=out.LaserISI;
 end
-M1ONStim=out.M1ONStim;
-M1ONLaser=out.M1ONLaser; % a crash here means this is an obsolete outfile. Set force_reprocess=1 up at the top of this mfile. (Don't forget to reset it to 0 when you're done)
-mM1ONStim=out.mM1ONStim;
-% kluge below Kip 4/21
-try
-    mM1ONLaser=out.mM1ONLaser;
-    M1OFFLaser=out.M1OFFLaser;
-    mM1OFFLaser=out.mM1OFFLaser;
-catch
-    LaserRecorded=0;
-end
-% kluge below Kip 4/21
-try
-    mM1OFFStim=out.mM1OFFStim;
-    M1OFFStim=out.M1OFFStim;
-catch
-    StimRecorded = 0;
-end
+fprintf('\nusing xlimits [%d-%d]', xlimits(1), xlimits(2))
 
 %hardcoding for probe P128-2
 distance=20;
@@ -209,13 +179,25 @@ chans_per_shank=64;
 % look for depths.mat in local directory or master directory
 try
     corrected_depths_from_file=load('depths.mat');
+    fprintf('\nfound and loaded depths.mat')
 catch
     %if this was batch kilosorted, there might be a depths.mat in the
-    %LFP directory which is dirs{1}
+    %LFP directory which is somewhere in dirs{:}
+        fprintf('\nno depths.mat in this directory, searching dirs/bdirs...')
+
     if exist('Bdirs.mat', 'file') load('Bdirs.mat')
     elseif exist('dirs.mat', 'file') load('dirs.mat')
     end
-    corrected_depths_from_file=load(fullfile(dirs{1}, 'depths.mat'));
+    try
+        for dirs_idx=1:length(dirs)
+            if exist(fullfile(dirs{dirs_idx}, 'depths.mat'))
+                corrected_depths_from_file=load(fullfile(dirs{dirs_idx}, 'depths.mat'));
+                fprintf('\nfound and loaded depths.mat from directory %s', fullfile(dirs{dirs_idx}, 'depths.mat'))
+            end
+        end
+    catch
+        warning('could not find depths.mat file in this directory or in any of the directories in dirs or bdirs')
+    end
 end
 try
     corrected_depths=corrected_depths_from_file.corrected_depth;
@@ -224,7 +206,7 @@ try
 catch
     corrected_depths=[];
     angle_corrected_depths=[];
-    warning('\ncould not find corrected depths file')
+    warning('\ncould not find corrected depths file, using raw depth')
 end
 
 for cellnum=cells
@@ -512,8 +494,6 @@ for cellnum=cells
 
 
     if printtofile
-        %print figures to postscript file
-        pdffilename=sprintf('%s-figs.pdf', out.BonsaiFolder);
         f=findobj('type', 'figure');
         for idx=1:length(f)
             exportgraphics(f(idx),pdffilename,'Append',true)

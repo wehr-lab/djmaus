@@ -1,4 +1,4 @@
-function ProcessGPIAS_PSTH2(varargin)
+function out = ProcessGPIAS_PSTH2(varargin)
 
 %processes clustered spiking tuning curve data from djmaus
 %using new OpenEphys and kilosort file formats and hierarchy
@@ -24,6 +24,26 @@ SortedUnits=varargin{1};
 BonsaiPath=varargin{2};
 EphysPath=varargin{3};
 EphysPath_KS=varargin{4};
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%set up a verbose log file capturing console output (fprintf/warnings,
+%including any Events/SCT mismatch detection and resolution) for this
+%processing run. Saved alongside outPSTH.mat, named for this function and
+%the session (EphysPath). Deleted and restarted fresh each run.
+logfilename=sprintf('ProcessGPIAS_PSTH2-%s.log', EphysPath);
+logfullpath=fullfile(BonsaiPath, EphysPath, logfilename);
+if exist(logfullpath, 'file')
+    delete(logfullpath);
+end
+diary(logfullpath);
+logCleanupObj=onCleanup(@() diary('off')); %guarantees diary is turned off even if this function errors out
+fprintf('\n===== ProcessGPIAS_PSTH2 log =====');
+fprintf('\nRun started: %s', datestr(now));
+fprintf('\nBonsaiPath: %s', BonsaiPath);
+fprintf('\nEphysPath: %s', EphysPath);
+fprintf('\nEphysPath_KS: %s', EphysPath_KS);
+fprintf('\n===============================\n');
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 

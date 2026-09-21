@@ -247,6 +247,9 @@ for lp = 1:num_loops
         elseif GetPreSonusDevice  & isempty(GetXonarDevice) & strncmp(hostname, 'wehrrig4b', 9)
             fudgefactorTone=31.7;
             fudgefactorWN=34;            
+        elseif GetPreSonusDevice  & isempty(GetXonarDevice) & strncmp(hostname, 'WehrRig2a', 9)
+            fudgefactorTone=26.4;
+            fudgefactorWN=28.56;
         else
             error ('what soundcard are we using for recording?')
         end

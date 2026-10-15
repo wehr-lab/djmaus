@@ -1,9 +1,11 @@
 function [results, scaninfo] = ScanAndBuildDirsFromRecordingLengths(varargin)
 %ScanAndBuildDirsFromRecordingLengths - scan a rig root directory (e.g.
-%/Volumes/Projects/5XFAD/Rig3Phys/) for every Bonsai folder that
-%directly contains a recording_lengths.json, sanity-check the group of
-%sessions it describes, and (optionally) call BuildDirsFromRecordingLengths
-%on it to write dirs.mat/Bdirs.mat.
+%/Volumes/Projects/5XFAD/Rig3Phys/) for every recording_lengths.json
+%under it -- whether it lives directly in a Bonsai (outer) folder or one
+%level down in that Bonsai folder's Ephys (inner) folder, since the
+%split function has been observed writing it to either location --
+%sanity-check the group of sessions each one describes, and (optionally)
+%call BuildDirsFromRecordingLengths on it to write dirs.mat/Bdirs.mat.
 %
 %Because the grouped folders behind a recording_lengths.json are picked
 %by hand in a GUI during kilosorting, and that's subject to human error,
@@ -29,6 +31,15 @@ function [results, scaninfo] = ScanAndBuildDirsFromRecordingLengths(varargin)
 %-- with a timestamped header on each run recording whether it ran in
 %dry-run or write mode.
 %
+%Because it's meant to be re-run periodically, a passing group whose
+%dirs.mat (in every member's Ephys directory) and Bdirs.mat (in every
+%member's Bonsai directory) already exist AND already contain exactly
+%the dirs/Bdirs/DataRoot that recording_lengths.json currently describes
+%is left alone -- reported as "already up to date" rather than
+%rewritten. This applies in both dry-run and write mode (dry-run just
+%reports it instead of writing regardless); only a group that's new,
+%changed, or only partially written gets an actual write in write mode.
+%
 %usage:
 %   ScanAndBuildDirsFromRecordingLengths()
 %       dry run (write=false) over the default root
@@ -39,6 +50,11 @@ function [results, scaninfo] = ScanAndBuildDirsFromRecordingLengths(varargin)
 %   ScanAndBuildDirsFromRecordingLengths('write', true)
 %       same, using the default root
 %   ScanAndBuildDirsFromRecordingLengths(..., 'maxhours', 8)
+%   ScanAndBuildDirsFromRecordingLengths(..., 'mouse', 3622)
+%   ScanAndBuildDirsFromRecordingLengths(..., 'mouse', {'3622','3555'})
+%       only look for recording_lengths.json in these mice's session folders
+%       (number, string, or a list); default [] = all mice. The contiguity
+%       check still uses every folder under root, so it is unchanged.
 %       change the (soft, non-failing) time-span warning threshold
 %
 %returns:
@@ -59,16 +75,26 @@ function [results, scaninfo] = ScanAndBuildDirsFromRecordingLengths(varargin)
 %         note         - the "spans more than maxhours" note text, or ''
 %         passed       - true/false
 %         reason       - failure reason, or '' if passed
-%         written      - true if dirs.mat/Bdirs.mat were (or, for a
-%                        duplicate, already were) written for this group
+%         written      - true if, as of the end of this call (with
+%                        'write',true), dirs.mat/Bdirs.mat are correctly
+%                        in place for this group -- whether because this
+%                        run actually wrote them, they were already up
+%                        to date, or (for a duplicate) an earlier entry
+%                        in this run already covered it. Always false on
+%                        a dry run.
+%         alreadyuptodate - true if dirs.mat/Bdirs.mat already existed
+%                        and already matched recording_lengths.json
+%                        BEFORE this call -- i.e. nothing needed to be
+%                        written for this group, in either dry-run or
+%                        write mode
 %         duplicate    - true if this recording_lengths.json describes
 %                        the same group as an earlier one in this run
 %         duplicateof  - hostfolder of the first occurrence, if duplicate
 %   scaninfo - scalar struct with the scan-level facts that aren't tied
-%       to any one group: root, write, maxhours, logfile, runtime,
+%       to any one group: root, write, maxhours, mouse, logfile, runtime,
 %       njsonfiles, nunparsedfolders, unparsedfolders
 %
-%-mike/claude 9.2.26
+%-mike/claude 9.2.26 ('mouse' option 10.13.26)
 
 DEFAULT_ROOT='/Volumes/Projects/5XFAD/Rig3Phys/';
 
@@ -77,7 +103,7 @@ DEFAULT_ROOT='/Volumes/Projects/5XFAD/Rig3Phys/';
 %otherwise try to consume 'write'/'maxhours' positionally as the
 %(optional) root value. Detect that case and insert the default root
 %explicitly.
-knownparams={'write', 'maxhours'};
+knownparams={'write', 'maxhours', 'mouse'};
 if ~isempty(varargin) && (ischar(varargin{1})||isstring(varargin{1})) && any(strcmpi(varargin{1}, knownparams))
     varargin=[{DEFAULT_ROOT}, varargin];
 end
@@ -86,10 +112,12 @@ p=inputParser;
 addOptional(p, 'root', DEFAULT_ROOT, @(x) ischar(x)||isstring(x));
 addParameter(p, 'write', false, @(x) islogical(x)||isnumeric(x));
 addParameter(p, 'maxhours', 6, @isnumeric);
+addParameter(p, 'mouse', [], @(x) isempty(x)||isnumeric(x)||ischar(x)||isstring(x)||iscell(x));
 parse(p, varargin{:});
 root=char(p.Results.root);
 dowrite=logical(p.Results.write);
 maxhours=p.Results.maxhours;
+mice=p.Results.mouse; if ~isempty(mice), mice=strtrim(string(mice(:)')); end   %[] = all mice
 
 if ~isfolder(root)
     error('ScanAndBuildDirsFromRecordingLengths:noroot', 'root directory not found: %s', root);
@@ -113,6 +141,7 @@ fprintf('\n\n===== %s run started: %s =====\n', mfilename, runtime);
 fprintf('root: %s\n', root);
 fprintf('mode: %s\n', modestr);
 fprintf('maxhours (time-span warning threshold): %g\n', maxhours);
+if isempty(mice), fprintf('mice: all\n'); else, fprintf('mice: %s\n', strjoin(mice, ', ')); end
 
 %Build the master list of every immediate subdirectory of root, parsed
 %into a timestamp (as a datenum) + mouseID where possible. This is what
@@ -144,18 +173,59 @@ parsedmask=~isnan(alldnum);
 parsednames=allnames(parsedmask);
 parseddnum=alldnum(parsedmask);
 
-%find every subdirectory that directly contains recording_lengths.json
+%find every recording_lengths.json under root: either directly in a
+%Bonsai (outer) folder, or one level down inside one of its immediate
+%subfolders (typically the Ephys (inner) folder -- the split function
+%has been observed writing recording_lengths.json to either location).
+%hostfolders entries are paths relative to root, so a Bonsai-level hit
+%is just the Bonsai folder name, and an Ephys-level hit is
+%"<Bonsai folder>/<Ephys folder>".
+%with 'mouse', only those mice's session folders are searched (the master list above stays complete)
+scanidx=1:nall;
+if ~isempty(mice)
+    folderids=regexp(allnames, '_mouse-(.+)$', 'tokens', 'once'); folderids(cellfun(@isempty, folderids))={{''}};
+    folderids=string(cellfun(@(c) c{1}, folderids, 'UniformOutput', false));
+    scanidx=find(ismember(folderids, mice));
+    nf=arrayfun(@(m) sum(folderids==m), mice);
+    fprintf('%d session folders for %d mice', numel(scanidx), numel(mice));
+    if any(nf==0), fprintf(' (no folders for mouse %s)', strjoin(mice(nf==0), ', ')); end
+    fprintf('\n');
+end
 hostfolders={};
-for i=1:nall
-    if isfile(fullfile(root, d(i).name, 'recording_lengths.json'))
+foundlocation={}; %parallel to hostfolders, for the summary counts below
+%in-place progress counter; the diary is paused so the \b updates don't go into the log
+diary('off');
+nscan=numel(scanidx);
+fprintf('scanning %d folders for recording_lengths.json:', nscan); nbytes=0;
+for k=1:nscan
+    i=scanidx(k);
+    fprintf(repmat('\b', 1, nbytes)); nbytes=fprintf(' %d/%d', k, nscan);
+    bonsaidir=fullfile(root, d(i).name);
+
+    if isfile(fullfile(bonsaidir, 'recording_lengths.json'))
         hostfolders{end+1}=d(i).name; %#ok<AGROW>
+        foundlocation{end+1}='Bonsai folder'; %#ok<AGROW>
+    end
+
+    sd=dir(bonsaidir);
+    sd=sd([sd.isdir]);
+    sd=sd(~ismember({sd.name}, {'.','..'}));
+    for j=1:numel(sd)
+        if isfile(fullfile(bonsaidir, sd(j).name, 'recording_lengths.json'))
+            hostfolders{end+1}=fullfile(d(i).name, sd(j).name); %#ok<AGROW>
+            foundlocation{end+1}='Ephys folder'; %#ok<AGROW>
+        end
     end
 end
-fprintf('\nfound %d recording_lengths.json file(s) under %s\n', numel(hostfolders), root);
+fprintf('\n'); diary(logfullpath);   %resume the log
+nfoundbonsai=sum(strcmp(foundlocation, 'Bonsai folder'));
+nfoundephys=sum(strcmp(foundlocation, 'Ephys folder'));
+fprintf('\nfound %d recording_lengths.json file(s) under %s (%d in a Bonsai folder, %d in an Ephys subfolder)\n', ...
+    numel(hostfolders), root, nfoundbonsai, nfoundephys);
 
 results=struct('hostfolder',{},'jsonpath',{},'members',{},'ephysdirs',{},'dataroot',{}, ...
     'mouseid',{},'date',{},'spanhours',{},'note',{},'passed',{},'reason',{},'written',{}, ...
-    'duplicate',{},'duplicateof',{});
+    'alreadyuptodate',{},'duplicate',{},'duplicateof',{});
 sigmap=containers.Map(); %signature (sorted members joined) -> index into results, for de-duplication
 
 for hi=1:numel(hostfolders)
@@ -167,7 +237,7 @@ for hi=1:numel(hostfolders)
         [dirs_i, Bdirs_i, DataRoot_i] = BuildDirsFromRecordingLengths(jsonpath); %read-only here -- never writes
     catch err
         fprintf('\n  FAILED to parse: %s\n', err.message);
-        results(end+1)=make_entry(hostfolder, jsonpath, {}, {}, '', '', '', NaN, '', false, err.message, false, false, ''); %#ok<AGROW>
+        results(end+1)=make_entry(hostfolder, jsonpath, {}, {}, '', '', '', NaN, '', false, err.message, false, false, false, ''); %#ok<AGROW>
         continue
     end
 
@@ -203,47 +273,69 @@ for hi=1:numel(hostfolders)
     end
 
     written=false;
+    alreadyuptodate=false;
     if passed
+        isuptodate=already_uptodate(dirs_i, Bdirs_i, DataRoot_i);
         if dowrite
-            BuildDirsFromRecordingLengths(jsonpath, 'write', true);
-            fprintf('\n  wrote dirs.mat/Bdirs.mat for %d directories', numel(members));
+            if isuptodate
+                fprintf('\n  already up to date -- dirs.mat/Bdirs.mat already match recording_lengths.json, nothing written');
+                alreadyuptodate=true;
+            else
+                BuildDirsFromRecordingLengths(jsonpath, 'write', true);
+                fprintf('\n  wrote dirs.mat/Bdirs.mat for %d directories', numel(members));
+            end
             written=true;
         else
-            fprintf('\n  [DRY RUN] would write dirs.mat/Bdirs.mat for %d directories', numel(members));
+            if isuptodate
+                fprintf('\n  [DRY RUN] already up to date -- dirs.mat/Bdirs.mat already match recording_lengths.json');
+                alreadyuptodate=true;
+            else
+                fprintf('\n  [DRY RUN] would write dirs.mat/Bdirs.mat for %d directories', numel(members));
+            end
         end
     else
         fprintf('\n  SKIPPING (sanity check failed, nothing written)');
     end
 
-    results(end+1)=make_entry(hostfolder, jsonpath, members, dirs_i, DataRoot_i, mouseid, thedate, spanhours, note, passed, reason, written, false, ''); %#ok<AGROW>
+    results(end+1)=make_entry(hostfolder, jsonpath, members, dirs_i, DataRoot_i, mouseid, thedate, spanhours, note, passed, reason, written, alreadyuptodate, false, ''); %#ok<AGROW>
     sigmap(signature)=numel(results);
 end
 
 if isempty(results)
-    npassed=0; nfailed=0; nwritten=0;
+    npassed=0; nfailed=0; nwritten=0; nuptodate=0;
 else
     npassed=sum([results.passed]);
     nfailed=numel(results)-npassed;
     nwritten=sum([results.written]);
+    nuptodate=sum([results.alreadyuptodate]);
 end
 fprintf('\n\n=== summary: %d group(s) found, %d passed, %d failed', numel(results), npassed, nfailed);
 if dowrite
-    fprintf(', %d written', nwritten);
+    fprintf(', %d written (%d newly written, %d already up to date)', nwritten, nwritten-nuptodate, nuptodate);
 else
-    fprintf(' (dry run -- nothing written; call with ''write'', true to actually write)');
+    fprintf(' (dry run -- nothing written; %d already up to date; call with ''write'', true to actually write)', nuptodate);
 end
 fprintf(' ===\n');
 
-scaninfo=struct('root',root, 'write',dowrite, 'maxhours',maxhours, 'logfile',logfullpath, ...
+scaninfo=struct('root',root, 'write',dowrite, 'maxhours',maxhours, 'mouse',{cellstr(string(mice))}, 'logfile',logfullpath, ...
     'runtime',runtime, 'njsonfiles',numel(hostfolders), 'nunparsedfolders',nunparsed, ...
     'unparsedfolders',{unparsedfolders});
 
+%summarize failures to console
+fprintf('\nlist of failures (passed==0) with results idx, mouseid, reason')
+for i=1:length(results); 
+    if results(i).passed==0 
+        fprintf('\n%d n=%d mouse %s %s', i,length(results(i).members),results(i).mouseid, results(i).reason) 
+    end 
 end
 
-function entry=make_entry(hostfolder, jsonpath, members, ephysdirs, dataroot, mouseid, thedate, spanhours, note, passed, reason, written, duplicate, duplicateof)
+end
+
+function entry=make_entry(hostfolder, jsonpath, members, ephysdirs, dataroot, mouseid, thedate, spanhours, note, passed, reason, written, alreadyuptodate, duplicate, duplicateof)
 entry=struct('hostfolder',hostfolder, 'jsonpath',jsonpath, 'members',{members}, 'ephysdirs',{ephysdirs}, ...
     'dataroot',dataroot, 'mouseid',mouseid, 'date',thedate, 'spanhours',spanhours, 'note',note, ...
-    'passed',passed, 'reason',reason, 'written',written, 'duplicate',duplicate, 'duplicateof',duplicateof);
+    'passed',passed, 'reason',reason, 'written',written, 'alreadyuptodate',alreadyuptodate, ...
+    'duplicate',duplicate, 'duplicateof',duplicateof);
 end
 
 function [dnum, datestr_only, mouseid, ok] = parse_bonsai_folder_name(name)
@@ -337,4 +429,50 @@ function b=local_basename(p)
 p=regexprep(p, '[/\\]+$', ''); %strip trailing separator, if any
 parts=regexp(p, '[/\\]', 'split');
 b=parts{end};
+end
+
+function tf=already_uptodate(dirs_i, Bdirs_i, DataRoot_i)
+%true only if, for EVERY grouped session, both dirs.mat (in its Ephys
+%directory) and Bdirs.mat (in its Bonsai directory) already exist AND
+%already contain exactly this dirs/Bdirs/DataRoot triple -- i.e. calling
+%BuildDirsFromRecordingLengths(jsonpath,'write',true) right now would be
+%a pure no-op. A missing directory, a missing .mat file, or any mismatch
+%(including a different session order) makes this false, which is the
+%safe direction -- it only ever causes an extra (harmless, identical)
+%rewrite, never a skipped one.
+tf=true;
+n=numel(dirs_i);
+for i=1:n
+    ephysdir=fullfile(Bdirs_i{i}, dirs_i{i});
+    bonsaidir=Bdirs_i{i};
+
+    if ~mat_matches(fullfile(ephysdir, 'dirs.mat'), dirs_i, Bdirs_i, DataRoot_i)
+        tf=false;
+        return
+    end
+    if ~mat_matches(fullfile(bonsaidir, 'Bdirs.mat'), dirs_i, Bdirs_i, DataRoot_i)
+        tf=false;
+        return
+    end
+end
+end
+
+function tf=mat_matches(matpath, dirs_i, Bdirs_i, DataRoot_i)
+%true if matpath exists, loads cleanly, and its dirs/Bdirs/DataRoot are
+%identical (isequal, ignoring case -- macOS paths are case-insensitive, e.g.
+%5xfad/rig3phys vs 5XFAD/Rig3Phys) to the ones just parsed from recording_lengths.json.
+tf=false;
+if ~isfile(matpath)
+    return
+end
+try
+    s=load(matpath, 'dirs', 'Bdirs', 'DataRoot');
+catch
+    return %unreadable/corrupt .mat -- treat as not up to date
+end
+if ~isfield(s,'dirs') || ~isfield(s,'Bdirs') || ~isfield(s,'DataRoot')
+    return
+end
+lc=@(x) lower(string(x));
+tf = isequal(lc(s.dirs), lc(dirs_i)) && isequal(lc(s.Bdirs), lc(Bdirs_i)) && isequal(lc(s.DataRoot), lc(DataRoot_i));
 end

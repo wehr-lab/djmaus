@@ -1,53 +1,81 @@
 function PlotGPIAS_PSTH2(varargin)
-
-%plots clustered spiking GPIAS data from djmaus
-%using new OpenEphys and kilosort file formats and hierarchy
+%PlotGPIAS_PSTH2 - plot PSTHs and rasters of clustered spiking GPIAS (gap-in-noise) data,
+%new OpenEphys/kilosort file formats and hierarchy. Processes the data (ProcessSession,
+%ProcessGPIAS_PSTH2) if outPSTH.mat is not found.
 %
-% usage: PlotGPIAS_PSTH2([datapath], [cells], [xlimits],[ylimits], [binwidth])
-% all inputs are optional
-% defaults to datapath=pwd, xlimits and ylimits autoscaled, binwidth=5ms
-% cells defaults to all cells in data directory (or specify from [1:numcells])
-%
-%Processes data if outfile is not found;
+%usage:
+%   PlotGPIAS_PSTH2()                                  %datapath = pwd, all cells
+%   PlotGPIAS_PSTH2(datapath)                          %Bonsai or Ephys folder
+%   PlotGPIAS_PSTH2(datapath, 'cells', 1:20, 'xlimits', [-300 500], 'binwidth', 10)
+%name-value options (defaults):
+%   'cells'          []      cell indices into SortedUnits (default all)
+%   'xlimits'        []      ms re gap onset (default: from outfile; reprocesses if wider)
+%   'ylimits'        []      firing-rate axis (default autoscaled)
+%   'binwidth'       20      PSTH bin width, ms
+%   'rasters'        true    overlay spike rasters
+%   'pdfMode'        'jpeg'  'jpeg': one JPEG per page via Booklet (small, quick to browse over the
+%                            network); 'vector': the old exportgraphics vector booklet (very large)
+%   'pdfResolution'  150     dpi for 'jpeg' pages
+%   'pdfQuality'     85      JPEG quality for 'jpeg' pages
+%   'forceReprocess' false   re-run ProcessGPIAS_PSTH2 even if outPSTH.mat exists
+%   'printToFile'    true    append every figure to <BonsaiFolder>-figs.pdf in the Bonsai folder
+%   'showWindows'    false   show figures on screen (false: invisible, pdf output only)
+%   'openPdf'        true    open the pdf booklet when done (if printToFile)
+%   'maxWindows'     20      ask before continuing beyond this many open figures
+%   'fontSize'       12
+%   'windowPos'      figure position (default depends on platform)
+%The old positional form PlotGPIAS_PSTH2(datapath, cells, xlimits, ylimits, binwidth)
+%still works (with a warning).
+%-mike/claude 10.2.26: inputParser name-value interface
 
-rasters=1;
-force_reprocess=0;
-windowpos=[200 100 1381 680];
-if ismac  windowpos=[ -1415 479 1381 680];end %mike's pref
-maxwindows=20; %raise a "continue?" box after this many windows to avoid crashing
-fs=12; %fontsize
-printtofile=1; %print figures to postscript file
-closewindows=1; %close windows as soon as you print them
+%legacy positional call: PlotGPIAS_PSTH2(datapath, cells, xlimits, ylimits, binwidth)
+if numel(varargin)>=2 && ~(ischar(varargin{2}) || isstring(varargin{2}))
+    warning('PlotGPIAS_PSTH2: positional arguments are deprecated -- use name-value pairs, e.g. PlotGPIAS_PSTH2(path, ''cells'', 1:20)');
+    legacy={'cells','xlimits','ylimits','binwidth'};
+    nv={};
+    for k=2:min(numel(varargin), 5)
+        if ~isempty(varargin{k}), nv=[nv, legacy(k-1), varargin(k)]; end %#ok<AGROW>
+    end
+    varargin=[varargin(1), nv];
+end
 
-if nargin==0
-    datadir=pwd;
-else
-    datadir=varargin{1};
-end
-if isempty(datadir) datadir=pwd;end
+if ismac, defaultpos=[-1415 479 1381 680]; else, defaultpos=[200 100 1381 680]; end %mike's pref on mac
+p=inputParser;
+p.FunctionName=mfilename;
+addOptional(p, 'datapath', pwd, @(x) ischar(x) || isstring(x));
+addParameter(p, 'cells', [], @(x) isempty(x) || (isnumeric(x) && all(x>0)));
+addParameter(p, 'xlimits', [], @(x) isempty(x) || (isnumeric(x) && numel(x)==2));
+addParameter(p, 'ylimits', [], @(x) isempty(x) || (isnumeric(x) && numel(x)==2));
+addParameter(p, 'binwidth', 20, @(x) isnumeric(x) && isscalar(x) && x>0);
+addParameter(p, 'rasters', true, @(x) islogical(x) || isnumeric(x));
+addParameter(p, 'pdfMode', 'jpeg', @(x) any(strcmpi(x, {'jpeg','vector'})));
+addParameter(p, 'pdfResolution', 150, @isscalar);
+addParameter(p, 'pdfQuality', 85, @isscalar);
+addParameter(p, 'forceReprocess', false, @(x) islogical(x) || isnumeric(x));
+addParameter(p, 'printToFile', true, @(x) islogical(x) || isnumeric(x));
+addParameter(p, 'showWindows', false, @(x) islogical(x) || isnumeric(x));
+addParameter(p, 'openPdf', true, @(x) islogical(x) || isnumeric(x));
+addParameter(p, 'maxWindows', 20, @(x) isnumeric(x) && isscalar(x));
+addParameter(p, 'fontSize', 12, @(x) isnumeric(x) && isscalar(x));
+addParameter(p, 'windowPos', defaultpos, @(x) isnumeric(x) && numel(x)==4);
+parse(p, varargin{:});
+P=p.Results;
 
-try
-    cells=varargin{2};
-catch
-    cells=[];
-end
-try
-    xlimits=varargin{3};
-catch
-    xlimits=[];
-end
-try
-    ylimits=varargin{4};
-catch
-    ylimits=[];
-end
-try
-    binwidth=varargin{5};
-    if isempty(binwidth), binwidth=20;end
-
-catch
-    binwidth=20;
-end
+datadir=char(P.datapath); if isempty(datadir), datadir=pwd; end
+cells=P.cells(:)';
+xlimits=P.xlimits;
+ylimits=P.ylimits;
+binwidth=P.binwidth;
+rasters=logical(P.rasters);
+force_reprocess=logical(P.forceReprocess);
+printtofile=logical(P.printToFile);
+showwindows=logical(P.showWindows);
+openpdf=logical(P.openPdf) && logical(P.printToFile);
+maxwindows=P.maxWindows;
+fs=P.fontSize;
+windowpos=P.windowPos;
+if showwindows || ~printtofile, figvis='on'; else, figvis='off'; end   %figures stay visible if not printing
+already_printed=gobjects(0);   %figures already appended to the pdf (when showwindows keeps them open)
 
 outfilename='outPSTH.mat';
 cd(datadir)
@@ -64,7 +92,8 @@ elseif exist(outfilename,'file')
     need_process=false;
 elseif exist('Bdirs.mat', 'file') %we're in BonsaiDir, look for outfile in EphysDir
     load('Bdirs.mat')
-    cd(dirs{1})
+    sess_idx=find(strcmpi(Bdirs, datadir)); %strcmpi: macOS paths are case-insensitive, and Bdirs may differ in case from datadir (e.g. 5xfad/rig3phys vs 5XFAD/Rig3Phys)
+    cd(dirs{sess_idx})
     need_process=~exist(outfilename,'file');
     if need_process
         cd .. %cd(Bdirs{1}) -- back to BonsaiDir before (re)processing, below
@@ -121,8 +150,9 @@ end
 
 if printtofile
     %pdf file goes in the Bonsai folder, ensured by using absolute path in filename
-    pdffilename=fullfile(macifypath(BonsaiPath), sprintf('%s-figs.pdf', BonsaiFolder));
-    delete(pdffilename)
+    pdffilename=fullfile(macifypath(out.BonsaiPath), sprintf('%s-figs.pdf', out.BonsaiFolder));
+    if isfile(pdffilename), delete(pdffilename), end
+    if strcmpi(P.pdfMode, 'jpeg'), Booklet('start', pdffilename); end
     close all
 end
 
@@ -227,12 +257,15 @@ for cellnum=cells
     end
 
     chan=out.SortedUnits(cellnum).channel;
+    %chan = depth-ordered index 1..128 (1-64 shank 1 from the tip up, 65-128 shank 2).
+    %raw depth = distance below the top recording site, same convention as PlotTC_PSTH2
+    %(fixed mw 12.17.24). Previously distance*chan / distance*chan-chans_per_shank. -mike/claude 10.2.26
     if chan<=chans_per_shank
         shank=1;
-        depth=distance*chan;
+        depth=distance*(chans_per_shank-chan);
     else
         shank=2;
-        depth=distance*chan-chans_per_shank;
+        depth=distance*(2*chans_per_shank-chan);
     end
     if ~isempty(corrected_depths)
         corrected_depth=corrected_depths(chan);
@@ -280,7 +313,7 @@ for cellnum=cells
     %plot the mean tuning curve OFF
 
 
-    figure('position',windowpos, 'PaperOrientation', 'landscape')
+    figure('position',windowpos, 'PaperOrientation', 'landscape', 'Visible',figvis)
     p=0;
     subplot1(numpulseamps, numgapdurs, 'Max', [.95 .9])
     for paindex=1:numpulseamps
@@ -496,10 +529,16 @@ for cellnum=cells
     if printtofile
         f=findobj('type', 'figure');
         for idx=1:length(f)
-            exportgraphics(f(idx),pdffilename,'Append',true)
-        end
-        if closewindows %doing this in a separate step to ensure matlab prints all figs first
-            for idx=1:length(f)
+            if any(f(idx)==already_printed), continue, end   %shown figures from earlier cells: already in the pdf
+            set(f(idx), 'Visible', 'off')   %export from an invisible figure (avoids the macOS HiDPI cropping bug)
+            if strcmpi(P.pdfMode, 'jpeg')   %10.8.26: JPEG pages via Booklet instead of a vector booklet
+                Booklet('add', pdffilename, f(idx), 'Resolution', P.pdfResolution, 'Quality', P.pdfQuality);
+            else
+                exportgraphics(f(idx), pdffilename, 'Append', true)
+            end
+            if showwindows
+                set(f(idx), 'Visible', 'on'); already_printed(end+1)=f(idx);
+            else
                 close(f(idx))
             end
         end
@@ -508,10 +547,15 @@ for cellnum=cells
 
 end %for cellnum
 
-
-
-
-
-
-
+if printtofile && strcmpi(P.pdfMode, 'jpeg')
+    np=Booklet('finish', pdffilename); d=dir(pdffilename);
+    if ~isempty(d), fprintf('\nwrote %s (%d pages, %.1f MB)', pdffilename, np, d.bytes/1e6); end
+end
+if openpdf
+    if ismac
+        system(sprintf('open "%s"', pdffilename));
+    elseif ispc
+        winopen(char(pdffilename));
+    end
+end
 

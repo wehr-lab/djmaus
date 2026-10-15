@@ -102,41 +102,71 @@ for i=1:n
     key=unescape_json_string(tok{i}{1});
     folder=unescape_json_string(tok{i}{3});
 
-    %the Ephys folder name is the first path component of key
-    %immediately following the Bonsai folder (=folder)
-    if ~startsWith(key, folder)
-        error('BuildDirsFromRecordingLengths:mismatch', 'entry %d: key does not start with its own folder:\n key:    %s\n folder: %s', i, key, folder);
-    end
+    %Normalize every run of path separators down to a single '/' before
+    %splitting. Paths here can legitimately mix '/', '\', and '\\'
+    %(recording_lengths.json is written on the Windows acquisition
+    %machine but read on Mac/Linux), and the "folder" field is sometimes
+    %wrong -- a known bug in the split function (as of 9.2.26) can join it
+    %with an extra/wrong path segment. Rather than trust the "folder"
+    %field's string length to find the Bonsai/Ephys split point (which
+    %that bug corrupts), we locate the split by pattern-matching each
+    %path segment of key against the expected Bonsai folder naming --
+    %this recovers the correct split even when "folder" is wrong.
+    %A leading UNC "//host/..." is special-cased by normalize_seps below
+    %(stripped, collapsed separately, then restored) because collapsing
+    %runs of separators would otherwise flatten its double leading slash
+    %down to one; a drive-letter prefix ("G:/...") has no leading
+    %separator and needs no such handling. Empty segments elsewhere are
+    %deliberately kept (not squeezed out) so the split/rejoin below
+    %reproduces the original prefix exactly.
+    keyN=normalize_seps(key);
+    segs=regexp(keyN, '/', 'split');
 
-    bonsainame=local_basename(folder);
-    if isempty(regexpi(bonsainame, BONSAI_PAT, 'once'))
+    bonsaimatch=~cellfun(@isempty, regexpi(segs, BONSAI_PAT, 'once'));
+    bonsaiidx=find(bonsaimatch, 1, 'first');
+    if isempty(bonsaiidx)
         error('BuildDirsFromRecordingLengths:malformed', ...
-            ['entry %d: the "folder" field looks malformed -- its last path component ("%s")\n' ...
-             'does not match the expected Bonsai folder naming "YYYY-MM-DD_H-MM-SS_mouse-ID".\n' ...
-             'This is usually the known Windows path bug in the split function (the "folder"\n' ...
-             'field incorrectly includes an extra path segment). Full entry:\n key:    %s\n folder: %s'], ...
-            i, bonsainame, key, folder);
+            ['entry %d: could not find a path segment matching the expected Bonsai folder\n' ...
+             'naming ("YYYY-MM-DD_H-MM-SS_mouse-ID") anywhere in key:\n' ...
+             ' key:    %s\n folder: %s'], ...
+            i, key, folder);
+    end
+    if bonsaiidx>=numel(segs)
+        error('BuildDirsFromRecordingLengths:malformed', ...
+            ['entry %d: found the Bonsai folder ("%s") but there is no path segment after it\n' ...
+             'to serve as the Ephys folder. Full entry:\n key:    %s\n folder: %s'], ...
+            i, segs{bonsaiidx}, key, folder);
     end
 
-    rest=key(length(folder)+1:end);
-    rest=regexprep(rest, '^[/\\]+', ''); %strip leading separator(s)
-    parts=regexp(rest, '[/\\]+', 'split');
-    if isempty(parts) || isempty(parts{1})
-        error('BuildDirsFromRecordingLengths:mismatch', 'entry %d: could not find an Ephys folder name after the Bonsai folder in key:\n%s', i, key);
-    end
-    ephysname=parts{1};
+    ephysname=segs{bonsaiidx+1};
     if isempty(regexpi(ephysname, EPHYS_PAT, 'once'))
         error('BuildDirsFromRecordingLengths:malformed', ...
-            ['entry %d: the Ephys folder name parsed from the key ("%s") does not match the\n' ...
-             'expected naming "YYYY-MM-DD_HH-MM-SSmouse-ID". This is usually the known Windows\n' ...
-             'path bug in the split function (the "folder" field incorrectly includes an extra\n' ...
-             'path segment, which shifts what this code thinks the Ephys folder is). Full entry:\n' ...
+            ['entry %d: the path segment after the Bonsai folder ("%s") does not match the\n' ...
+             'expected Ephys folder naming "YYYY-MM-DD_HH-MM-SSmouse-ID". Full entry:\n' ...
              ' key:    %s\n folder: %s'], ...
             i, ephysname, key, folder);
     end
 
+    bonsaifolder=strjoin(segs(1:bonsaiidx), '/');
+
+    %the "folder" field is supposed to equal this derived Bonsai folder;
+    %when it doesn't (the known Windows path bug), warn for the audit
+    %trail but proceed with the value recovered from key, which is
+    %immune to that bug.
+    folderN=regexprep(normalize_seps(folder), '/+$', '');
+    if ~strcmpi(bonsaifolder, folderN)
+        warning('BuildDirsFromRecordingLengths:foldermismatch', ...
+            ['entry %d: the "folder" field doesn''t match the Bonsai folder recovered from key\n' ...
+             '(this is the known Windows path bug in the split function) -- using the value\n' ...
+             'recovered from key instead.\n' ...
+             ' folder field: %s\n' ...
+             ' recovered:    %s\n' ...
+             ' key:          %s'], ...
+            i, folder, bonsaifolder, key);
+    end
+
     dirs{i}=ephysname;
-    Bdirs{i}=resolve_local_path(folder);
+    Bdirs{i}=resolve_local_path(bonsaifolder);
 end
 
 %DataRoot = the shared parent of all the (resolved) Bonsai folders
@@ -189,13 +219,23 @@ s=strrep(s, '\\', '\'); %JSON-escaped backslash -> literal backslash
 s=strrep(s, '\"', '"'); %JSON-escaped quote -> literal quote (shouldn't occur in a path, but just in case)
 end
 
-function b=local_basename(p)
-%last path component of p, tolerant of either separator -- avoids
-%fileparts' extension-splitting behavior, which folder names here don't
-%need or want.
-p=regexprep(p, '[/\\]+$', ''); %strip trailing separator, if any
-parts=regexp(p, '[/\\]', 'split');
-b=parts{end};
+function pN=normalize_seps(p)
+%collapse every run of '/' and '\' path separators in p down to a single
+%'/', tolerant of mixed and doubled separators anywhere in the string
+%(a UNC path, a mapped drive letter, or a run of literal backslashes from
+%a mis-escaped Windows path all show up here). A leading UNC "//host/..."
+%double-separator is special-cased -- stripped off, the remainder
+%collapsed on its own, then the "//" restored -- because otherwise it too
+%would collapse down to a single leading '/' and the UNC prefix would be
+%lost. A drive-letter prefix ("G:/...") has no leading separator, so it
+%passes through untouched.
+uncprefix='';
+rest=p;
+if ~isempty(regexp(p, '^[/\\]{2}', 'once'))
+    uncprefix='//';
+    rest=p(3:end);
+end
+pN=[uncprefix regexprep(rest, '[/\\]+', '/')];
 end
 
 function localpath=resolve_local_path(rawpath)

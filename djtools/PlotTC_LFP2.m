@@ -105,6 +105,10 @@ catch
     catch
         ProcessSession; %lightweight bootstrap to create dirs.mat -- matches ProcessTC_LFP2's own fallback for the same purpose, avoids an unnecessary full ProcessTC_LFP2 call here -mike/claude 9.1.26
         load dirs.mat
+        BonsaiPath=Bdirs{1}; %define BonsaiFolder/DataRoot here too, they are needed for the pdf path -mike/claude 10.8.26
+        tmp=split(macifypath(BonsaiPath), {'/','\'}); BonsaiFolder=tmp{end};
+        if exist(DataRoot)~=7, DataRoot = FixDataRoot(DataRoot, datadir); end %#ok<EXIST>
+        DataRoot=macifypath(DataRoot);
     end
 end
 
@@ -145,9 +149,12 @@ else
 end
 
 if printtofile
-    %pdf file goes in the Bonsai folder, ensured by using absolute path in filename 
-    pdffilename=fullfile(macifypath(BonsaiPath), sprintf('%s-LFP-figs.pdf', BonsaiFolder));
-    delete(pdffilename)
+    %pdf file goes in the Bonsai folder on THIS computer: DataRoot (fixed above for this computer) +
+    %BonsaiFolder. Bdirs{1} in dirs.mat is the path at recording/processing time, which can point
+    %elsewhere -- using it put some LFP pdfs in the wrong folder (incl. the Ephys folder). -mike/claude 10.8.26
+    pdffilename=fullfile(DataRoot, BonsaiFolder, sprintf('%s-LFP-figs.pdf', BonsaiFolder));
+    fprintf('\npdf: %s', pdffilename)
+    if isfile(pdffilename), delete(pdffilename), end
 end
 
 %hard coded for P128-2 distance=20 um, 64 ch on each shank (1260 um total), shanks are 500 um apart
@@ -531,9 +538,15 @@ if IL
 end
 
 
-
-
-traces=squeeze(mM1OFF(:,findex, aindex, dindex, :));
+%this only makes sense for numfreqs==numamps==numdurs==1
+if numfreqs==1 & numamps==1 %WN only stim protocol
+    traces=squeeze(mM1OFF(:,findex, aindex, dindex, :));
+else
+    WNfindex=find(freqs<0);
+    WNaindex= find(amps==max(amps));
+    dindex=1;
+    traces=squeeze(mM1OFF(:,WNfindex, WNaindex, dindex, :));
+end
 %traces=traces -mean(traces(:,1:100), 2);
 traces=traces(out.channelorder,:);
 clear depthstr
@@ -561,7 +574,7 @@ clear depthstr
 %plot voltage stats for each channel to help inspect for bad channels
 tracelength=length(mM1OFF);
 for i=1:128
-    trace1=reshape(squeeze(out.M1OFF(out.channelorder(i),1,1,1,1:out.nrepsOFF,:))', 1, nreps*tracelength);
+    trace1=reshape(squeeze(out.M1OFF(out.channelorder(i),1,1,1,1:median(out.nrepsOFF(:)),:))', 1, median(nreps(:))*tracelength);
     chan_std(i)=std(trace1);
     chan_max(i)=max(abs(trace1));
 end
@@ -776,7 +789,7 @@ for dindex=1:numdurs
         end
     end
     subplot1(1)
-    h=title(sprintf('OFF %s \n%dms, nreps: %d-%d\nbad chans replaced, no channel smoothing',datadir,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
+    h=suptitle(sprintf('OFF %s \n%dms, nreps: %d-%d\nbad chans replaced, no channel smoothing',datadir,durs(dindex),min(min(min(nrepsOFF))),max(max(max(nrepsOFF)))));
     set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none')
 end
 set(gcf, 'pos', [ 698         198         660        900]) %Figure 6?
@@ -838,6 +851,10 @@ end
 
 
 offsets2=.1*max(abs(CSD(:)))*[1:size(CSD,2)]'; %positive inc so ch1 is at bottom and 64 is at top
+%NOTE: CSD row r corresponds to within-shank channel r+1 (channels 1 and 64 are dropped), so
+%markers for within-shank channel c go at row c-1 (sinks: shank1 sink-1, shank2 sink-65; bad
+%channels: bad_channels_sh*-1). The bad-channel X markers were previously plotted at row c,
+%one channel too high. -mike/claude 10.2.26
 %trim end channels (1, 65) from bad_channels
 bad_channels_sh1_trim=bad_channels_sh1(find(bad_channels_sh1>1));
 bad_channels_sh1_trim=bad_channels_sh1_trim(find(bad_channels_sh1_trim<64));
@@ -851,7 +868,7 @@ plot(t, squeeze(CSD(1,:,:))+offsets2, 'k');
 ylim([0 1.1*max(offsets2)])
 title('CSD')
 text(repmat(-30, 1, 62), offsets2, int2str([2:63]'), 'fontsize', 6)
-text(0*bad_channels_sh1_trim-15, offsets2(bad_channels_sh1_trim), 'X', 'fontsize', 12, 'color', 'r')
+text(0*bad_channels_sh1_trim-15, offsets2(bad_channels_sh1_trim-1), 'X', 'fontsize', 12, 'color', 'r')
 axis off
 
 subplot(122)
@@ -916,7 +933,7 @@ xlabel('time, ms')
 ylabel('channel')
 h=title(sprintf('CSD shank 1 %s \n %dms, nreps: %d',BonsaiFolder,durs(dindex),min(nrepsOFF(:))));
 set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none')
-text(0*bad_channels_sh1-20, bad_channels_sh1, 'X', 'fontsize', 12, 'color', 'r')
+text(0*bad_channels_sh1-20, bad_channels_sh1-1, 'X', 'fontsize', 12, 'color', 'r')
 
 subplot(122)
 imagesc(squeeze(CSD(2,:,:)));
@@ -931,7 +948,7 @@ yticklabels(yticks+65)
 xlabel('time, ms')
 ylabel('channel')
 title('shank 2')
-text(0*bad_channels_sh2-20, bad_channels_sh2, 'X', 'fontsize', 12, 'color', 'r')
+text(0*bad_channels_sh2-20, bad_channels_sh2-1, 'X', 'fontsize', 12, 'color', 'r')
 set(gca, 'pos', [ 0.5300    0.1100    0.3347    0.8150])
 set(gcf, 'pos', [93 141 895 956])
 
@@ -1100,7 +1117,7 @@ if exist('sink_chans', 'var')
         h=title(sprintf('CSD shank 1 %s \nwith angle-corrected depths',BonsaiFolder));
     end
     text(0*sink_chans.shank1L34-10, offsets2(sink_chans.shank1L34-1), '*', 'fontsize', 18, 'color', 'g')
-    text(0*bad_channels_sh1_trim-15, offsets2(bad_channels_sh1_trim), 'X', 'fontsize', 12, 'color', 'r')
+    text(0*bad_channels_sh1_trim-15, offsets2(bad_channels_sh1_trim-1), 'X', 'fontsize', 12, 'color', 'r')
     axis off
     set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none')
 
@@ -1148,7 +1165,7 @@ if exist('sink_chans', 'var')
     xlabel('time, ms')
     ylabel('depth, um')
     set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none')
-    text(0*bad_channels_sh1-20, bad_channels_sh1, 'X', 'fontsize', 12, 'color', 'r')
+    text(0*bad_channels_sh1-20, bad_channels_sh1-1, 'X', 'fontsize', 12, 'color', 'r')
     text(0*sink_chans.shank1L34-10, sink_chans.shank1L34-1, '*', 'fontsize', 18, 'color', 'g')
     text(0*sink_chans.shank1L56-10, sink_chans.shank1L56-1, '*', 'fontsize', 18, 'color', 'w')
 
@@ -1173,7 +1190,7 @@ if exist('sink_chans', 'var')
     xlabel('time, ms')
     ylabel('depth, um')
     title('shank 2')
-    text(0*bad_channels_sh2-20, bad_channels_sh2, 'X', 'fontsize', 12, 'color', 'r')
+    text(0*bad_channels_sh2-20, bad_channels_sh2-1, 'X', 'fontsize', 12, 'color', 'r')
     text(0*sink_chans.shank2L34-10, sink_chans.shank2L34-65, '*', 'fontsize', 18, 'color', 'g')
     text(0*sink_chans.shank2L56-10, sink_chans.shank2L56-65, '*', 'fontsize', 18, 'color', 'w')
     set(gca, 'pos', [ 0.5300    0.1100    0.3347    0.8150])

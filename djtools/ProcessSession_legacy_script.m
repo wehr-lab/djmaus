@@ -48,6 +48,7 @@ if isempty(dsky) | isempty(dttl)
 end
 
 %get EphysPath
+EphysPath_KS=[]; %initialize to empty
 cd(BonsaiPath)
 [~,BonsaiFolder,~]=fileparts(BonsaiPath); %BonsaiFolder is just the timestamp-mouseID identifier of the Bonsai directory (excluding the abolute path)
 OEinfofilename=sprintf('OEinfo-%s.mat', BonsaiFolder);
@@ -102,6 +103,7 @@ keys=session.recordNodes{1}.recordings{1}.continuous.keys();
     key=keys{1};
     timestamps=session.recordNodes{1}.recordings{1}.continuous(key).timestamps;
     samples=session.recordNodes{1}.recordings{1}.continuous(key).samples(:,:);
+    runningwheelch=[]; %initialize to empty, the default trace while also be empty
     if num_channels==78 %for 64 channel neuronexus probe
         stimtracech=71;
         soundcardtriggerch=72;
@@ -110,6 +112,7 @@ keys=session.recordNodes{1}.recordings{1}.continuous.keys();
         stimtracech=135;
         soundcardtriggerch=136;
         lasertracech=137;
+        runningwheelch=138;
     elseif num_channels==136 %for 128 channel diagnostic biochips probe where we forgot to record the 6 AUX channels
         stimtracech=129;
         soundcardtriggerch=130;
@@ -132,7 +135,12 @@ keys=session.recordNodes{1}.recordings{1}.continuous.keys();
     stimtrace=session.recordNodes{1}.recordings{1}.continuous(key).samples(stimtracech,:);
     soundcardtrigger=session.recordNodes{1}.recordings{1}.continuous(key).samples(soundcardtriggerch,:);
     lasertrace=session.recordNodes{1}.recordings{1}.continuous(key).samples(lasertracech,:);
-
+    runningwheeltrace=session.recordNodes{1}.recordings{1}.continuous(key).samples(runningwheelch,:);
+    if ~isempty(runningwheeltrace)
+        fprintf('\nloaded running wheel trace'); 
+    else
+        fprintf('\ncould not load running wheel trace, so it is empty');
+    end
 
     %it is slow, takes 3 minutes. so we save for fast loading in the
     %future.
@@ -142,7 +150,7 @@ keys=session.recordNodes{1}.recordings{1}.continuous.keys();
     session.recordNodes{2}.recordings{1}.continuous=[];
     session.recordNodes{2}.recordings{1}.spikes=[];
     fprintf('\nsaving Open Ephys session object in OpenEphys folder...')
-    save(sessionfilename, 'session', 'stimtrace','soundcardtrigger','lasertrace','timestamps','num_channels', 'bit_volts')
+    save(sessionfilename, 'session', 'stimtrace','soundcardtrigger','lasertrace','runningwheeltrace', 'timestamps','num_channels', 'bit_volts')
     %save('samples', 'samples')
     fprintf(' done. ')
 end
@@ -198,11 +206,11 @@ if ~exist('EphysPath_KS') | isempty(EphysPath_KS)
     tic
     ksd=dir('**/phy.log');
     if isempty(ksd)
-        warning('could not find kilosort data')
-        EphysPath_KS=[];
-        if exist('spike_times.csv', 'file')
+        if exist(fullfile(EphysPath, 'spike_times.csv'), 'file')
             fprintf('\nfound spike_times.csv file')
         else
+            warning('could not find kilosort data')
+            EphysPath_KS=[];
             fprintf('\nProcess Spikes will fail because there is no kilosort data')
         end
     elseif length(ksd)==1
@@ -220,18 +228,25 @@ end
 %SettingYourStage. Alternatively, if you're only kilosorting individual
 %sessions (so there's no need to group sessions that were kilosorted
 %together) then you can just use the current directory
-if 0 %group sessions that were kilosorted together
-    SettingYourStage;
-else %assume we're only kilosorting individual sessions
-    Bdirs{1}=BonsaiPath;
-    dirs{1}=EphysPath;
-    DataRoot=LocalDataRoot;
-    cd(BonsaiPath)
-    save('Bdirs.mat','dirs','Bdirs','DataRoot');
-    cd(EphysPath);
-    save('dirs.mat', 'Bdirs', 'dirs','DataRoot');
-    cd(BonsaiPath)
-end
+% if 0 %group sessions that were kilosorted together
+%     SettingYourStage;
+% else %assume we're only kilosorting individual sessions
+%     Bdirs{1}=BonsaiPath;
+%     dirs{1}=EphysPath;
+%     DataRoot=LocalDataRoot;
+%     cd(BonsaiPath)
+%     save('Bdirs.mat','dirs','Bdirs','DataRoot');
+%     cd(EphysPath);
+%     save('dirs.mat', 'Bdirs', 'dirs','DataRoot');
+%     cd(BonsaiPath)
+% end
+
+% save OE metadata in OEinfo file in Bonsai Folder 
+[~,BonsaiFolder,~]=fileparts(BonsaiPath); %BonsaiFolder is just the timestamp-mouseID identifier of the Bonsai directory (excluding the abolute path)
+OEinfofilename=sprintf('OEinfo-%s', BonsaiFolder);
+OEsamplerate=session.recordNodes{1}.recordings{1}.info.continuous(1).sample_rate;
+cd(BonsaiPath)
+save(OEinfofilename, 'EphysPath', 'EphysPath_KS', 'EphysPath_KS', 'BonsaiPath', 'BonsaiFolder', 'OEversion', 'messages', 'OEsamplerate', 'numsoundcardtriggers', 'TTL');
 
 %get SortedUnits from ProcessSpikes
 try
@@ -240,6 +255,7 @@ try
     sudir=dir('./SortedUnits_*.mat'); %check if SortedUnits file output from ProcessSpikes already exists
 
     if isempty(sudir)
+        fprintf('\nno sorted units file found, calling ProcessSpikes')
         %    [SortedUnitsFile] = ProcessSpikes(EphysPath_KS,BonsaiPath, LocalDataRoot); %Process the spikes
         % [SortedUnitsFile] = ProcessSpikes(EphysPath_KS, LocalDataRoot); %Process the spikes
         SortedUnitsFile = ProcessSpikes(BonsaiPath, EphysPath_KS, EphysPath, LocalDataRoot) %new way for new OE hierarchy
@@ -251,17 +267,9 @@ try
 catch
     lasterr
     warning('ProcessSpikes failed')
-    if isempty(EphysPath_KS) warning('ProcessSpikes failed. Probably because there is no kilosort data.'); end
-
+    
 end
 
-% these are the things I will want to add to Sky
-% I'm saving them here for convenience, because sometimes we want to re-add them if we regenerate Sky in the future
-[~,BonsaiFolder,~]=fileparts(BonsaiPath); %BonsaiFolder is just the timestamp-mouseID identifier of the Bonsai directory (excluding the abolute path)
-OEinfofilename=sprintf('OEinfo-%s', BonsaiFolder);
-OEsamplerate=session.recordNodes{1}.recordings{1}.info.continuous(1).sample_rate;
-cd(BonsaiPath)
-save(OEinfofilename, 'EphysPath', 'EphysPath_KS', 'EphysPath_KS', 'BonsaiPath', 'BonsaiFolder', 'OEversion', 'messages', 'OEsamplerate', 'numsoundcardtriggers', 'TTL');
 
 try
     behaviorfilename = dir('Behavior*.mat');
@@ -273,8 +281,8 @@ try
         fprintf('\nBehavior file already exists, skipping ProcessCams')
     end
 catch
-    warning('\n ProcessCams failed, probably because there is no camera data')
-    lasterr
+    warning(sprintf('ProcessCams failed: \n%s', lasterr))
+    
 end
 
 

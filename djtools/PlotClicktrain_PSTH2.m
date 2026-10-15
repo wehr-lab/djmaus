@@ -1,53 +1,81 @@
 function PlotClicktrain_PSTH2(varargin)
-
-%plots clustered spiking Clicktrain data from djmaus
-%using new OpenEphys and kilosort file formats and hierarchy
+%PlotClicktrain_PSTH2 - plot PSTHs, rasters and cycle histograms of clustered spiking click-train data,
+%new OpenEphys/kilosort file formats and hierarchy. Processes the data (ProcessSession and
+%the matching Process function) if outPSTH.mat is not found.
 %
-% usage: PlotClicktrain_PSTH2([datapath], [cells], [xlimits],[ylimits], [binwidth])
-% all inputs are optional
-% defaults to datapath=pwd, xlimits and ylimits autoscaled, binwidth=5ms
-% cells defaults to all cells in data directory (or specify from [1:numcells])
-%
-%Processes data if outfile is not found;
+%usage:
+%   PlotClicktrain_PSTH2()                                  %datapath = pwd, all cells
+%   PlotClicktrain_PSTH2(datapath)                          %Bonsai or Ephys folder
+%   PlotClicktrain_PSTH2(datapath, 'cells', 1:20, 'xlimits', [-100 1500], 'binwidth', 10)
+%name-value options (defaults):
+%   'cells'          []      cell indices into SortedUnits (default all)
+%   'xlimits'        []      ms (default: from outfile; reprocesses if wider)
+%   'ylimits'        []      firing-rate axis (default autoscaled)
+%   'binwidth'       5       PSTH bin width, ms
+%   'rasters'        true    overlay spike rasters
+%   'pdfMode'        'jpeg'  'jpeg': one JPEG per page via Booklet (small, quick to browse over the
+%                            network); 'vector': the old exportgraphics vector booklet (very large)
+%   'pdfResolution'  150     dpi for 'jpeg' pages
+%   'pdfQuality'     85      JPEG quality for 'jpeg' pages
+%   'forceReprocess' false   re-process even if outPSTH.mat exists
+%   'printToFile'    true    append every figure to <BonsaiFolder>-figs.pdf in the Bonsai folder
+%   'showWindows'    false   show figures on screen (false: invisible, pdf output only)
+%   'openPdf'        true    open the pdf booklet when done (if printToFile)
+%   'maxWindows'     20      ask before continuing beyond this many open figures
+%   'fontSize'       12
+%   'windowPos'      figure position (default depends on platform)
+%The old positional form PlotClicktrain_PSTH2(datapath, cells, xlimits, ylimits, binwidth)
+%still works (with a warning).
+%-mike/claude 10.2.26: inputParser name-value interface
 
-rasters=1;
-force_reprocess=0;
-windowpos=[200 100 1381 680];
-if ismac  windowpos=[ -1415 479 1381 680];end %mike's pref
-maxwindows=20; %raise a "continue?" box after this many windows to avoid crashing
-fs=12; %fontsize
-printtofile=1; %print figures to postscript file
-closewindows=1; %close windows as soon as you print them
+%legacy positional call: PlotClicktrain_PSTH2(datapath, cells, xlimits, ylimits, binwidth)
+if numel(varargin)>=2 && ~(ischar(varargin{2}) || isstring(varargin{2}))
+    warning('PlotClicktrain_PSTH2: positional arguments are deprecated -- use name-value pairs, e.g. PlotClicktrain_PSTH2(path, ''cells'', 1:20)');
+    legacy={'cells','xlimits','ylimits','binwidth'};
+    nv={};
+    for k=2:min(numel(varargin), 5)
+        if ~isempty(varargin{k}), nv=[nv, legacy(k-1), varargin(k)]; end %#ok<AGROW>
+    end
+    varargin=[varargin(1), nv];
+end
 
-if nargin==0
-    datadir=pwd;
-else
-    datadir=varargin{1};
-end
-if isempty(datadir) datadir=pwd;end
+if ismac, defaultpos=[-1415 479 1381 680]; else, defaultpos=[200 100 1381 680]; end %mike's pref on mac
+p=inputParser;
+p.FunctionName=mfilename;
+addOptional(p, 'datapath', pwd, @(x) ischar(x) || isstring(x));
+addParameter(p, 'cells', [], @(x) isempty(x) || (isnumeric(x) && all(x>0)));
+addParameter(p, 'xlimits', [], @(x) isempty(x) || (isnumeric(x) && numel(x)==2));
+addParameter(p, 'ylimits', [], @(x) isempty(x) || (isnumeric(x) && numel(x)==2));
+addParameter(p, 'binwidth', 5, @(x) isnumeric(x) && isscalar(x) && x>0);
+addParameter(p, 'rasters', true, @(x) islogical(x) || isnumeric(x));
+addParameter(p, 'pdfMode', 'jpeg', @(x) any(strcmpi(x, {'jpeg','vector'})));
+addParameter(p, 'pdfResolution', 150, @isscalar);
+addParameter(p, 'pdfQuality', 85, @isscalar);
+addParameter(p, 'forceReprocess', false, @(x) islogical(x) || isnumeric(x));
+addParameter(p, 'printToFile', true, @(x) islogical(x) || isnumeric(x));
+addParameter(p, 'showWindows', false, @(x) islogical(x) || isnumeric(x));
+addParameter(p, 'openPdf', true, @(x) islogical(x) || isnumeric(x));
+addParameter(p, 'maxWindows', 20, @(x) isnumeric(x) && isscalar(x));
+addParameter(p, 'fontSize', 12, @(x) isnumeric(x) && isscalar(x));
+addParameter(p, 'windowPos', defaultpos, @(x) isnumeric(x) && numel(x)==4);
+parse(p, varargin{:});
+P=p.Results;
 
-try
-    cells=varargin{2};
-catch
-    cells=[];
-end
-try
-    xlimits=varargin{3};
-catch
-    xlimits=[];
-end
-try
-    ylimits=varargin{4};
-catch
-    ylimits=[];
-end
-try
-    binwidth=varargin{5};
-    if isempty(binwidth), binwidth=5;end
-
-catch
-    binwidth=5;
-end
+datadir=char(P.datapath); if isempty(datadir), datadir=pwd; end
+cells=P.cells(:)';
+xlimits=P.xlimits;
+ylimits=P.ylimits;
+binwidth=P.binwidth;
+rasters=logical(P.rasters);
+force_reprocess=logical(P.forceReprocess);
+printtofile=logical(P.printToFile);
+showwindows=logical(P.showWindows);
+openpdf=logical(P.openPdf) && logical(P.printToFile);
+maxwindows=P.maxWindows;
+fs=P.fontSize;
+windowpos=P.windowPos;
+if showwindows || ~printtofile, figvis='on'; else, figvis='off'; end   %figures stay visible if not printing
+already_printed=gobjects(0);   %figures already appended to the pdf (when showwindows keeps them open)
 
 outfilename='outPSTH.mat';
 cd(datadir)
@@ -69,6 +97,23 @@ end
 if exist(outfilename,'file')
     load(outfilename)
     fprintf('\nloaded outfile.')
+elseif exist('Bdirs.mat', 'file') %we're in BonsaiDir, look for outfile in EphysDir
+    load('Bdirs.mat')
+    sess_idx=find(strcmpi(Bdirs, datadir)); %strcmpi: macOS paths are case-insensitive, and Bdirs may differ in case from datadir (e.g. 5xfad/rig3phys vs 5XFAD/Rig3Phys)
+    cd(dirs{sess_idx})
+    try
+        load(outfilename)
+        fprintf('\nloaded outfile.')
+    catch
+        cd .. %cd(Bdirs{1})
+        ProcessSession
+        cd(dirs{sess_idx})
+        if ~exist('SortedUnitsFile') fprintf('\nNo Sorted Units File, probably because there is no kilosort data. PlotTC_PSTH2 will fail.'); end
+        load(SortedUnitsFile)
+        ProcessClicktrain_PSTH2(SortedUnits, BonsaiPath, EphysPath, EphysPath_KS, xlimits,ylimits);
+        load(outfilename);
+    end
+
 else
     fprintf('\ncould not find outfile, calling ProcessSession...')
     if exist('./notebook.mat')==2
@@ -78,7 +123,7 @@ else
     ProcessSession
     if ~exist('SortedUnitsFile') fprintf('\nNo Sorted Units File, probably because there is no kilosort data. PlotTC_PSTH2 will fail.'); end
     load(SortedUnitsFile)
-    ProcessClicktrain_PSTH2(SortedUnits, BonsaiPath, EphysPath, EphysPath_KS, xlimits,ylimits)
+    ProcessClicktrain_PSTH2(SortedUnits, BonsaiPath, EphysPath, EphysPath_KS, xlimits,ylimits);
     load(outfilename);
 end
 
@@ -119,8 +164,9 @@ else
 end
 
 if printtofile
-    pdffilename=sprintf('%s-figs.pdf', out.BonsaiFolder);
-    delete(pdffilename)
+    pdffilename=fullfile(macifypath(out.BonsaiPath), sprintf('%s-figs.pdf', out.BonsaiFolder)); %Bonsai folder, absolute path
+    if isfile(pdffilename), delete(pdffilename), end
+    if strcmpi(P.pdfMode, 'jpeg'), Booklet('start', pdffilename); end
     close all
 end
 
@@ -224,12 +270,15 @@ for cellnum=cells
     end
 
     chan=out.SortedUnits(cellnum).channel;
+    %raw depth = distance below the top recording site (chan = depth-ordered index, 1/65 at the
+    %tip), same convention as PlotTC_PSTH2. Previously pitch*chan, which was height above the tip.
+    %-mike/claude 10.2.26
     if chan<=chans_per_shank
         shank=1;
-        depth=pitch*chan;
+        depth=pitch*(chans_per_shank-chan);
     else
         shank=2;
-        depth=pitch*(chan-chans_per_shank); %fixed mw 12.17.24
+        depth=pitch*(2*chans_per_shank-chan); %fixed mw 12.17.24
     end
     fprintf('\ncell %d, chan %d, shank %d, raw depth %d', cellnum, chan, shank, depth)
 
@@ -265,7 +314,7 @@ for cellnum=cells
     %plot the mean tuning curve OFF
 
 
-    figure('position',windowpos, 'PaperOrientation', 'landscape')
+    figure('position',windowpos, 'PaperOrientation', 'landscape', 'Visible',figvis)
     p=0;
     subplot1(numicis,1, 'Max', [.95 .9])
     for iciindex=1:numicis
@@ -510,7 +559,7 @@ set(h, 'color', 'c')
 
 
     % plot cycle histograms
-        figure('position',windowpos, 'PaperOrientation', 'landscape')
+        figure('position',windowpos, 'PaperOrientation', 'landscape', 'Visible',figvis)
     yl=0;
     subplot1(numicis, 2)
     p=0;
@@ -553,7 +602,7 @@ set(h, 'color', 'c')
     % set(gcf, 'pos',pos)
 
     % plot vector strength, rayleigh statistic, etc
-    figure('position',windowpos, 'PaperOrientation', 'landscape')
+    figure('position',windowpos, 'PaperOrientation', 'landscape', 'Visible',figvis)
     subplot1(3, 1)
     subplot1(1)
     plot(1:numicis, out.VsOFF(cellnum, :), 'k-o', 1:numicis, out.VsON(cellnum, :), 'c-o')
@@ -586,7 +635,7 @@ set(h, 'color', 'c')
     % set(gcf, 'pos',pos)
 
 
-    figure('position',windowpos, 'PaperOrientation', 'landscape')
+    figure('position',windowpos, 'PaperOrientation', 'landscape', 'Visible',figvis)
     hold on
     if ~isempty(mMtONspikecount)
         e=errorbar(1:numicis, mMtONspikecount(cellnum, :), sMtONspikecount(cellnum, :), 'c-o');
@@ -601,26 +650,38 @@ set(h, 'color', 'c')
     set(h, 'HorizontalAlignment', 'center', 'interpreter', 'none', 'fontsize', fs, 'fontw', 'normal')
 
     if printtofile
-        %print figures to postscript file
-        pdffilename=sprintf('%s-figs.pdf', out.BonsaiFolder);
+        %append figures to the pdf booklet (pdffilename set above: Bonsai folder, absolute path --
+        %the relative name that used to be re-set here put the pdf in whatever folder was current)
         f=findobj('type', 'figure');
         for idx=1:length(f)
-            exportgraphics(f(idx),pdffilename,'Append',true)
-        end
-        if closewindows %doing this in a separate step to ensure matlab prints all figs first
-            for idx=1:length(f)
+            if any(f(idx)==already_printed), continue, end   %shown figures from earlier cells: already in the pdf
+            set(f(idx), 'Visible', 'off')   %export from an invisible figure (avoids the macOS HiDPI cropping bug)
+            if strcmpi(P.pdfMode, 'jpeg')   %10.8.26: JPEG pages via Booklet instead of a vector booklet
+                Booklet('add', pdffilename, f(idx), 'Resolution', P.pdfResolution, 'Quality', P.pdfQuality);
+            else
+                exportgraphics(f(idx), pdffilename, 'ContentType', 'vector', 'Append', true)
+            end
+            if showwindows
+                set(f(idx), 'Visible', 'on'); already_printed(end+1)=f(idx);
+            else
                 close(f(idx))
             end
         end
     end
     fprintf('\telapsed time %.0fs', toc)
 
+
 end %for cellnum
 
-
-
-
-
-
-
+if printtofile && strcmpi(P.pdfMode, 'jpeg')
+    np=Booklet('finish', pdffilename); d=dir(pdffilename);
+    if ~isempty(d), fprintf('\nwrote %s (%d pages, %.1f MB)', pdffilename, np, d.bytes/1e6); end
+end
+if openpdf
+    if ismac
+        system(sprintf('open "%s"', pdffilename));
+    elseif ispc
+        winopen(char(pdffilename));
+    end
+end
 

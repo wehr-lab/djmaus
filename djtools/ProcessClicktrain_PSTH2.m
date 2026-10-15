@@ -96,14 +96,14 @@ if exist('Events.mat')
     load('Events.mat')
     fprintf('\nloaded Events file \n')
 else
-    [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(Sky);
+    [Events, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(BonsaiPath);
     save('Events.mat','Events')
     save('StartAcquisitionSec.mat','StartAcquisitionSec')
 end
 if exist('StartAcquisitionSec.mat')
     load('StartAcquisitionSec.mat')
 else
-    [~, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(Sky);
+    [~, StartAcquisitionSec] = GetEventsAndSCT_Timestamps2(BonsaiPath);
     save('StartAcquisitionSec.mat','StartAcquisitionSec')
 end
 
@@ -293,7 +293,7 @@ for cellnum=1:numcells;
     spiketimes= SortedUnits(cellnum).spiketimes;
 
     totalnumspikes=length(spiketimes);
-    fprintf('\nsuccessfully loaded spike data with %d spikes\n',totalnumspikes)
+    fprintf('\nsuccessfully loaded spike data with %d spikes',totalnumspikes)
 
     for i=1:length(Events)
         if strcmp(Events(i).type, 'clicktrain')
@@ -366,8 +366,8 @@ for cellnum=1:numcells;
         end
     end
 
-    fprintf('\ncell %d, total num spikes: %d', cellnum, length(spiketimes))
-    fprintf('\nIn range: %d', inRange)
+    fprintf('\ncell %d/%d, total num spikes: %d', cellnum, numcells, length(spiketimes))
+    % fprintf('\nIn range: %d', inRange)
 
 
     %accumulate across trials

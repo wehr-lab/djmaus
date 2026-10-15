@@ -161,7 +161,7 @@ switch MoveFoc
         
         Hgcf = gcf;
         clf;
-        figure(Hgcf);
+        % figure(Hgcf);
         for Pi=1:1:Ptot,
             Row = ceil(Pi./N);
             Col = Pi - (Row - 1)*N;
